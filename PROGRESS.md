@@ -9,7 +9,7 @@
 
 ## Fase actual
 
-Paso previo de pruebas reforzadas, antes de la Fase 1.
+Fase 1 pausada por una parada obligatoria de privacidad antes de modificar el flujo de cámara o continuar con cambios de producto.
 
 ## Hecho
 
@@ -28,3 +28,4 @@ Paso previo de pruebas reforzadas, antes de la Fase 1.
 
 - `data-home-carousel` no existe en la portada, aunque el carrusel principal sí funciona mediante `data-hero-carousel`. Es un efecto protegido: no se toca sin autorización expresa.
 - Los identificadores locales de MySQL (`norte_bcp`, `norte_bcp_app` y la carpeta `NorteBcpMySQL`) están en uso. No se renombrarán hasta contar con autorización y un plan de migración.
+- **Riesgo legal de privacidad:** `camera.html` afirma que el video no se transmite, pero `app.js` envía fotogramas JPEG al servidor para `POST /camera/analyze` aproximadamente cada 1.2 segundos. El flujo actual no presenta consentimiento específico ni una política de retención para esa transmisión. No se modificarán la captura, el envío ni el almacenamiento hasta definir y aprobar el diseño de privacidad de la Fase 4.
