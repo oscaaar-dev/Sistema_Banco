@@ -9,7 +9,7 @@
 
 ## Fase actual
 
-Fase 3 — sesiones, cabeceras, rate limiting y OTP para transferencias en curso. El código de OTP está listo; la revisión `b1e4a95c0f27` requiere autorización antes de aplicarse al PostgreSQL persistente de staging.
+Fase 4 — privacidad y cámara, pendiente definir el plazo exacto de retención de resultados derivados antes de cambiar el flujo o el almacenamiento.
 
 ## Hecho
 
@@ -63,6 +63,10 @@ Fase 3 — sesiones, cabeceras, rate limiting y OTP para transferencias en curso
 - **Alcance de autorización de staging:** se autorizó crear un proyecto aislado, provisionar PostgreSQL y aplicar las revisiones `c9f9cff56362` y `8d6c1a7402b1`. No se autorizó importar datos de MySQL ni configurar/desplegar la aplicación, ni tocar el proyecto/servicios productivos.
 - **Parada obligatoria actual:** cualquier migración adicional, importación de datos o cambio en variables/servicios persistentes requiere autorización expresa. La app sigue sin desplegarse en staging.
 - La MySQL anterior puede contener cuentas/datos que no existen en staging. No se ha hecho inventario de filas ni importación; no se asume que la copia sea vacía o que contenga solo datos sintéticos.
-- La app en staging no puede arrancar desde el HEAD actual hasta que `b1e4a95c0f27` cree `operation_challenges`; esa revisión aún no se ha aplicado en PostgreSQL.
+- La app en staging requiere que la revisión vigente coincida con el HEAD; `b1e4a95c0f27` ya fue aplicada y verificada tras autorización expresa.
 - Aviso operativo: una instancia ya iniciada puede seguir respondiendo con el código cargado previamente, pero el código actual se negará a arrancar contra una base persistente antigua hasta que se apruebe y aplique una migración compatible. No reiniciar el servidor local con la base actual antes de resolver ese paso.
 - **Riesgo legal de privacidad:** `camera.html` ya informa que `app.js` envía fotogramas JPEG al servidor para `POST /camera/analyze` aproximadamente cada 1.2 segundos. El flujo sigue sin consentimiento específico ni política de retención aprobada; no se modificarán captura, envío ni almacenamiento hasta definir y aprobar el diseño de privacidad de la Fase 4.
+
+## Registro de avance (continuación)
+
+- 2026-10-09 — Con autorización expresa, migración `b1e4a95c0f27` aplicada solo a `Norte-staging/staging` tras preflight de revisión `a2e7c34bd591`, 17 tablas públicas y ausencia de `operation_challenges`. Verificación: revisión `b1e4a95c0f27`, tabla con 12 columnas y 18 tablas públicas. Smoke test: arranque validó esquema, agregados en 17 tablas ORM y `GET /` respondió 200. Sin escrituras de negocio, despliegue ni cambios de producción. Fase 3 cerrada; queda pendiente el commit del registro y sus pruebas post-commit.
