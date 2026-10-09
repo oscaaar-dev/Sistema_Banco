@@ -38,6 +38,7 @@ Fase 2 — preparando migraciones versionadas; ninguna migración persistente ni
 - 2026-10-09 — La primera E2E posterior registró un 500 aislado de SQLite al cargar un recurso estático tras autenticación; la segunda ejecución completa pasó limpia (7/7). Hallazgo no reproducido, pendiente de la auditoría de Fase 8.
 - 2026-10-09 — Revisión de historia: no hay rutas `.env` rastreadas; el escaneo de 210 blobs solo detectó valores marcadores/test en `config.py`, `.env.example` y la cookie E2E. No se imprimieron valores. No hay remoto Git configurado.
 - 2026-10-09 — Añadido entorno Alembic explícito: exige `MIGRATION_DATABASE_URL`, solo permite SQLite con `APP_ENV=testing` y no usa automáticamente `DATABASE_URL`/`MYSQL_URL`. La revisión inicial se generó desde modelos con SQLite de prueba; DDL PostgreSQL también se generó offline sin conexión. La ejecución real en un Postgres de prueba queda pendiente.
+- 2026-10-09 — Commit `73f0092` validado: 34 pytest y 7 E2E aprobadas; seis capturas escritorio/móvil generadas. La revisión Alembic sube y baja solo en SQLite en memoria; el DDL PostgreSQL se generó offline. Ninguna base persistente fue conectada o modificada.
 
 ## Hallazgos abiertos
 
