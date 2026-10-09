@@ -69,7 +69,8 @@ def test_public_homepage_links_to_existing_login_and_registration():
     assert b'href="/login"' in response.data
     assert b'href="/register"' in response.data
     assert 'Operaciones desde tu espacio digital'.encode() in response.data
-    assert 'No es una entidad del sistema financiero supervisada por la SBS'.encode() in response.data
+    assert 'Norte es un proyecto académico de demostración, independiente y sin relación con el BCP'.encode() in response.data
+    assert b'SBS' not in response.data
     assert b'home-parallax' in response.data
     assert response.data.count(b'aria-roledescription="diapositiva"') == 3
     assert b'data-hero-carousel' in response.data
@@ -208,6 +209,8 @@ def test_account_statement_pdf_is_date_filtered_and_owner_scoped(monkeypatch):
     assert response.data.startswith(b'%PDF-1.4')
     assert response.data.endswith(b'%%EOF')
     assert b'NORTE.' in response.data
+    assert b'ni mueve dinero real' in response.data
+    assert b'SBS' not in response.data
     assert b'Saldo de apertura de muestra' in response.data
     assert b'Servicio del hogar' not in response.data
     assert client.get(f'/statements/{other_account_id}.pdf').status_code==404
@@ -332,7 +335,8 @@ def test_terms_and_privacy_pages_publish_legal_notice_and_links():
         response=client.get(path)
         assert response.status_code==200
         assert heading.encode() in response.data
-        assert 'No es una entidad del sistema financiero supervisada por la SBS'.encode() in response.data
+        assert 'Norte es un proyecto académico de demostración, independiente y sin relación con el BCP'.encode() in response.data
+        assert b'SBS' not in response.data
         assert b'href="/terminos"' in response.data
         assert b'href="/privacidad"' in response.data
 

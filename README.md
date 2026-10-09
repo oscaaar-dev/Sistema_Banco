@@ -1,6 +1,6 @@
 # Norte — Sistema Inteligente de Operaciones Bancarias (simulación académica)
 
-Aplicación web educativa construida con Flask y SQLAlchemy. Tiene autenticación con hash de contraseñas, roles, cuentas ficticias, transferencias/pagos/recargas simuladas, movimientos, tarjetas, auditoría y métricas básicas de interacción. **Norte es un proyecto de banca digital en desarrollo. No es una entidad del sistema financiero supervisada por la SBS.**
+Aplicación web educativa construida con Flask y SQLAlchemy. Tiene autenticación con hash de contraseñas, roles, cuentas ficticias, transferencias/pagos/recargas simuladas, movimientos, tarjetas, auditoría y métricas básicas de interacción. **Norte es un proyecto académico de demostración, independiente y sin relación con el BCP. Sus productos, saldos y operaciones son ficticios; no presta servicios financieros ni mueve dinero real.**
 
 ## Ejecutar en Windows
 

@@ -9,7 +9,7 @@ APP_ENV=os.getenv('APP_ENV','development').strip().lower()
 DATABASE_URL=os.getenv('DATABASE_URL') or os.getenv('MYSQL_URL')
 SECRET_KEY=os.getenv('SECRET_KEY')
 EMAIL_TRANSPORT=os.getenv('EMAIL_TRANSPORT','smtp').strip().lower()
-LEGAL_NOTICE='Norte es un proyecto de banca digital en desarrollo. No es una entidad del sistema financiero supervisada por la SBS.'
+LEGAL_NOTICE='Norte es un proyecto académico de demostración, independiente y sin relación con el BCP. Sus productos, saldos y operaciones son ficticios; no presta servicios financieros ni mueve dinero real.'
 if APP_ENV=='production':
     required_production_settings=['SECRET_KEY','DATABASE_URL']
     if EMAIL_TRANSPORT=='brevo_api':

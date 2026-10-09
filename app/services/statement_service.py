@@ -1,4 +1,5 @@
 from decimal import Decimal
+from config import LEGAL_NOTICE
 
 
 def _pdf_literal(value):
@@ -45,7 +46,7 @@ def _build_pdf_pages(lines):
 def account_statement_pdf(account, transactions, start_date=None, end_date=None):
     lines=[
         'NORTE. | ESTADO DE CUENTA',
-        'Proyecto de banca digital en desarrollo. No es una entidad supervisada por la SBS.',
+        LEGAL_NOTICE,
         f'Cuenta de {account.account_type} terminada en {account.number[-4:]} | Moneda {account.currency}',
         f'Periodo: {start_date or "inicio"} a {end_date or "hoy"}',
         f'Saldo actual: {account.currency} {Decimal(account.balance):,.2f}',
