@@ -9,7 +9,7 @@
 
 ## Fase actual
 
-Fase 4 — privacidad y cámara, pendiente definir el plazo exacto de retención de resultados derivados antes de cambiar el flujo o el almacenamiento.
+Fase 4 — privacidad y cámara. Consentimiento, cero persistencia facial nueva y alternativa por OTP implementados; pendientes la migración de staging y resolver el alcance del score antifraude frente a la política de cero retención.
 
 ## Hecho
 
@@ -30,8 +30,8 @@ Fase 4 — privacidad y cámara, pendiente definir el plazo exacto de retención
 ## Pendiente en el orden autorizado
 
 1. Fase 3 cerrada: migración `b1e4a95c0f27` aplicada y comprobada en staging.
-2. Fase 4: consentimiento y cámara en curso; el enfoque general fue aprobado. Falta acordar el plazo concreto de retención de resultados derivados antes de tocar almacenamiento o transmisión.
-3. Después continuar Fases 5, 8 y 9 en orden. No desplegar, importar MySQL ni cambiar servicios productivos.
+2. Fase 4: migración `b4f8a20d17c3` preparada y probada solo en SQLite de tests; requiere autorización antes de aplicarse a PostgreSQL de staging. No desplegar la app.
+3. Después completar Fase 4 y continuar Fases 5, 8 y 9 en orden. No desplegar, importar MySQL ni cambiar servicios productivos.
 
 ## Registro de avance
 
@@ -64,10 +64,13 @@ Fase 4 — privacidad y cámara, pendiente definir el plazo exacto de retención
 - **Alcance de autorización de staging:** se autorizó crear un proyecto aislado, provisionar PostgreSQL y aplicar las revisiones `c9f9cff56362` y `8d6c1a7402b1`. No se autorizó importar datos de MySQL ni configurar/desplegar la aplicación, ni tocar el proyecto/servicios productivos.
 - **Parada obligatoria actual:** cualquier migración adicional, importación de datos o cambio en variables/servicios persistentes requiere autorización expresa. La app sigue sin desplegarse en staging.
 - La MySQL anterior puede contener cuentas/datos que no existen en staging. No se ha hecho inventario de filas ni importación; no se asume que la copia sea vacía o que contenga solo datos sintéticos.
-- La app en staging requiere que la revisión vigente coincida con el HEAD; `b1e4a95c0f27` ya fue aplicada y verificada tras autorización expresa.
+- La app en staging requiere que la revisión vigente coincida con el HEAD; `b1e4a95c0f27` ya fue aplicada y verificada, pero la revisión nueva `b4f8a20d17c3` aún no se ha aplicado.
 - Aviso operativo: una instancia ya iniciada puede seguir respondiendo con el código cargado previamente, pero el código actual se negará a arrancar contra una base persistente antigua hasta que se apruebe y aplique una migración compatible. No reiniciar el servidor local con la base actual antes de resolver ese paso.
-- **Riesgo legal de privacidad:** `camera.html` ya informa que `app.js` envía fotogramas JPEG al servidor para `POST /camera/analyze` aproximadamente cada 1.2 segundos. El flujo sigue sin consentimiento específico y el plazo concreto de retención de resultados derivados está pendiente; no se modificarán captura, envío ni almacenamiento hasta acordarlo.
+- **Riesgo legal de privacidad:** el flujo exige consentimiento explícito y el código nuevo no persiste imágenes ni métricas faciales, pero conserva la transmisión actual de fotogramas al servidor cada ~1.2 s. No se inspeccionaron ni eliminaron posibles registros faciales históricos. La detección local en navegador aún no está implementada.
+- **Alcance antifraude pendiente:** el score persistido actual usa señales operativas no faciales. No se combinará una señal facial con un score persistido mientras la política aprobada sea cero persistencia de resultados faciales. Requiere rediseño privacy-preserving o una decisión expresa distinta.
 
 ## Registro de avance (continuación)
 
 - 2026-10-09 — Con autorización expresa, migración `b1e4a95c0f27` aplicada solo a `Norte-staging/staging` tras preflight de revisión `a2e7c34bd591`, 17 tablas públicas y ausencia de `operation_challenges`. Verificación: revisión `b1e4a95c0f27`, tabla con 12 columnas y 18 tablas públicas. Smoke test: arranque validó esquema, agregados en 17 tablas ORM y `GET /` respondió 200. Commit `ad65d88`; post-commit: 46 pruebas pytest y 7 E2E aprobadas; se generaron seis capturas. Sin escrituras de negocio, despliegue ni cambios de producción. Fase 3 cerrada.
+- 2026-10-09 — Commit `115eb22`: consentimiento explícito antes de enviar fotogramas; el endpoint rechaza envíos sin aceptación y las operaciones dejan de guardar métricas faciales nuevas. Capturas principales regeneradas; post-commit 47 pytest y 8 E2E aprobadas.
+- 2026-10-09 — Commit `8b4d3d4`: email OTP opcional para completar pagos/recargas sin cámara, ligado a cuenta, tipo, monto, objetivo y clave idempotente. La revisión `b4f8a20d17c3` agrega hash del objetivo y permite beneficiario nulo; subida/bajada verificada solo en SQLite de tests. Post-commit: 49 pytest y 8 E2E aprobadas. Pendiente autorización para aplicar a staging; no desplegado.
