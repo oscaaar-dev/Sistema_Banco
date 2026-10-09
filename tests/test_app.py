@@ -335,7 +335,7 @@ def test_public_cards_link_to_relevant_routes_and_personas_are_not_fake_testimon
     assert b'fotograf' in personas
     assert b'Gerencia es una referencia informativa' in personas
     assert b'no representan a empleados' in personas
-    assert personas.count(b'class="info-card-photo"') == 3
+    assert personas.count(b'class="info-card-photo info-card-photo-') == 3
     assert b'/static/team/administrador.jpg' in personas
     assert b'/static/team/gerencia.jpg' in personas
     assert b'/static/team/sistemas-soporte.jpg' in personas
