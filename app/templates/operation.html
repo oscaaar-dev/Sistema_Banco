@@ -4,6 +4,7 @@
 <div class="eyebrow dark">OPERACIÓN EN NORTE</div>
 <h1>{% if kind=='transfer' %}Nueva transferencia{% elif kind=='payment' %}Pago de servicio{% else %}Recarga móvil{% endif %}</h1>
 <p class="muted">Completa los datos para registrar una operación dentro de Norte.</p>
+{% if kind=='transfer' %}<p><a class="text-link" href="{{ url_for('main.internal_transfer') }}">¿Quieres mover saldo entre tus propias cuentas? Haz un traslado interno.</a></p>{% endif %}
 <dialog class="privacy-consent-dialog" id="operationConsentDialog" data-version="{{ camera_consent_version }}" data-kind="{{ kind }}" data-operation-key="{{ idempotency_key }}" aria-labelledby="cameraConsentTitle" aria-describedby="cameraConsentDescription">
   <div class="eyebrow dark">PRIVACIDAD Y CÁMARA</div>
   <h2 id="cameraConsentTitle">¿Deseas activar la cámara?</h2>

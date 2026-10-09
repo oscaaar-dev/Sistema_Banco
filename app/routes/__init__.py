@@ -9,7 +9,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import desc, or_
 from sqlalchemy.exc import IntegrityError
 from ..models import db, User, LoginChallenge, LoginAttemptLimit, OperationChallenge, Account, BankCard, Beneficiary, Transaction, InteractionSession, AuditLog, now_utc
-from ..services.banking_service import account_for, process_operation, log, operation_risk_for
+from ..services.banking_service import account_for, process_operation, process_internal_transfer, log, operation_risk_for
 from ..services.statement_service import account_statement_pdf
 from ..services.email_service import EmailDeliveryError, send_login_code, send_operation_code
 bp=Blueprint('main',__name__)
@@ -732,6 +732,115 @@ def send_transfer_code(kind):
         db.session.rollback()
         flash(str(error),'error')
     return redirect(url_for('main.operation',kind=kind))
+
+@bp.route('/internal-transfer',methods=['GET','POST'])
+@login_required
+def internal_transfer():
+    _require_client()
+    accounts=Account.query.filter_by(user_id=current_user.id,status='ACTIVA').order_by(Account.id).all()
+    key=request.form.get('idempotency_key','').strip() if request.method=='POST' else ''
+    if not re.fullmatch(r'[A-Za-z0-9_-]{22,64}',key):
+        key=secrets.token_urlsafe(24)
+    source_id=request.form.get('source_account_id',type=int) if request.method=='POST' else (accounts[0].id if accounts else None)
+    destination_id=request.form.get('destination_account_id',type=int) if request.method=='POST' else (accounts[1].id if len(accounts)>1 else None)
+    amount_raw=request.form.get('amount','') if request.method=='POST' else ''
+    code_sent=False
+    def render_transfer(status=200):
+        return render_template('internal_transfer.html',accounts=accounts,source_id=source_id,
+                               destination_id=destination_id,amount=amount_raw,idempotency_key=key,
+                               code_sent=code_sent,masked_email=_masked_email(current_user.email or '')),status
+    if request.method=='GET':
+        return render_transfer()
+    if len(accounts)<2:
+        flash('Necesitas dos cuentas activas a tu nombre para hacer un traslado interno.','error')
+        return render_transfer(400)
+    source=Account.query.filter_by(id=source_id,user_id=current_user.id,status='ACTIVA').first()
+    destination=Account.query.filter_by(id=destination_id,user_id=current_user.id,status='ACTIVA').first()
+    try:
+        if not re.fullmatch(r'[A-Za-z0-9_-]{22,64}',key):
+            raise ValueError('El formulario venció. Vuelve a cargarlo antes de continuar.')
+        if source is None or destination is None or source.id==destination.id:
+            raise ValueError('Selecciona dos cuentas activas distintas que estén a tu nombre.')
+        amount=Decimal(amount_raw).quantize(Decimal('0.01'))
+        if not Decimal('0.01')<=amount<=Decimal('10000'):
+            raise ValueError('El monto debe estar entre S/ 0.01 y S/ 10,000.00.')
+        if source.currency!=destination.currency:
+            raise ValueError('Las cuentas deben tener la misma moneda.')
+        duration_seconds=request.form.get('form_duration_seconds',type=int)
+        if duration_seconds is not None and not 0<=duration_seconds<=86400:
+            raise ValueError('No se pudo validar la duración del formulario.')
+        if source.balance<amount:
+            raise ValueError('Saldo insuficiente en la cuenta de origen.')
+        action=request.form.get('action')
+        if action=='send_code':
+            if not current_user.email:
+                raise ValueError('Configura un correo de seguridad antes de solicitar el código.')
+            challenge=OperationChallenge.query.filter_by(user_id=current_user.id,operation_type='TRASLADO_PROPIO').with_for_update().first()
+            now=now_utc()
+            if challenge and now-challenge.last_sent_at<OPERATION_CODE_RESEND:
+                code_sent=True
+                raise ValueError('Espera antes de solicitar otro código de seguridad.')
+            code=f'{secrets.randbelow(1_000_000):06d}'
+            if challenge is None:
+                challenge=OperationChallenge(user_id=current_user.id,operation_type='TRASLADO_PROPIO')
+                db.session.add(challenge)
+            challenge.account_id=source.id
+            challenge.beneficiary_id=None
+            challenge.amount=amount
+            challenge.idempotency_key=key
+            challenge.details_hash=_operation_details_hash('TRASLADO_PROPIO',f'destination:{destination.id}')
+            challenge.code_hash=_operation_code_hash(current_user.id,code)
+            challenge.expires_at=now+OPERATION_CODE_TTL
+            challenge.last_sent_at=now
+            challenge.attempts=0
+            challenge.consumed_at=None
+            send_operation_code(current_user.email,code,f'S/ {amount:.2f} entre tus cuentas terminadas en {source.number[-4:]} y {destination.number[-4:]}')
+            log(current_user,'INTERNAL_TRANSFER_OTP_SENT','SEGURIDAD')
+            db.session.commit()
+            code_sent=True
+            flash('Enviamos un código de seguridad al correo registrado.','success')
+        elif action=='confirm':
+            previous=Transaction.query.filter_by(account_id=source.id,idempotency_key=key,operation_type='TRANSFERENCIA').first()
+            if previous:
+                return redirect(url_for('main.receipt',transaction_id=previous.id))
+            challenge=OperationChallenge.query.filter_by(user_id=current_user.id,operation_type='TRASLADO_PROPIO').with_for_update().first()
+            now=now_utc()
+            if (not challenge or challenge.consumed_at is not None or now>=challenge.expires_at
+                    or challenge.account_id!=source.id or challenge.amount!=amount
+                    or challenge.idempotency_key!=key
+                    or not hmac.compare_digest(challenge.details_hash or '',_operation_details_hash('TRASLADO_PROPIO',f'destination:{destination.id}'))):
+                raise ValueError('Solicita un nuevo código para estas cuentas y este monto.')
+            code=request.form.get('otp_code','').strip()
+            if len(code)!=6 or not code.isascii() or not code.isdigit() or not hmac.compare_digest(
+                    challenge.code_hash,_operation_code_hash(current_user.id,code)):
+                challenge.attempts+=1
+                if challenge.attempts>=OPERATION_CODE_MAX_ATTEMPTS:
+                    challenge.consumed_at=now
+                log(current_user,'INTERNAL_TRANSFER_OTP_FAILURE','SEGURIDAD',result='RECHAZADA')
+                db.session.commit()
+                raise ValueError('El código de confirmación no es válido o venció.')
+            challenge.consumed_at=now
+            tx=process_internal_transfer(current_user,source.id,destination.id,amount,
+                                         duration_seconds=duration_seconds,idempotency_key=key)
+            session.pop('camera_consent_receipt',None)
+            flash('Traslado entre tus cuentas registrado. No tiene efectos financieros externos.','success')
+            return redirect(url_for('main.receipt',transaction_id=tx.id))
+        else:
+            raise ValueError('Selecciona una acción válida.')
+    except EmailDeliveryError:
+        db.session.rollback()
+        flash('No se pudo entregar el código de seguridad. Revisa el correo configurado o contacta a administración.','error')
+    except (ValueError,InvalidOperation) as error:
+        db.session.rollback()
+        flash(str(error),'error')
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('No se pudo registrar el traslado entre cuentas.')
+        flash('No se pudo completar el traslado. Inténtalo nuevamente.','error')
+    if request.form.get('action')=='confirm':
+        code_sent=True
+    return render_transfer()
+
 @bp.route('/receipt/<int:transaction_id>')
 @login_required
 def receipt(transaction_id):

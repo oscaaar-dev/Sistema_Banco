@@ -220,6 +220,53 @@ def test_support_role_has_aggregated_view_and_no_client_or_admin_routes():
     assert client.get('/support').status_code==403
 
 
+def test_internal_transfer_uses_email_otp_and_updates_both_owned_accounts(monkeypatch):
+    import re
+    from decimal import Decimal
+    from app.models import InteractionFeatures, Transaction
+
+    app=create_app(); app.config['TESTING']=True
+    client=app.test_client()
+    _login(client,monkeypatch)
+    with app.app_context():
+        user=User.query.filter_by(username='demo').one()
+        source=Account.query.filter_by(user_id=user.id).one()
+        destination=Account(user_id=user.id,account_type='Cuenta de ahorros',number='001234567899',
+                            balance=Decimal('50.00'),currency='PEN')
+        db.session.add(destination); db.session.commit()
+        source_id=source.id; destination_id=destination.id
+
+    delivered=[]
+    import app.routes as routes_module
+    monkeypatch.setattr(routes_module,'send_operation_code',lambda email,code,summary:delivered.append((email,code,summary)))
+    page=client.get('/internal-transfer')
+    key=re.search(rb'name="idempotency_key" value="([^"]+)"',page.data).group(1).decode()
+    base_data={
+        'csrf_token':_csrf_token(page),'idempotency_key':key,
+        'source_account_id':str(source_id),'destination_account_id':str(destination_id),
+        'amount':'10.00','form_duration_seconds':'12',
+    }
+    requested=client.post('/internal-transfer',data={**base_data,'action':'send_code'})
+    assert requested.status_code==200
+    assert delivered and '10.00' in delivered[0][2]
+    confirmed=client.post('/internal-transfer',data={**base_data,'action':'confirm','otp_code':delivered[0][1]})
+    assert confirmed.status_code==302
+    assert '/receipt/' in confirmed.headers['Location']
+    with app.app_context():
+        source=Account.query.filter_by(id=source_id).one()
+        destination=Account.query.filter_by(id=destination_id).one()
+        assert source.balance==Decimal('8530.50')
+        assert destination.balance==Decimal('60.00')
+        paired=Transaction.query.filter_by(idempotency_key=key).order_by(Transaction.account_id).all()
+        assert len(paired)==2
+        assert sorted(item.operation_type for item in paired)==['INGRESO','TRANSFERENCIA']
+        assert InteractionFeatures.query.count()==1
+    retry=client.post('/internal-transfer',data={**base_data,'action':'confirm','otp_code':delivered[0][1]})
+    assert retry.status_code==302
+    with app.app_context():
+        assert Transaction.query.filter_by(idempotency_key=key).count()==2
+
+
 def test_public_information_topics_have_separate_pages():
     app=create_app(); app.config['TESTING']=True
     client=app.test_client()
