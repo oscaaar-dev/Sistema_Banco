@@ -22,6 +22,17 @@ OPERATION_CODE_RESEND=timedelta(seconds=60)
 OPERATION_CODE_MAX_ATTEMPTS=5
 CAMERA_CONSENT_VERSION='2026-10-v1'
 
+def _home_for_role(user):
+    if user.role=='ADMINISTRADOR':
+        return url_for('main.admin')
+    if user.role=='SOPORTE':
+        return url_for('main.support')
+    return url_for('main.dashboard')
+
+def _require_client():
+    if current_user.role!='CLIENTE':
+        abort(403)
+
 def _login_attempt_hash(identifier):
     key=str(current_app.config['SECRET_KEY']).encode('utf-8')
     normalized=(identifier or '').strip().casefold()
@@ -235,7 +246,7 @@ def privacy():
 @bp.route('/login',methods=['GET','POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('main.admin' if current_user.role=='ADMINISTRADOR' else 'main.dashboard'))
+        return redirect(_home_for_role(current_user))
     if request.method=='GET' and session.get('pending_login_user_id'):
         return redirect(url_for('main.verify_login'))
     if request.method=='POST':
@@ -272,7 +283,7 @@ def login():
 @bp.route('/register',methods=['GET','POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('main.admin' if current_user.role=='ADMINISTRADOR' else 'main.dashboard'))
+        return redirect(_home_for_role(current_user))
     if request.method=='POST':
         full_name=' '.join(request.form.get('full_name','').split())
         dni=request.form.get('dni','').strip()
@@ -348,7 +359,7 @@ def register():
 @bp.route('/login/verify',methods=['GET','POST'])
 def verify_login():
     if current_user.is_authenticated:
-        return redirect(url_for('main.admin' if current_user.role=='ADMINISTRADOR' else 'main.dashboard'))
+        return redirect(_home_for_role(current_user))
     user,challenge=_pending_login()
     if not user or not challenge:
         session.pop('pending_login_user_id',None)
@@ -386,14 +397,14 @@ def verify_login():
             session['login_2fa_verified']=True
             log(user,'LOGIN','SEGURIDAD')
             db.session.commit()
-            return redirect(url_for('main.admin' if user.role=='ADMINISTRADOR' else 'main.dashboard'))
+            return redirect(_home_for_role(user))
 
     return render_template('login_verify.html',masked_email=_masked_email(user.email))
 
 @bp.route('/login/resend',methods=['POST'])
 def resend_login_code():
     if current_user.is_authenticated:
-        return redirect(url_for('main.admin' if current_user.role=='ADMINISTRADOR' else 'main.dashboard'))
+        return redirect(_home_for_role(current_user))
     user,challenge=_pending_login()
     if not user or not challenge:
         session.pop('pending_login_user_id',None)
@@ -429,6 +440,7 @@ def logout():
 @bp.route('/dashboard')
 @login_required
 def dashboard():
+    _require_client()
     account=account_for(current_user)
     recent=Transaction.query.filter_by(account_id=account.id).order_by(desc(Transaction.created_at)).limit(5).all() if account else []
     cards=BankCard.query.filter_by(user_id=current_user.id).all()
@@ -436,6 +448,7 @@ def dashboard():
 @bp.route('/movements')
 @login_required
 def movements():
+    _require_client()
     account=account_for(current_user)
     page_raw=request.args.get('page','1')
     try:
@@ -468,6 +481,7 @@ def movements():
 @bp.route('/statements/<int:account_id>.pdf')
 @login_required
 def account_statement(account_id):
+    _require_client()
     account=Account.query.filter_by(id=account_id,user_id=current_user.id).first_or_404()
     try:
         start=date.fromisoformat(request.args['from']) if request.args.get('from') else None
@@ -489,11 +503,14 @@ def account_statement(account_id):
     return response
 @bp.route('/cards')
 @login_required
-def cards(): return render_template('cards.html',cards=BankCard.query.filter_by(user_id=current_user.id).all())
+def cards():
+    _require_client()
+    return render_template('cards.html',cards=BankCard.query.filter_by(user_id=current_user.id).all())
 
 @bp.route('/cards/<int:card_id>/status',methods=['POST'])
 @login_required
 def update_card_status(card_id):
+    _require_client()
     card=BankCard.query.filter_by(id=card_id,user_id=current_user.id).first_or_404()
     target=request.form.get('status','')
     if target not in ('Activa','Bloqueada') or target==card.status:
@@ -507,6 +524,7 @@ def update_card_status(card_id):
 @bp.route('/operation-risk')
 @login_required
 def operation_risk():
+    _require_client()
     kinds={'transfer':'TRANSFERENCIA','payment':'PAGO','recharge':'RECARGA'}
     kind=kinds.get(request.args.get('kind',''))
     if not kind: abort(400)
@@ -520,6 +538,7 @@ def operation_risk():
 @bp.route('/camera/consent', methods=['POST'])
 @login_required
 def record_camera_consent():
+    _require_client()
     data=request.get_json(silent=True) or request.form
     kind=data.get('kind','')
     operation_key=data.get('idempotency_key','').strip()
@@ -545,11 +564,13 @@ def record_camera_consent():
 @bp.route('/camera/analyze', methods=['POST'])
 @login_required
 def camera_analyze():
+    _require_client()
     return jsonify(error='El análisis de cámara del servidor está deshabilitado. La vista previa es local al navegador.'),410
 
 @bp.route('/operation/<kind>',methods=['GET','POST'])
 @login_required
 def operation(kind):
+    _require_client()
     if kind not in ('transfer','payment','recharge'): abort(404)
     recipients=Beneficiary.query.filter_by(user_id=current_user.id).all(); account=account_for(current_user)
     submitted_idempotency_key=request.form.get('idempotency_key','').strip() if request.method=='POST' else ''
@@ -643,6 +664,7 @@ def operation(kind):
 @bp.route('/operation/<kind>/send-code',methods=['POST'])
 @login_required
 def send_transfer_code(kind):
+    _require_client()
     if kind not in ('transfer','payment','recharge'): abort(404)
     if not current_user.email:
         flash('Esta cuenta no tiene un correo de seguridad configurado. Contacta a la administración.','error')
@@ -713,6 +735,7 @@ def send_transfer_code(kind):
 @bp.route('/receipt/<int:transaction_id>')
 @login_required
 def receipt(transaction_id):
+    _require_client()
     tx=Transaction.query.join(Account).filter(Transaction.id==transaction_id,Account.user_id==current_user.id).first_or_404()
     return render_template('receipt.html',tx=tx)
 @bp.route('/admin')
@@ -721,3 +744,11 @@ def admin():
     if current_user.role!='ADMINISTRADOR': abort(403)
     sessions=InteractionSession.query.order_by(desc(InteractionSession.started_at)).limit(100).all()
     return render_template('admin.html',users=User.query.count(),operations=Transaction.query.count(),sessions=sessions,logs=AuditLog.query.order_by(desc(AuditLog.created_at)).limit(20).all())
+
+@bp.route('/support')
+@login_required
+def support():
+    if current_user.role!='SOPORTE':
+        abort(403)
+    events=AuditLog.query.order_by(desc(AuditLog.created_at)).limit(10).all()
+    return render_template('support.html',accounts=Account.query.count(),operations=Transaction.query.count(),events=events)

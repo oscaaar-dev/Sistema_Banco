@@ -186,6 +186,40 @@ def test_account_statement_pdf_is_date_filtered_and_owner_scoped(monkeypatch):
     assert client.get(f'/statements/{account_id}.pdf?from=2026-02-30').status_code==400
 
 
+def test_support_role_has_aggregated_view_and_no_client_or_admin_routes():
+    app=create_app(); app.config['TESTING']=True
+    with app.app_context():
+        support_user=User(username='support-agent',full_name='Agente de soporte',email='support@example.test',role='SOPORTE')
+        support_user.set_password('SupportOnly123!')
+        db.session.add(support_user)
+        db.session.commit()
+        support_id=support_user.id
+        client_user=User.query.filter_by(username='demo').one()
+        client_id=client_user.id
+    support_client=app.test_client()
+    with support_client.session_transaction() as browser_session:
+        browser_session['_user_id']=str(support_id)
+        browser_session['_fresh']=True
+        browser_session['login_2fa_verified']=True
+    panel=support_client.get('/support')
+    assert panel.status_code==200
+    assert b'Centro de soporte' in panel.data
+    assert b'support@example.test' not in panel.data
+    assert support_client.get('/admin').status_code==403
+    assert support_client.get('/dashboard').status_code==403
+    assert support_client.get('/cards').status_code==403
+    assert support_client.get('/operation/payment').status_code==403
+    assert support_client.get('/api/v1/accounts').status_code==403
+    assert support_client.get('/login').headers['Location'].endswith('/support')
+
+    client=app.test_client()
+    with client.session_transaction() as browser_session:
+        browser_session['_user_id']=str(client_id)
+        browser_session['_fresh']=True
+        browser_session['login_2fa_verified']=True
+    assert client.get('/support').status_code==403
+
+
 def test_public_information_topics_have_separate_pages():
     app=create_app(); app.config['TESTING']=True
     client=app.test_client()

@@ -30,6 +30,11 @@ def _parse_date_argument(name):
         raise ValueError(f'El parámetro {name} debe usar el formato AAAA-MM-DD.')
 
 
+def _client_access_denied():
+    if current_user.role not in ('CLIENTE','ADMINISTRADOR'):
+        return _json({'error':'Este recurso está disponible únicamente para cuentas de cliente.'},403)
+
+
 @api.get('/me')
 @login_required
 def me():
@@ -44,6 +49,9 @@ def me():
 @api.get('/accounts')
 @login_required
 def accounts():
+    denied=_client_access_denied()
+    if denied:
+        return denied
     items = Account.query.filter_by(user_id=current_user.id, status='ACTIVA').order_by(Account.id).all()
     return _json({'items': [
         {
@@ -61,6 +69,9 @@ def accounts():
 @api.get('/accounts/<int:account_id>/transactions')
 @login_required
 def transactions(account_id):
+    denied=_client_access_denied()
+    if denied:
+        return denied
     account = Account.query.filter_by(
         id=account_id, user_id=current_user.id, status='ACTIVA'
     ).first()
@@ -119,6 +130,9 @@ def transactions(account_id):
 @api.get('/accounts/<int:account_id>/transfers')
 @login_required
 def transfers(account_id):
+    denied=_client_access_denied()
+    if denied:
+        return denied
     account = Account.query.filter_by(
         id=account_id, user_id=current_user.id, status='ACTIVA'
     ).first()
