@@ -18,7 +18,7 @@ module.exports = defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: "powershell -NoProfile -Command \"$env:APP_ENV='testing'; $env:DATABASE_URL='sqlite://'; $env:PORT='5010'; python app.py\"",
+    command: "powershell -NoProfile -Command \"$env:APP_ENV='testing'; $env:DATABASE_URL='sqlite://'; $env:SECRET_KEY='playwright-test-session-only'; $env:PORT='5010'; python app.py\"",
     url: 'http://127.0.0.1:5010',
     reuseExistingServer: false,
     timeout: 30_000,
