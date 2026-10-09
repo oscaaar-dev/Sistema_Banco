@@ -68,7 +68,7 @@ def test_public_homepage_links_to_existing_login_and_registration():
     assert 'Tu día avanza.'.encode() in response.data
     assert b'href="/login"' in response.data
     assert b'href="/register"' in response.data
-    assert 'Operaciones para practicar'.encode() in response.data
+    assert 'Operaciones desde tu espacio digital'.encode() in response.data
     assert 'No es una entidad del sistema financiero supervisada por la SBS'.encode() in response.data
     assert b'home-parallax' in response.data
     assert response.data.count(b'aria-roledescription="diapositiva"') == 3
