@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import re
-from ..models import db, Account, Transaction, InteractionSession, MLResult, InteractionFeatures, TransactionStep, AuditLog, FacialAnalysis, OperationRiskAssessment
+from ..models import db, Account, Beneficiary, Transaction, Transfer, InteractionSession, MLResult, InteractionFeatures, TransactionStep, AuditLog, FacialAnalysis, OperationRiskAssessment
 from ..ai.interaction_model import cluster_interactions
 from ..ai.operation_risk import assess_operation_risk
 
@@ -48,7 +48,10 @@ def process_operation(user,kind,amount,description,beneficiary_id=None,service=N
             raise ValueError('Esta clave ya se utilizó para otra operación. Vuelve a cargar el formulario.')
     if not (Decimal('0.01')<=value<=Decimal('10000')):raise ValueError('El monto debe estar entre S/ 0.01 y S/ 10,000.00.')
     if kind in ('TRANSFERENCIA','PAGO','RECARGA') and account.balance<value:raise ValueError('Saldo insuficiente para esta operación.')
-    if kind=='TRANSFERENCIA' and not beneficiary_id:raise ValueError('Selecciona un destinatario.')
+    beneficiary=None
+    if kind=='TRANSFERENCIA':
+        beneficiary=Beneficiary.query.filter_by(id=beneficiary_id,user_id=user.id).first()
+        if beneficiary is None:raise ValueError('Selecciona un destinatario válido.')
     start=datetime.now(timezone.utc).replace(tzinfo=None)
     risk=operation_risk_for(user,kind,value,duration_seconds)
     session_duration=max(1,int(duration_seconds)) if duration_seconds is not None else 1
@@ -62,6 +65,17 @@ def process_operation(user,kind,amount,description,beneficiary_id=None,service=N
     tx=Transaction(account_id=account.id,session_id=session.id,operation_type=kind,description=description[:180],amount=-value,balance_after=account.balance,status='COMPLETADA',idempotency_key=idempotency_key)
     session.ended_at=datetime.now(timezone.utc).replace(tzinfo=None)
     db.session.add(tx)
+    db.session.flush()
+    if kind=='TRANSFERENCIA':
+        db.session.add(Transfer(
+            transaction_id=tx.id,
+            account_id=account.id,
+            beneficiary_id=beneficiary.id,
+            amount=value,
+            currency=account.currency,
+            status='REGISTRADA',
+            is_seed=tx.is_seed,
+        ))
     db.session.add(InteractionFeatures(session_id=session.id,duration_seconds=session.duration_seconds,steps=session.steps,errors=session.errors,back_actions=session.back_actions,face_detection_rate=1.0 if face_detected else 0.0,operation_type=kind))
     db.session.add(MLResult(session_id=session.id,cluster_id=None,label='Pendiente de datos suficientes',method='K-Means exploratorio'))
     log(user,kind,'OPERACIONES')

@@ -116,6 +116,22 @@ class Transaction(db.Model):
     account=db.relationship('Account',backref=db.backref('transactions',lazy=True))
     session=db.relationship('InteractionSession',backref=db.backref('transactions',lazy=True))
 
+class Transfer(db.Model):
+    """Internal record of a transfer flow; it never settles outside Norte."""
+    __tablename__='transfers'
+    id=db.Column(db.Integer,primary_key=True)
+    transaction_id=db.Column(db.Integer,db.ForeignKey('transactions.id',ondelete='CASCADE'),nullable=False,unique=True)
+    account_id=db.Column(db.Integer,db.ForeignKey('accounts.id'),nullable=False,index=True)
+    beneficiary_id=db.Column(db.Integer,db.ForeignKey('beneficiaries.id'),nullable=False,index=True)
+    amount=db.Column(db.Numeric(12,2),nullable=False)
+    currency=db.Column(db.String(3),nullable=False,default='PEN')
+    status=db.Column(db.String(30),nullable=False,default='REGISTRADA')
+    is_seed=db.Column(db.Boolean,nullable=False,default=False)
+    created_at=db.Column(db.DateTime,nullable=False,default=now_utc,index=True)
+    transaction=db.relationship('Transaction',backref=db.backref('transfer',uselist=False))
+    account=db.relationship('Account')
+    beneficiary=db.relationship('Beneficiary')
+
 class TransactionStep(db.Model):
     __tablename__='transaction_steps'
     id=db.Column(db.Integer,primary_key=True)

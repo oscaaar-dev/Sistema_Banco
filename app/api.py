@@ -6,7 +6,7 @@ from decimal import Decimal
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required
 
-from .models import Account, Transaction
+from .models import Account, Transaction, Transfer
 
 
 api = Blueprint('api', __name__, url_prefix='/api/v1')
@@ -109,6 +109,35 @@ def transactions(account_id):
                 'balance_after': format(Decimal(item.balance_after), '.2f'),
                 'currency': account.currency,
                 'status': item.status,
+                'created_at': item.created_at.isoformat(timespec='seconds') + 'Z',
+            }
+            for item in items
+        ],
+    })
+
+
+@api.get('/accounts/<int:account_id>/transfers')
+@login_required
+def transfers(account_id):
+    account = Account.query.filter_by(
+        id=account_id, user_id=current_user.id, status='ACTIVA'
+    ).first()
+    if account is None:
+        return _json({'error': 'No se encontró la cuenta solicitada.'}, 404)
+    items = Transfer.query.filter_by(account_id=account.id).order_by(
+        Transfer.created_at.desc(), Transfer.id.desc()
+    ).limit(100).all()
+    return _json({
+        'account_id': account.id,
+        'items': [
+            {
+                'id': item.id,
+                'transaction_id': item.transaction_id,
+                'beneficiary': item.beneficiary.name,
+                'amount': format(Decimal(item.amount), '.2f'),
+                'currency': item.currency,
+                'status': item.status,
+                'effect': 'SIN EFECTOS FINANCIEROS',
                 'created_at': item.created_at.isoformat(timespec='seconds') + 'Z',
             }
             for item in items
