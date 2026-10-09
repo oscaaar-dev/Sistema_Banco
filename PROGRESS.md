@@ -29,8 +29,9 @@ Fase 4 — privacidad y cámara, pendiente definir el plazo exacto de retención
 
 ## Pendiente en el orden autorizado
 
-1. Aplicar `b1e4a95c0f27` únicamente a Norte-staging/staging requiere autorización expresa; después probar el esquema actualizado y cerrar Fase 3.
-2. Continuar con Fase 4, 5, 8 y 9 en orden. En Fase 4 presentar y esperar aprobación del diseño de privacidad antes de cambiar transmisión o persistir datos biométricos. No desplegar, importar MySQL ni cambiar servicios productivos.
+1. Fase 3 cerrada: migración `b1e4a95c0f27` aplicada y comprobada en staging.
+2. Fase 4: consentimiento y cámara en curso; el enfoque general fue aprobado. Falta acordar el plazo concreto de retención de resultados derivados antes de tocar almacenamiento o transmisión.
+3. Después continuar Fases 5, 8 y 9 en orden. No desplegar, importar MySQL ni cambiar servicios productivos.
 
 ## Registro de avance
 
@@ -65,8 +66,8 @@ Fase 4 — privacidad y cámara, pendiente definir el plazo exacto de retención
 - La MySQL anterior puede contener cuentas/datos que no existen en staging. No se ha hecho inventario de filas ni importación; no se asume que la copia sea vacía o que contenga solo datos sintéticos.
 - La app en staging requiere que la revisión vigente coincida con el HEAD; `b1e4a95c0f27` ya fue aplicada y verificada tras autorización expresa.
 - Aviso operativo: una instancia ya iniciada puede seguir respondiendo con el código cargado previamente, pero el código actual se negará a arrancar contra una base persistente antigua hasta que se apruebe y aplique una migración compatible. No reiniciar el servidor local con la base actual antes de resolver ese paso.
-- **Riesgo legal de privacidad:** `camera.html` ya informa que `app.js` envía fotogramas JPEG al servidor para `POST /camera/analyze` aproximadamente cada 1.2 segundos. El flujo sigue sin consentimiento específico ni política de retención aprobada; no se modificarán captura, envío ni almacenamiento hasta definir y aprobar el diseño de privacidad de la Fase 4.
+- **Riesgo legal de privacidad:** `camera.html` ya informa que `app.js` envía fotogramas JPEG al servidor para `POST /camera/analyze` aproximadamente cada 1.2 segundos. El flujo sigue sin consentimiento específico y el plazo concreto de retención de resultados derivados está pendiente; no se modificarán captura, envío ni almacenamiento hasta acordarlo.
 
 ## Registro de avance (continuación)
 
-- 2026-10-09 — Con autorización expresa, migración `b1e4a95c0f27` aplicada solo a `Norte-staging/staging` tras preflight de revisión `a2e7c34bd591`, 17 tablas públicas y ausencia de `operation_challenges`. Verificación: revisión `b1e4a95c0f27`, tabla con 12 columnas y 18 tablas públicas. Smoke test: arranque validó esquema, agregados en 17 tablas ORM y `GET /` respondió 200. Sin escrituras de negocio, despliegue ni cambios de producción. Fase 3 cerrada; queda pendiente el commit del registro y sus pruebas post-commit.
+- 2026-10-09 — Con autorización expresa, migración `b1e4a95c0f27` aplicada solo a `Norte-staging/staging` tras preflight de revisión `a2e7c34bd591`, 17 tablas públicas y ausencia de `operation_challenges`. Verificación: revisión `b1e4a95c0f27`, tabla con 12 columnas y 18 tablas públicas. Smoke test: arranque validó esquema, agregados en 17 tablas ORM y `GET /` respondió 200. Commit `ad65d88`; post-commit: 46 pruebas pytest y 7 E2E aprobadas; se generaron seis capturas. Sin escrituras de negocio, despliegue ni cambios de producción. Fase 3 cerrada.
