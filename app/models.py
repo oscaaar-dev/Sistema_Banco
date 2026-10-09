@@ -93,6 +93,7 @@ class InteractionSession(db.Model):
 
 class Transaction(db.Model):
     __tablename__='transactions'
+    __table_args__=(db.UniqueConstraint('account_id','idempotency_key',name='uq_transactions_account_idempotency'),)
     id=db.Column(db.Integer,primary_key=True)
     account_id=db.Column(db.Integer,db.ForeignKey('accounts.id'),nullable=False,index=True)
     session_id=db.Column(db.Integer,db.ForeignKey('sessions.id'),nullable=True,index=True)
@@ -103,6 +104,7 @@ class Transaction(db.Model):
     status=db.Column(db.String(20),nullable=False,default='COMPLETADA')
     created_at=db.Column(db.DateTime,nullable=False,default=now_utc,index=True)
     is_seed=db.Column(db.Boolean,nullable=False,default=False)
+    idempotency_key=db.Column(db.String(64),nullable=True)
     account=db.relationship('Account',backref=db.backref('transactions',lazy=True))
     session=db.relationship('InteractionSession',backref=db.backref('transactions',lazy=True))
 

@@ -416,12 +416,18 @@ def camera_analyze():
 def operation(kind):
     if kind not in ('transfer','payment','recharge'): abort(404)
     recipients=Beneficiary.query.filter_by(user_id=current_user.id).all(); account=account_for(current_user)
+    submitted_idempotency_key=request.form.get('idempotency_key','').strip() if request.method=='POST' else ''
+    idempotency_key=(submitted_idempotency_key if re.fullmatch(r'[A-Za-z0-9_-]{22,64}',submitted_idempotency_key)
+                     else secrets.token_urlsafe(24))
     if request.method=='POST':
         camera_state = session.get('camera_state', {})
         camera_ok = request.form.get('camera_verified') == 'yes' and camera_state.get('ready') and (time.time() - camera_state.get('checked_at', 0) <= 10)
         if not camera_ok:
             flash('La verificación de cámara no está vigente o el rostro no es suficientemente visible. Corrige la posición y vuelve a verificar.','error')
-            return render_template('operation.html',kind=kind,recipients=recipients,account=account), 400
+            return render_template('operation.html',kind=kind,recipients=recipients,account=account,idempotency_key=idempotency_key), 400
+        if not re.fullmatch(r'[A-Za-z0-9_-]{22,64}',submitted_idempotency_key):
+            flash('El formulario venció. Vuelve a cargarlo antes de confirmar.','error')
+            return render_template('operation.html',kind=kind,recipients=recipients,account=account,idempotency_key=idempotency_key), 400
         try:
             amount=Decimal(request.form.get('amount','0'))
             duration_seconds=int(request.form.get('form_duration_seconds','0'))
@@ -434,11 +440,11 @@ def operation(kind):
                 description='Transferencia a '+recipient.name; op='TRANSFERENCIA'
             elif kind=='payment': description='Pago: '+request.form.get('service','Servicio')[:70]; op='PAGO'
             else: description='Recarga: '+request.form.get('phone','Número')[:40]; op='RECARGA'
-            tx=process_operation(current_user,op,amount,description,beneficiary_id,request.form.get('service'),True,face_detected=True,face_confidence=camera_state.get('face_confidence'),duration_seconds=duration_seconds)
+            tx=process_operation(current_user,op,amount,description,beneficiary_id,request.form.get('service'),True,face_detected=True,face_confidence=camera_state.get('face_confidence'),duration_seconds=duration_seconds,idempotency_key=idempotency_key)
             flash('Operación registrada. No tiene efectos financieros.','success')
             return redirect(url_for('main.receipt',transaction_id=tx.id))
         except (ValueError,InvalidOperation) as e: flash(str(e),'error')
-    return render_template('operation.html',kind=kind,recipients=recipients,account=account)
+    return render_template('operation.html',kind=kind,recipients=recipients,account=account,idempotency_key=idempotency_key)
 @bp.route('/receipt/<int:transaction_id>')
 @login_required
 def receipt(transaction_id):

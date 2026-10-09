@@ -7,6 +7,7 @@
 <div class="operation-layout operation-layout-camera">
   <form method="post" class="panel operation-form" id="operationForm">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
     <input type="hidden" name="camera_verified" id="cameraVerified" value="no">
     <input type="hidden" name="camera_analysis" id="cameraAnalysis" value="">
     <input type="hidden" name="form_duration_seconds" id="formDurationSeconds" value="0">

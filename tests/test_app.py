@@ -447,6 +447,7 @@ def test_completed_operation_shows_camera_and_operation_risk_separately(monkeypa
 
     operation_page=client.get('/operation/payment')
     operation_token=_csrf_token(operation_page)
+    idempotency_key=re.search(rb'name="idempotency_key" value="([^"]+)"',operation_page.data).group(1).decode()
     monkeypatch.setattr(routes_module,'analyze_frame',lambda frame:{
         'ready':True,
         'blocked':False,
@@ -473,12 +474,27 @@ def test_completed_operation_shows_camera_and_operation_risk_separately(monkeypa
 
     response=client.post('/operation/payment',data={
         'csrf_token':operation_token,
+        'idempotency_key':idempotency_key,
         'camera_verified':'yes',
         'form_duration_seconds':'240',
         'service':'Agua',
         'amount':'100',
     })
     assert response.status_code==302
+
+    retry=client.post('/operation/payment',data={
+        'csrf_token':operation_token,
+        'idempotency_key':idempotency_key,
+        'camera_verified':'yes',
+        'form_duration_seconds':'240',
+        'service':'Agua',
+        'amount':'100',
+    })
+    assert retry.status_code==302
+    assert retry.headers['Location']==response.headers['Location']
+    from app.models import Transaction
+    with app.app_context():
+        assert Transaction.query.filter_by(idempotency_key=idempotency_key).count()==1
 
     receipt=client.get(response.headers['Location'])
     assert b'Duraci\xc3\xb3n del formulario: 240 s' in receipt.data

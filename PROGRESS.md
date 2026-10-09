@@ -21,7 +21,7 @@ Fase 2 — auditando persistencia e identificando límites de migración; Fase 7
 - Captura comparativa agregada para portada, login y dashboard en escritorio y móvil. La vista local vigente es `http://127.0.0.1:5001`; la instancia anterior en el puerto 5000 quedó detenida.
 - Fase 6 validada después del commit `3312331`: 30 pruebas de pytest y 7 pruebas E2E aprobadas.
 - Fase 7: la muestra fue aprobada con “continua”. Generador reproducible: cinco perfiles, 12 meses, 64 registros por persona y saldos calculados por movimiento; registros seed con `is_seed=true`, tarjeta Luhn validada sin guardar el PAN, email `.test`, teléfonos ficticios y CCI de muestra no utilizables. Está protegido para aceptar únicamente SQLite en memoria con `APP_ENV=testing`; no se ejecutó en MySQL local ni en Railway.
-- Fase 2: la auditoría encontró que el arranque aplicaba `ALTER TABLE` y `create_all` fuera de pruebas. Se eliminó ese bootstrap automático; entornos persistentes ahora requieren un esquema ya migrado y compatible, o la app se detiene sin cambiar la base.
+- Fase 2: la auditoría encontró que el arranque aplicaba `ALTER TABLE` y `create_all` fuera de pruebas. Se eliminó ese bootstrap automático; entornos persistentes ahora requieren un esquema ya migrado y compatible, o la app se detiene sin cambiar la base. Se agregaron bloqueo de fila e idempotencia para las operaciones internas, pendientes de integración real con PostgreSQL.
 
 ## Pendiente en el orden autorizado
 
@@ -34,6 +34,7 @@ Fase 2 — auditando persistencia e identificando límites de migración; Fase 7
 - 2026-10-09 — Aprobada la muestra de Fase 7 (“continua”). Se añadió el generador restringido a SQLite de pruebas en memoria y pruebas de idempotencia/conciliación. Pendiente ejecutar las suites antes del commit.
 - 2026-10-09 — Fase 7 validada tras commits `36c21c3` y `016c4e2`: 32 pruebas pytest y 7 E2E aprobadas; incluye capturas E2E de referencia sin modificaciones visuales esperadas. Se inicia auditoría de Fase 2; no se migrará una BD persistente sin aprobación.
 - 2026-10-09 — Cambio de seguridad de arranque en Fase 2 preparado; falta validación post-commit. Advertencia: hasta aplicar una migración aprobada, una base persistente previa puede no incluir `phone`, `cci` e `is_seed`, y la aplicación actualizada se negará a iniciar en ella.
+- 2026-10-09 — Agregada clave de idempotencia por cuenta y bloqueo transaccional de la cuenta antes de registrar operaciones; el reenvío idéntico devuelve el comprobante existente. Validación centrada en SQLite; no se afirma haber probado concurrencia PostgreSQL.
 
 ## Hallazgos abiertos
 
