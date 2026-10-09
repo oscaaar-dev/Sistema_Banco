@@ -1,0 +1,77 @@
+/* Ajustes específicos del formulario de operaciones: resumen a la izquierda y cámara a la derecha. */
+.operation-layout-camera{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.operation-layout-camera>.operation-form,.operation-layout-camera>.operation-aside-camera{min-width:0;width:100%}
+.operation-form{padding:clamp(16px,2vw,25px)}
+.operation-form .form-section{width:100%;max-width:none}
+.operation-form .form-section label{width:100%}
+.account-summary{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:9px 12px;margin-top:16px;padding:13px;border:1px solid var(--line);border-radius:8px;background:#fbfcfb;min-width:0}
+.account-summary-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:9px;background:var(--mint);color:var(--green);font-size:17px}
+.account-summary-main{min-width:0}
+.account-summary-main .eyebrow{display:block;margin-bottom:4px;font-size:8px}
+.account-summary-main>b{display:block;font-size:11px;line-height:1.4}
+.account-mask{margin-left:5px;color:var(--muted);font-size:10px;font-weight:500;white-space:nowrap}
+.account-summary-balance{grid-column:2;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.account-summary-balance small{color:var(--muted);font-size:10px}
+.account-summary-balance strong{color:var(--ink);font:700 15px Manrope}
+.operation-notice{display:flex;align-items:center;gap:10px;margin-top:10px;padding:11px 12px;border:1px solid #e6ede7;border-radius:8px;background:#f3f7f4;min-width:0}
+.operation-notice>div{min-width:0}
+.operation-notice b,.operation-notice small{display:block}
+.operation-notice b{font-size:10px}
+.operation-notice small{margin-top:3px;color:var(--muted);font-size:9px;line-height:1.5}
+.operation-form .camera-required-note{margin-top:11px}
+.operation-form .operation-footer{margin-top:14px}
+.operation-aside-camera{display:flex;flex-direction:column;gap:14px;min-width:0}
+.operation-aside-camera .operation-camera{width:100%;margin:0;padding:clamp(14px,1.8vw,20px)}
+.operation-aside-camera .operation-camera-head{display:flex;align-items:center;gap:11px;margin:0}
+.operation-aside-camera .operation-camera-head>div{flex:1;min-width:0}
+.operation-aside-camera .operation-camera-head b{font-size:13px}
+.operation-aside-camera .operation-camera-head small{font-size:10px;line-height:1.4}
+.operation-aside-camera .operation-camera-body{margin-top:14px}
+.operation-aside-camera .operation-video-wrap{position:relative;width:100%;height:auto;min-height:0;max-height:none;aspect-ratio:4/3;overflow:hidden;border-radius:8px;background:#101b18}
+.operation-aside-camera .operation-video-wrap video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.operation-aside-camera .camera-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;width:100%;height:100%;max-width:none;min-height:0;padding:18px;text-align:center;white-space:normal;color:white}
+.operation-aside-camera .camera-placeholder i{font-size:30px;color:#c6ddce}
+.operation-aside-camera .camera-placeholder span{display:block;width:100%;max-width:none;font-size:12px;line-height:1.45;color:#e1ebe5}
+.operation-aside-camera .camera-placeholder small{display:block;width:100%;max-width:340px;font-size:10px;line-height:1.5;color:#a7b6ae}
+.operation-aside-camera .operation-camera-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+.operation-aside-camera .camera-status{display:block;margin-top:8px;color:var(--muted);font-size:10px;line-height:1.5}
+.operation-aside-camera .operation-camera-foot{font-size:9px;line-height:1.55}
+@media(min-width:1100px){
+ .operation-layout-camera{grid-template-columns:minmax(340px,.88fr) minmax(420px,1.12fr);gap:20px;align-items:start}
+ .operation-aside-camera{position:static;align-self:start}
+ .operation-aside-camera .operation-video-wrap{aspect-ratio:4/3}
+}
+@media(min-width:761px) and (max-width:1099px){
+ .operation-layout-camera{grid-template-columns:minmax(0,1fr);gap:16px}
+ .operation-aside-camera{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.55fr);align-items:start}
+ .operation-aside-camera .operation-camera{grid-row:span 2}
+ .operation-aside-camera .operation-video-wrap{aspect-ratio:16/9}
+ .operation-aside-camera>.privacy-banner{grid-column:2;margin-top:0}
+}
+@media(max-width:760px){
+ .operation-layout-camera{grid-template-columns:minmax(0,1fr);gap:13px}
+ .operation-aside-camera{display:flex;flex-direction:column;gap:12px}
+ .operation-aside-camera .operation-video-wrap{aspect-ratio:4/3;max-height:58vh}
+ .operation-camera-head .required-tag{font-size:8px;padding:5px 6px}
+ .account-summary{padding:11px;gap:8px}
+ .account-summary-main>b{font-size:10px}
+ .account-mask{display:block;margin:3px 0 0}
+ .account-summary-balance{grid-column:1/-1;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:9px;margin-top:2px}
+ .account-summary-balance strong{font-size:14px}
+ .operation-notice{align-items:flex-start}
+ .operation-form .operation-footer{gap:8px}
+ .operation-form .operation-footer .btn{padding:10px;font-size:10px}
+}
+@media(max-width:380px){
+ .operation-form{padding:14px}
+ .operation-form .step-indicator{gap:5px}
+ .operation-form .operation-footer{align-items:stretch;flex-direction:column-reverse}
+ .operation-form .operation-footer .btn{width:100%}
+ .operation-form .operation-footer .text-link{padding:8px;text-align:center}
+ .operation-aside-camera .operation-camera-head{gap:7px}
+ .operation-aside-camera .operation-camera-head small{font-size:9px}
+}
+.camera-analysis-box{margin:12px 0;padding:12px;border:1px solid #dfe5ee;border-radius:12px;background:#f8fafc;display:grid;gap:5px}
+.camera-analysis-box b{font-size:13px}.camera-analysis-box small{color:#5d6878;line-height:1.4}
+.camera-analysis-box[data-state="ok"]{border-color:#a8d5b5;background:#f3fbf5}.camera-analysis-box[data-state="blocked"]{border-color:#efc2c2;background:#fff7f7}
+.camera-metrics{display:flex;gap:18px;font-size:12px;color:#667085}.camera-metrics b{font-size:12px}

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Crear cuenta · Norte{% endblock %}
+{% block auth_content %}
+{% include 'auth_header.html' %}
+<main class="login-screen auth-login-screen auth-register-screen">
+  <section class="login-art auth-hero">
+    <div class="auth-orbit auth-orbit-one" data-parallax="0.08"></div>
+    <div class="auth-orbit auth-orbit-two" data-parallax="0.15"></div>
+    <div class="auth-orbit auth-orbit-three" data-parallax="0.23"></div>
+    <div class="auth-visual" aria-hidden="true">
+      <div class="auth-float-card auth-float-card-main" data-parallax="0.3">
+        <span class="auth-visual-kicker"><i class="bi bi-stars"></i> EMPIEZA CON CALMA</span>
+        <span class="auth-visual-title">Un espacio<br>hecho para ti.</span>
+        <span class="auth-visual-rule"></span>
+        <span class="auth-visual-bottom"><i class="bi bi-shield-check"></i> Saldo ficticio · Sin riesgo</span>
+      </div>
+      <div class="auth-float-card auth-float-card-small" data-parallax="0.48">
+        <span class="auth-small-icon"><i class="bi bi-wallet2"></i></span>
+        <span><b>Tu cuenta demo</b><small>Lista para explorar</small></span>
+      </div>
+      <div class="auth-spark auth-spark-one" data-parallax="0.58"><i class="bi bi-plus-lg"></i></div>
+      <div class="auth-spark auth-spark-two" data-parallax="0.38"><i class="bi bi-stars"></i></div>
+    </div>
+    <div class="art-copy"><span class="eyebrow">ÚNETE A NORTE</span><h1>Tu espacio,<br>tus finanzas.</h1><p>Crea una cuenta de demostración para explorar la experiencia.</p></div>
+    <div class="art-bottom"><span><i class="bi bi-shield-check"></i> Entorno académico seguro</span><span>01 — 03</span></div>
+  </section>
+  <section class="login-panel auth-panel">
+    <div class="login-box">
+      <div class="login-mobile-brand"><span class="brand-mark">n</span> norte.</div>
+      <div class="auth-form-heading"><span class="eyebrow dark">REGISTRO DE CLIENTE</span><h2>Crear cuenta demo</h2><p class="muted">Registra tus datos para crear una cuenta ficticia con saldo inicial cero.</p></div>
+      {% with messages=get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+      <form method="post" class="form-stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Nombre completo<input name="full_name" autocomplete="name" minlength="2" maxlength="100" required autofocus></label>
+        <label>DNI peruano<input name="dni" inputmode="numeric" autocomplete="off" pattern="[0-9]{8}" minlength="8" maxlength="8" placeholder="8 dígitos" required></label>
+        <label>Correo electrónico<input type="email" name="email" autocomplete="email" maxlength="254" placeholder="nombre@correo.com" required></label>
+        <label>Contraseña<input type="password" name="password" autocomplete="new-password" minlength="10" maxlength="64" required></label>
+        <small>10-64 caracteres; incluye mayúscula, minúscula, número y símbolo (!@#$%&amp;*+-=?). Sin espacios ni guion bajo (_).</small>
+        <label>Confirmar contraseña<input type="password" name="password_confirmation" autocomplete="new-password" minlength="10" maxlength="64" required></label>
+        <button class="btn btn-primary btn-full" type="submit">Crear cuenta <i class="bi bi-arrow-right"></i></button>
+      </form>
+      <p class="login-legal"><a class="text-link" href="{{ url_for('main.login') }}">Volver al inicio de sesión</a></p>
+      <div class="login-legal">Simulación académica con datos ficticios. No es un servicio oficial de BCP.</div>
+    </div>
+  </section>
+</main>
+{% endblock %}

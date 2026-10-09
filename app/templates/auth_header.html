@@ -1,0 +1,29 @@
+<div class="auth-promo">
+  <div class="auth-container">
+    <span><i class="bi bi-stars"></i> Una experiencia académica para explorar tus finanzas</span>
+    <span class="auth-promo-note"><i class="bi bi-shield-check"></i> Datos ficticios · No es un servicio financiero real</span>
+  </div>
+</div>
+<div class="auth-audience-bar">
+  <div class="auth-container auth-audience-inner" aria-label="Segmentos de Norte">
+    <a href="{{ url_for('main.personas') }}">Personas</a>
+    <span>PyMES</span>
+    <span>Empresas</span>
+    <span class="auth-audience-note"><i class="bi bi-shield-check"></i> Experiencia de práctica</span>
+  </div>
+</div>
+<header class="auth-site-header">
+  <div class="auth-container auth-header-inner">
+    <a class="auth-brand" href="{{ url_for('main.index') }}" aria-label="Norte, inicio">
+      <span class="auth-brand-mark"><i class="bi bi-compass-fill"></i></span>
+      <span>NORTE<span class="auth-brand-dot">.</span><small>BANCA DIGITAL DEMO</small></span>
+    </a>
+    <nav class="auth-navigation" aria-label="Navegación principal">
+      <a href="{{ url_for('main.herramientas') }}">Productos</a>
+      <a href="{{ url_for('main.herramientas') }}">Soluciones digitales</a>
+      <a href="{{ url_for('main.acerca') }}">Beneficios</a>
+      <a href="{{ url_for('main.seguridad') }}">Ayuda y educación</a>
+    </nav>
+    <a class="auth-header-link" href="{{ url_for('main.login') }}" aria-label="Banca demo"><i class="bi bi-lock-fill"></i> Banca demo</a>
+  </div>
+</header>
