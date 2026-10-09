@@ -46,6 +46,22 @@ class LoginAttemptLimit(db.Model):
     window_started_at=db.Column(db.DateTime,nullable=False,default=now_utc)
     locked_until=db.Column(db.DateTime,nullable=True)
 
+class OperationChallenge(db.Model):
+    __tablename__='operation_challenges'
+    __table_args__=(db.UniqueConstraint('user_id','operation_type',name='uq_operation_challenge_user_type'),)
+    id=db.Column(db.Integer,primary_key=True)
+    user_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='CASCADE'),nullable=False,index=True)
+    operation_type=db.Column(db.String(30),nullable=False)
+    account_id=db.Column(db.Integer,db.ForeignKey('accounts.id',ondelete='CASCADE'),nullable=False)
+    beneficiary_id=db.Column(db.Integer,db.ForeignKey('beneficiaries.id',ondelete='CASCADE'),nullable=False)
+    amount=db.Column(db.Numeric(12,2),nullable=False)
+    idempotency_key=db.Column(db.String(64),nullable=False)
+    code_hash=db.Column(db.String(64),nullable=False)
+    expires_at=db.Column(db.DateTime,nullable=False,index=True)
+    last_sent_at=db.Column(db.DateTime,nullable=False)
+    attempts=db.Column(db.Integer,nullable=False,default=0)
+    consumed_at=db.Column(db.DateTime,nullable=True)
+
 class Account(db.Model):
     __tablename__='accounts'
     id=db.Column(db.Integer,primary_key=True)

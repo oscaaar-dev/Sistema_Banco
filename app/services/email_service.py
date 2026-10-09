@@ -13,8 +13,21 @@ class EmailDeliveryError(Exception):
 
 
 def send_login_code(recipient, code):
+    _send_security_code(recipient, code, 'Tu código de acceso · Norte',
+                        'iniciar sesión en Norte')
+
+
+def send_operation_code(recipient, code, details):
+    _send_security_code(recipient, code, 'Confirma tu transferencia · Norte',
+                        'confirmar esta transferencia en Norte: '+details)
+
+
+def _send_security_code(recipient, code, subject, purpose):
+    body=(f'Tu código de seguridad para {purpose} es: {code}\n\n'
+          'Vence en 5 minutos. Si no solicitaste este código, ignora este mensaje.\n'
+          + current_app.config['LEGAL_NOTICE'])
     if current_app.config.get('EMAIL_TRANSPORT')=='brevo_api':
-        _send_with_brevo_api(recipient,code)
+        _send_with_brevo_api(recipient, subject, body)
         return
 
     host=current_app.config.get('SMTP_HOST')
@@ -34,15 +47,10 @@ def send_login_code(recipient, code):
         raise EmailDeliveryError('SMTP está incompleto o la configuración de cifrado no es válida.')
 
     message=EmailMessage()
-    message['Subject']='Tu código de acceso · Norte'
+    message['Subject']=subject
     message['From']=sender
     message['To']=recipient
-    message.set_content(
-        'Tu código de seguridad para iniciar sesión en Norte es: '
-        f'{code}\n\n'
-        'Vence en 5 minutos. Si no solicitaste este código, ignora este mensaje.\n'
-        + current_app.config['LEGAL_NOTICE']
-    )
+    message.set_content(body)
 
     try:
         context=ssl.create_default_context()
@@ -61,7 +69,7 @@ def send_login_code(recipient, code):
         raise EmailDeliveryError('No se pudo entregar el código de acceso por correo.') from error
 
 
-def _send_with_brevo_api(recipient,code):
+def _send_with_brevo_api(recipient,subject,body):
     api_key=current_app.config.get('BREVO_API_KEY')
     sender=current_app.config.get('SMTP_FROM')
     if not api_key or not sender:
@@ -70,13 +78,8 @@ def _send_with_brevo_api(recipient,code):
     payload={
         'sender':{'email':sender,'name':'Norte'},
         'to':[{'email':recipient}],
-        'subject':'Tu código de acceso · Norte',
-        'textContent':(
-            'Tu código de seguridad para iniciar sesión en Norte es: '
-            f'{code}\n\n'
-            'Vence en 5 minutos. Si no solicitaste este código, ignora este mensaje.\n'
-            + current_app.config['LEGAL_NOTICE']
-        ),
+        'subject':subject,
+        'textContent':body,
     }
     request=Request(
         'https://api.brevo.com/v3/smtp/email',

@@ -4,6 +4,16 @@
 <div class="eyebrow dark">OPERACIÓN EN NORTE</div>
 <h1>{% if kind=='transfer' %}Nueva transferencia{% elif kind=='payment' %}Pago de servicio{% else %}Recarga móvil{% endif %}</h1>
 <p class="muted">Completa los datos para registrar una operación dentro de Norte.</p>
+{% if kind=='transfer' %}
+<form method="post" action="{{ url_for('main.send_transfer_code') }}" class="panel transfer-code-request" id="transferCodeForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="beneficiary_id">
+  <input type="hidden" name="amount">
+  <input type="hidden" name="idempotency_key">
+  <div><b>Confirma la transferencia por correo</b><small>Enviaremos un código de un solo uso a {{ masked_email }} para el destinatario y monto indicados.</small></div>
+  <button class="btn btn-outline btn-small" type="submit">Enviar código</button>
+</form>
+{% endif %}
 <div class="operation-layout operation-layout-camera">
   <form method="post" class="panel operation-form" id="operationForm">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -22,6 +32,7 @@
       <label>Número de celular<input name="phone" inputmode="tel" minlength="7" maxlength="15" placeholder="Número de celular" required></label>
       {% endif %}
       <label>Monto a {% if kind=='transfer' %}transferir{% elif kind=='payment' %}pagar{% else %}recargar{% endif %}<div class="amount-input"><span>S/</span><input type="number" name="amount" min="0.01" max="10000" step="0.01" placeholder="0.00" required></div><small>Máximo por operación: S/ 10,000.00</small></label>
+      {% if kind=='transfer' %}<label>Código de confirmación<input name="otp_code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" placeholder="000000" required><small>Código enviado a {{ masked_email }}. Vence en cinco minutos.</small></label>{% endif %}
     </div>
     <section class="operation-notice risk-preview" id="riskPreview" data-risk-url="{{ url_for('main.operation_risk') }}" data-kind="{{ kind }}" aria-live="polite">
       <span class="soft-icon"><i class="bi bi-shield-exclamation"></i></span>

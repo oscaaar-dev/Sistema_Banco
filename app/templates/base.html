@@ -84,5 +84,8 @@
   <script src="{{ url_for('static',filename='js/auth.js',v='auth-parallax-2') }}"></script>
   {% endif %}
   <script src="{{ url_for('static',filename='js/app.js',v='camera-layout-4') }}"></script>
+  {% if request.endpoint=='main.operation' and request.view_args.kind=='transfer' %}
+  <script src="{{ url_for('static',filename='js/transfer-auth.js',v='transfer-auth-1') }}"></script>
+  {% endif %}
 </body>
 </html>

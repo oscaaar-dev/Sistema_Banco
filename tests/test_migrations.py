@@ -17,10 +17,10 @@ def test_initial_migration_up_and_down_only_on_test_sqlite(monkeypatch):
         migration_config.attributes['connection']=connection
         command.upgrade(migration_config,'head')
         tables=set(inspect(connection).get_table_names())
-        assert {'users','accounts','transactions','cards','beneficiaries','login_challenges'}<=tables
+        assert {'users','accounts','transactions','cards','beneficiaries','login_challenges','transfers','operation_challenges'}<=tables
         assert 'alembic_version' in tables
         command.downgrade(migration_config,'base')
         remaining=set(inspect(connection).get_table_names())
-        assert not {'users','accounts','transactions','cards','beneficiaries','login_challenges'}&remaining
+        assert not {'users','accounts','transactions','cards','beneficiaries','login_challenges','transfers','operation_challenges'}&remaining
 
     engine.dispose()

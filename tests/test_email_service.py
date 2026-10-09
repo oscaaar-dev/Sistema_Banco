@@ -64,3 +64,20 @@ def test_login_code_email_rejects_unconfigured_smtp():
     )
     with app.app_context(),pytest.raises(EmailDeliveryError):
         email_service.send_login_code('user@example.test','123456')
+
+
+def test_transfer_confirmation_uses_brevo_adapter_and_includes_details(monkeypatch):
+    app=create_app()
+    app.config.update(EMAIL_TRANSPORT='brevo_api',BREVO_API_KEY='test-api-key',SMTP_FROM='sender@example.test')
+    sent={}
+    monkeypatch.setattr(email_service,'_send_with_brevo_api',
+                        lambda recipient,subject,body:sent.update(recipient=recipient,subject=subject,body=body))
+
+    with app.app_context():
+        email_service.send_operation_code('user@example.test','123456','S/ 12.34 a Cliente ···· 7890')
+
+    assert sent['recipient']=='user@example.test'
+    assert sent['subject']=='Confirma tu transferencia · Norte'
+    assert '123456' in sent['body']
+    assert 'S/ 12.34 a Cliente' in sent['body']
+    assert 'Vence en 5 minutos' in sent['body']
