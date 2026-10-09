@@ -11,5 +11,7 @@ instance/*.db
 .ruff_cache/
 .coverage
 htmlcov/
+playwright-report/
+test-results/
 *.log
 .DS_Store
