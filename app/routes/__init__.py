@@ -1,7 +1,7 @@
 import hashlib
 import hmac
 import secrets
-from datetime import timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 import re
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, abort, jsonify, session
@@ -435,8 +435,34 @@ def dashboard():
 @bp.route('/movements')
 @login_required
 def movements():
-    account=account_for(current_user); items=Transaction.query.filter_by(account_id=account.id).order_by(desc(Transaction.created_at)).all() if account else []
-    return render_template('movements.html',items=items,account=account)
+    account=account_for(current_user)
+    page_raw=request.args.get('page','1')
+    try:
+        page=int(page_raw)
+        start=date.fromisoformat(request.args['from']) if request.args.get('from') else None
+        end=date.fromisoformat(request.args['to']) if request.args.get('to') else None
+    except (TypeError,ValueError):
+        abort(400)
+    operation_type=request.args.get('type','').strip().upper()
+    valid_types={'INGRESO','TRANSFERENCIA','PAGO','RECARGA'}
+    if page<1 or (operation_type and operation_type not in valid_types) or (start and end and start>end):
+        abort(400)
+    query=Transaction.query.filter_by(account_id=account.id) if account else Transaction.query.filter(db.false())
+    if operation_type:
+        query=query.filter_by(operation_type=operation_type)
+    if start:
+        query=query.filter(Transaction.created_at>=datetime.combine(start,time.min))
+    if end:
+        query=query.filter(Transaction.created_at<datetime.combine(end+timedelta(days=1),time.min))
+    per_page=20
+    total=query.count()
+    pages=max(1,(total+per_page-1)//per_page)
+    if page>pages:
+        page=pages
+    items=query.order_by(desc(Transaction.created_at),desc(Transaction.id)).offset((page-1)*per_page).limit(per_page).all()
+    return render_template('movements.html',items=items,account=account,page=page,pages=pages,total=total,
+                           selected_type=operation_type,start_date=start.isoformat() if start else '',
+                           end_date=end.isoformat() if end else '')
 @bp.route('/cards')
 @login_required
 def cards(): return render_template('cards.html',cards=BankCard.query.filter_by(user_id=current_user.id).all())

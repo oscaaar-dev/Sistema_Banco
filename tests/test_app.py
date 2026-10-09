@@ -82,6 +82,39 @@ def test_public_homepage_links_to_existing_login_and_registration():
         assert b'href="' + path + b'"' in response.data
 
 
+def test_movements_screen_filters_dates_and_paginates(monkeypatch):
+    from datetime import datetime, timedelta
+    from decimal import Decimal
+    from app.models import Transaction
+
+    app=create_app(); app.config['TESTING']=True
+    client=app.test_client()
+    _login(client,monkeypatch)
+    with app.app_context():
+        user=User.query.filter_by(username='demo').one()
+        account=Account.query.filter_by(user_id=user.id).one()
+        anchor=datetime(2026,1,1)
+        for index in range(22):
+            db.session.add(Transaction(
+                account_id=account.id,operation_type='PAGO',description=f'Pago de prueba {index}',
+                amount=Decimal('-1.00'),balance_after=Decimal('100.00'),status='COMPLETADA',
+                created_at=anchor+timedelta(days=index),
+            ))
+        db.session.commit()
+
+    first=client.get('/movements')
+    assert first.status_code==200
+    assert b'25 registros' in first.data
+    assert 'Página 1 de 2'.encode() in first.data
+    second=client.get('/movements?page=2&type=PAGO&from=2026-01-01&to=2026-01-22')
+    assert second.status_code==200
+    assert b'Pago de prueba 0' in second.data
+    assert 'Página 2 de 2'.encode() in second.data
+    assert client.get('/movements?type=DESCONOCIDO').status_code==400
+    assert client.get('/movements?from=2026-02-30').status_code==400
+    assert client.get('/movements?from=2026-02-20&to=2026-02-01').status_code==400
+
+
 def test_public_information_topics_have_separate_pages():
     app=create_app(); app.config['TESTING']=True
     client=app.test_client()
