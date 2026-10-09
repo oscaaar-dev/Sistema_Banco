@@ -9,7 +9,7 @@
 
 ## Fase actual
 
-Fase 2 — auditando persistencia e identificando límites de migración; Fase 7 implementada y validada solo en SQLite de pruebas.
+Fase 2 — preparando migraciones versionadas; ninguna migración persistente ni conexión a Railway se ha ejecutado.
 
 ## Hecho
 
@@ -21,7 +21,7 @@ Fase 2 — auditando persistencia e identificando límites de migración; Fase 7
 - Captura comparativa agregada para portada, login y dashboard en escritorio y móvil. La vista local vigente es `http://127.0.0.1:5001`; la instancia anterior en el puerto 5000 quedó detenida.
 - Fase 6 validada después del commit `3312331`: 30 pruebas de pytest y 7 pruebas E2E aprobadas.
 - Fase 7: la muestra fue aprobada con “continua”. Generador reproducible: cinco perfiles, 12 meses, 64 registros por persona y saldos calculados por movimiento; registros seed con `is_seed=true`, tarjeta Luhn validada sin guardar el PAN, email `.test`, teléfonos ficticios y CCI de muestra no utilizables. Está protegido para aceptar únicamente SQLite en memoria con `APP_ENV=testing`; no se ejecutó en MySQL local ni en Railway.
-- Fase 2: la auditoría encontró que el arranque aplicaba `ALTER TABLE` y `create_all` fuera de pruebas. Se eliminó ese bootstrap automático; entornos persistentes ahora requieren un esquema ya migrado y compatible, o la app se detiene sin cambiar la base. Se agregaron bloqueo de fila e idempotencia para las operaciones internas, pendientes de integración real con PostgreSQL.
+- Fase 2: la auditoría encontró que el arranque aplicaba `ALTER TABLE` y `create_all` fuera de pruebas. Se eliminó ese bootstrap automático; entornos persistentes ahora requieren un esquema ya migrado y compatible, o la app se detiene sin cambiar la base. Se agregaron bloqueo de fila e idempotencia por cuenta para las operaciones internas, validados solo con SQLite. Se preparó Alembic y la revisión inicial `c9f9cff56362`; subida y bajada se probaron exclusivamente en SQLite en memoria. La integración PostgreSQL y migración de datos siguen pendientes.
 
 ## Pendiente en el orden autorizado
 
@@ -33,12 +33,17 @@ Fase 2 — auditando persistencia e identificando límites de migración; Fase 7
 - 2026-10-09 — Fase 6 cerrada; 30 pruebas de pytest y 7 pruebas E2E aprobadas; seis capturas generadas y comparadas. Muestra de Fase 7 lista; detenida para aprobación previa a generar datos.
 - 2026-10-09 — Aprobada la muestra de Fase 7 (“continua”). Se añadió el generador restringido a SQLite de pruebas en memoria y pruebas de idempotencia/conciliación. Pendiente ejecutar las suites antes del commit.
 - 2026-10-09 — Fase 7 validada tras commits `36c21c3` y `016c4e2`: 32 pruebas pytest y 7 E2E aprobadas; incluye capturas E2E de referencia sin modificaciones visuales esperadas. Se inicia auditoría de Fase 2; no se migrará una BD persistente sin aprobación.
-- 2026-10-09 — Cambio de seguridad de arranque en Fase 2 preparado; falta validación post-commit. Advertencia: hasta aplicar una migración aprobada, una base persistente previa puede no incluir `phone`, `cci` e `is_seed`, y la aplicación actualizada se negará a iniciar en ella.
-- 2026-10-09 — Agregada clave de idempotencia por cuenta y bloqueo transaccional de la cuenta antes de registrar operaciones; el reenvío idéntico devuelve el comprobante existente. Validación centrada en SQLite; no se afirma haber probado concurrencia PostgreSQL.
+- 2026-10-09 — Commit `78fde02`: el arranque persistente dejó de alterar esquema automáticamente; 33 pruebas pytest y 7 E2E aprobadas.
+- 2026-10-09 — Commit `71796e3`: agregada clave de idempotencia por cuenta y bloqueo transaccional antes de registrar operaciones; el reenvío idéntico devuelve el comprobante existente. Post-commit: 33 pytest y 7 E2E aprobadas. No se afirma haber probado concurrencia PostgreSQL.
+- 2026-10-09 — La primera E2E posterior registró un 500 aislado de SQLite al cargar un recurso estático tras autenticación; la segunda ejecución completa pasó limpia (7/7). Hallazgo no reproducido, pendiente de la auditoría de Fase 8.
+- 2026-10-09 — Revisión de historia: no hay rutas `.env` rastreadas; el escaneo de 210 blobs solo detectó valores marcadores/test en `config.py`, `.env.example` y la cookie E2E. No se imprimieron valores. No hay remoto Git configurado.
+- 2026-10-09 — Añadido entorno Alembic explícito: exige `MIGRATION_DATABASE_URL`, solo permite SQLite con `APP_ENV=testing` y no usa automáticamente `DATABASE_URL`/`MYSQL_URL`. La revisión inicial se generó desde modelos con SQLite de prueba; DDL PostgreSQL también se generó offline sin conexión. La ejecución real en un Postgres de prueba queda pendiente.
 
 ## Hallazgos abiertos
 
 - `data-home-carousel` no existe en la portada, aunque el carrusel principal sí funciona mediante `data-hero-carousel`. Es un efecto protegido: no se toca sin autorización expresa.
 - Los identificadores locales de MySQL (`norte_bcp`, `norte_bcp_app` y la carpeta `NorteBcpMySQL`) están en uso. No se renombrarán hasta contar con autorización y un plan de migración.
-- La aplicación sigue configurada para MySQL en el despliegue anterior; no hay migraciones versionadas todavía. Fase 2 requiere decidir y preparar migración hacia PostgreSQL antes de poder iniciar una copia nueva con el esquema actual.
+- La aplicación sigue configurada para MySQL en el despliegue anterior. Existe una revisión inicial, pero aún no hay revisión de datos para mover registros de MySQL a PostgreSQL ni se ha probado contra PostgreSQL.
+- **Parada obligatoria pendiente:** antes de crear/vincular un servicio PostgreSQL en Railway, aplicar una migración fuera de SQLite de pruebas o trasladar los datos de MySQL se requiere autorización explícita. No se ha conectado, migrado, cambiado variables ni desplegado.
+- Aviso operativo: una instancia ya iniciada puede seguir respondiendo con el código cargado previamente, pero el código actual se negará a arrancar contra una base persistente antigua hasta que se apruebe y aplique una migración compatible. No reiniciar el servidor local con la base actual antes de resolver ese paso.
 - **Riesgo legal de privacidad:** `camera.html` ya informa que `app.js` envía fotogramas JPEG al servidor para `POST /camera/analyze` aproximadamente cada 1.2 segundos. El flujo sigue sin consentimiento específico ni política de retención aprobada; no se modificarán captura, envío ni almacenamiento hasta definir y aprobar el diseño de privacidad de la Fase 4.
