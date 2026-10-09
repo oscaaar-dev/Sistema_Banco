@@ -1,4 +1,4 @@
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_login import LoginManager, current_user, logout_user
 from flask_wtf.csrf import CSRFProtect
 from pathlib import Path
@@ -42,6 +42,19 @@ def create_app(config_overrides=None):
     db.init_app(app); login_manager.init_app(app); csrf.init_app(app)
     from .routes import bp
     app.register_blueprint(bp)
+    from .api import api
+    app.register_blueprint(api)
+
+    @login_manager.unauthorized_handler
+    def unauthorized_api_response():
+        if request.path.startswith('/api/v1/'):
+            response=jsonify(error='Debes iniciar sesión para consultar este recurso.')
+            response.status_code=401
+            response.headers['Cache-Control']='no-store'
+            return response
+        flash(login_manager.login_message,'info')
+        return redirect(url_for(login_manager.login_view, next=request.url))
+
     @app.context_processor
     def inject_brand_context():
         return {'norte_legal_notice':app.config['LEGAL_NOTICE']}
