@@ -209,15 +209,15 @@
 .home-promo-layout{display:grid;grid-template-columns:1.02fr .98fr;gap:20px;align-items:stretch}
 .home-promo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(246px,1fr));gap:16px}
 .home-promo-card,.home-promo-feature{position:relative;overflow:hidden;border:1px solid #e8edf5;border-radius:16px;box-shadow:0 14px 36px #12366e12;transform:perspective(1000px) rotateX(var(--promo-rotate-x,0deg)) rotateY(var(--promo-rotate-y,0deg)) translateY(var(--promo-lift,0px));transition:transform .22s ease,box-shadow .25s ease,border-color .25s;will-change:transform}
-.home-promo-card{display:flex;flex-direction:column;justify-content:space-between;min-height:246px;padding:19px 20px 18px;background:#fff}
+.home-promo-card{display:grid;grid-template-rows:auto 88px auto;row-gap:6px;min-height:246px;padding:19px 20px 18px;background:#fff}
 .home-promo-card:hover,.home-promo-feature:hover{--promo-lift:-5px;box-shadow:0 24px 52px #12366e20;border-color:#d9e4f3}
 .promo-card-orange{background:linear-gradient(145deg,#fff8f1,#ffeadc)}
 .promo-card-blue{background:linear-gradient(145deg,#f0f6ff,#dfeaff)}
 .promo-card-indigo{background:linear-gradient(145deg,#f0f1ff,#e4e7ff)}
 .promo-card-mint{background:linear-gradient(145deg,#eff9f5,#ddf1e9)}
 .home-promo-label{position:relative;z-index:2;font-size:8px;font-weight:800;letter-spacing:.13em;color:#64748b}
-.home-promo-art{position:absolute;inset:37px 0 65px;display:grid;place-items:center;overflow:hidden;pointer-events:none}
-.home-promo-art>i{position:relative;z-index:1;display:grid;place-items:center;width:100px;height:100px;border:1px solid #ffffff9c;border-radius:29px;background:#ffffffa8;color:#164c9f;font-size:43px;box-shadow:0 15px 34px #193d721c;transform:rotate(-9deg);transition:transform .35s}
+.home-promo-art{position:relative;inset:auto;display:grid;place-items:center;min-height:0;overflow:hidden;pointer-events:none}
+.home-promo-art>i{position:relative;z-index:1;display:grid;place-items:center;width:78px;height:78px;border:1px solid #ffffff9c;border-radius:25px;background:#ffffffa8;color:#164c9f;font-size:36px;box-shadow:0 15px 34px #193d721c;transform:rotate(-9deg);transition:transform .35s}
 .home-promo-card:hover .home-promo-art>i{transform:rotate(0) scale(1.08)}
 .promo-card-orange .home-promo-art>i{color:#e86f27}
 .promo-card-indigo .home-promo-art>i{color:#6158bf}
@@ -225,7 +225,7 @@
 .promo-orbit{position:absolute;border:1px solid #154b9f24;border-radius:50%}
 .promo-orbit-one{width:170px;height:170px;transform:rotate(-25deg)}
 .promo-orbit-two{width:220px;height:120px;transform:rotate(28deg)}
-.home-promo-copy{position:relative;z-index:2;margin-top:auto}
+.home-promo-copy{position:relative;z-index:2;margin-top:0}
 .home-promo-copy h3{font:750 15px/1.3 Manrope,sans-serif;letter-spacing:-.025em;color:#123775;margin:0 0 5px}
 .home-promo-copy p{max-width:290px;font-size:10px;line-height:1.5;color:#66758c;margin:0}
 .home-promo-copy>a,.home-promo-feature-copy>a{display:inline-flex;align-items:center;gap:8px;margin-top:12px;color:#174ba4;font-size:10px;font-weight:800}
@@ -266,7 +266,7 @@
 .home-promo-card[data-parallax-card],.home-promo-feature[data-parallax-card]{transform:perspective(1000px) rotateX(var(--promo-rotate-x,0deg)) rotateY(var(--promo-rotate-y,0deg)) translateY(var(--promo-lift,0px))}
 .home-promo-card[data-parallax-card],.home-promo-feature[data-parallax-card]{transition:transform .16s ease-out,box-shadow .25s,border-color .25s}
 @media(max-width:1000px){.home-promo-layout{grid-template-columns:1fr}.home-promo-feature{min-height:470px}.home-promo-heading{align-items:flex-start;flex-direction:column}.home-promo-note{max-width:none}.home-promo-grid{grid-template-rows:repeat(2,minmax(220px,1fr))}}
-@media(max-width:700px){.home-promotions{padding:54px 0 60px}.home-promo-heading{gap:15px;margin-bottom:20px}.home-promo-heading h2{font-size:27px}.home-promo-grid{gap:10px;grid-template-rows:repeat(2,minmax(210px,1fr))}.home-promo-card{min-height:210px;padding:14px}.home-promo-art>i{width:72px;height:72px;border-radius:23px;font-size:32px}.home-promo-copy h3{font-size:12px}.home-promo-copy p{font-size:9px}.home-promo-copy>a{font-size:9px}.home-promo-feature{min-height:430px}.home-promo-feature-art{min-height:260px}.home-promo-feature-copy{padding:20px}.home-how{padding:54px 0 60px}.home-how-grid{grid-template-columns:1fr;gap:11px}.home-how-card{min-height:0;padding:20px}.home-how-card h3{margin-top:17px}.home-promo-card[data-parallax-card],.home-promo-feature[data-parallax-card]{transform:none!important}}
+@media(max-width:700px){.home-promotions{padding:54px 0 60px}.home-promo-heading{gap:15px;margin-bottom:20px}.home-promo-heading h2{font-size:27px}.home-promo-grid{gap:10px;grid-template-rows:repeat(2,minmax(210px,1fr))}.home-promo-card{grid-template-rows:auto 74px auto;min-height:210px;padding:14px;row-gap:5px}.home-promo-art>i{width:68px;height:68px;border-radius:21px;font-size:30px}.home-promo-copy h3{font-size:12px}.home-promo-copy p{font-size:9px}.home-promo-copy>a{font-size:9px}.home-promo-feature{min-height:430px}.home-promo-feature-art{min-height:260px}.home-promo-feature-copy{padding:20px}.home-how{padding:54px 0 60px}.home-how-grid{grid-template-columns:1fr;gap:11px}.home-how-card{min-height:0;padding:20px}.home-how-card h3{margin-top:17px}.home-promo-card[data-parallax-card],.home-promo-feature[data-parallax-card]{transform:none!important}}
 @media(prefers-reduced-motion:reduce){.home-promo-card,.home-promo-feature,.home-promo-card:hover,.home-promo-feature:hover,.home-how-card{transform:none;transition:none}.home-promo-feature:hover .promo-feature-phone,.home-promo-card:hover .home-promo-art>i{transform:none}}
 @media(max-width:1100px) and (min-width:701px){.home-header{height:auto}.home-header-inner{min-height:76px;height:auto;padding-top:11px;padding-bottom:11px;flex-wrap:wrap;gap:10px 18px}.home-nav{order:3;flex:1 0 100%;justify-content:center;margin:0;padding-top:8px;border-top:1px solid #edf0f5}.home-header-actions{margin-left:auto}.home-carousel-autoplay-note{display:none}}
 .home-hero{overflow:hidden}

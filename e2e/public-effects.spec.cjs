@@ -48,6 +48,24 @@ test('el parallax responde al desplazamiento y las secciones se revelan', async 
   await expect(reveal).toHaveClass(/home-is-visible/);
 });
 
+test('las ilustraciones de las tarjetas de inicio no cubren el texto en escritorio ni móvil', async ({ page }) => {
+  const cards = page.locator('.home-promo-card');
+  await expect(cards).toHaveCount(4);
+
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    for (const card of await cards.all()) {
+      const art = await card.locator('.home-promo-art').boundingBox();
+      const copy = await card.locator('.home-promo-copy').boundingBox();
+      expect(art, 'la ilustración debe tener un área visible').not.toBeNull();
+      expect(copy, 'el texto debe tener un área visible').not.toBeNull();
+      const overlaps = art.x < copy.x + copy.width && art.x + art.width > copy.x &&
+        art.y < copy.y + copy.height && art.y + art.height > copy.y;
+      expect(overlaps, `ilustración y texto separados en ${viewport.width}px`).toBe(false);
+    }
+  }
+});
+
 test('el parallax del inicio de sesión responde al puntero', async ({ page }) => {
   await page.goto('/login');
   const hero = page.locator('.auth-hero');
