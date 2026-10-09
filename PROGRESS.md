@@ -9,7 +9,7 @@
 
 ## Fase actual
 
-Fase 3 — controles de sesión, cabeceras y límite de intentos implementados en código; ambas migraciones están aplicadas en el PostgreSQL aislado de staging. La aplicación aún no está configurada ni desplegada allí.
+Fase 2 — backend PostgreSQL y contrato REST implementados en código; la migración `a2e7c34bd591` para registrar transferencias está preparada, pero requiere aprobación antes de aplicarla al PostgreSQL persistente de staging. Después de ese paso sigue pendiente conectar/desplegar la aplicación, que también requiere aprobación.
 
 ## Hecho
 
@@ -23,11 +23,13 @@ Fase 3 — controles de sesión, cabeceras y límite de intentos implementados e
 - Fase 7: la muestra fue aprobada con “continua”. Generador reproducible: cinco perfiles, 12 meses, 64 registros por persona y saldos calculados por movimiento; registros seed con `is_seed=true`, tarjeta Luhn validada sin guardar el PAN, email `.test`, teléfonos ficticios y CCI de muestra no utilizables. Está protegido para aceptar únicamente SQLite en memoria con `APP_ENV=testing`; no se ejecutó en MySQL local ni en Railway.
 - Fase 2: la auditoría encontró que el arranque aplicaba `ALTER TABLE` y `create_all` fuera de pruebas. Se eliminó ese bootstrap automático; entornos persistentes ahora requieren un esquema ya migrado y compatible, o la app se detiene sin cambiar la base. Se agregaron bloqueo de fila e idempotencia por cuenta para las operaciones internas, validados solo con SQLite. Se preparó Alembic y la revisión inicial `c9f9cff56362`; subida y bajada se probaron exclusivamente en SQLite en memoria. La integración PostgreSQL y migración de datos siguen pendientes.
 - Fase 3 en curso: tras OTP, la sesión queda marcada como permanente con vencimiento de 30 minutos y sin renovación por cada petición. Se agregaron `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` y HSTS solo cuando cookies seguras y proxy HTTPS están presentes. Se añadió bloqueo persistente de 15 minutos tras cinco intentos fallidos por identificador, guardando solo HMAC y registrando fallos sin identificador. La migración `8d6c1a7402b1` quedó aplicada y verificada en el PostgreSQL aislado de staging.
+- Fase 2: API autenticada de solo lectura bajo `/api/v1` para perfil, cuentas, movimientos paginados/filtrados y transferencias; aislamiento por propietario, validación de parámetros, montos serializados como cadenas decimales y `Cache-Control: no-store`. Se agregó persistencia transaccional de transferencias simuladas, ligada a movimiento/cuenta/beneficiario e idempotente. Los flujos no liquidan fuera del sistema.
+- El esquema staging previo a la revisión nueva coincidió con los 15 modelos existentes; `create_app` inició con ese esquema y las consultas agregadas ORM pasaron en modo staging sin filas leídas/devueltas ni escrituras. Esto fue antes de incorporar `transfers`; el HEAD actual requiere aplicar `a2e7c34bd591` para que la validación de esquema permita iniciar.
 
 ## Pendiente en el orden autorizado
 
-1. Fase 2 restante (API, compatibilidad y eventual traslado de datos), completar Fase 3 y seguir con fases 4, 5, 8 y 9 en orden.
-2. Cualquier traslado de datos MySQL o cambio en variables/servicios productivos exige autorización separada.
+1. Fase 2: aprobación requerida para aplicar `a2e7c34bd591` únicamente a Norte-staging/staging; luego probar allí el arranque con el esquema actualizado. No se importan datos desde MySQL.
+2. Al cerrar Fase 2, continuar Fase 3 y luego fases 4, 5, 8 y 9 en orden. Detenerse antes de despliegue, cambios en otros esquemas, importación de datos o conexión a recursos productivos.
 
 ## Registro de avance
 
@@ -46,6 +48,8 @@ Fase 3 — controles de sesión, cabeceras y límite de intentos implementados e
 - 2026-10-09 — Commit `fa76dbc`: bloqueo temporal de acceso tras cinco claves fallidas, con hash HMAC del identificador y auditoría sin PII; migración `8d6c1a7402b1` preparada. Post-commit: 36 pytest y 7 E2E aprobadas. No se aplicó la migración fuera de SQLite porque la autorización previa cubrió solo la migración inicial.
 - 2026-10-09 — Tras autorización expresa para la revisión `8d6c1a7402b1`, preflight confirmó revisión `c9f9cff56362`, 15 tablas públicas y ausencia de la tabla destino. La migración se aplicó por túnel privado al PostgreSQL de `Norte-staging/staging`; verificación: revisión `8d6c1a7402b1`, 16 tablas públicas y `login_attempt_limits` presente. No se desplegó/configuró la aplicación ni se tocaron producción o datos de negocio.
 - 2026-10-09 — Commit `4f05f59` registra la migración de staging. Post-commit: 36 pytest y 7 E2E aprobadas. Las cuatro capturas comparables (portada/login, escritorio/móvil) son idénticas píxel a píxel a sus referencias; se regeneraron también las dos capturas de dashboard.
+- 2026-10-09 — Commit `381c309`: API autenticada de lectura para perfil/cuentas/movimientos. Post-commit: 40 pytest y 7 E2E aprobadas; capturas visuales regeneradas sin cambios de interfaz.
+- 2026-10-09 — Commit `55c9ea7`: agregado registro normalizado de transferencias simuladas y vinculación atómica/idempotente al movimiento, validando propiedad del beneficiario. Migración `a2e7c34bd591` solo se ejecutó en SQLite de pruebas para subida/bajada; PostgreSQL staging no se tocó. Post-commit: 42 pytest y 7 E2E aprobadas.
 
 ## Hallazgos abiertos
 
@@ -54,5 +58,6 @@ Fase 3 — controles de sesión, cabeceras y límite de intentos implementados e
 - La aplicación sigue configurada para MySQL en el despliegue anterior. Existe una revisión inicial, pero aún no hay revisión de datos para mover registros de MySQL a PostgreSQL ni se ha probado contra PostgreSQL.
 - **Alcance de autorización de staging:** se autorizó crear un proyecto aislado, provisionar PostgreSQL y aplicar las revisiones `c9f9cff56362` y `8d6c1a7402b1`. No se autorizó importar datos de MySQL ni configurar/desplegar la aplicación, ni tocar el proyecto/servicios productivos.
 - **Parada obligatoria actual:** cualquier migración adicional, importación de datos o cambio en variables/servicios persistentes requiere autorización expresa. La app sigue sin desplegarse en staging.
+- La revisión `a2e7c34bd591` agrega `transfers`. Aplicarla modificaría el esquema persistente de staging; el proceso se detiene aquí hasta recibir autorización expresa para esa revisión y ese entorno exactos. No apliques ni reinicies manualmente mientras esperas; el HEAD exige la tabla nueva.
 - Aviso operativo: una instancia ya iniciada puede seguir respondiendo con el código cargado previamente, pero el código actual se negará a arrancar contra una base persistente antigua hasta que se apruebe y aplique una migración compatible. No reiniciar el servidor local con la base actual antes de resolver ese paso.
 - **Riesgo legal de privacidad:** `camera.html` ya informa que `app.js` envía fotogramas JPEG al servidor para `POST /camera/analyze` aproximadamente cada 1.2 segundos. El flujo sigue sin consentimiento específico ni política de retención aprobada; no se modificarán captura, envío ni almacenamiento hasta definir y aprobar el diseño de privacidad de la Fase 4.
