@@ -3,7 +3,7 @@ from decimal import Decimal
 import pytest
 
 from app import create_app
-from app.models import Account, BankCard, Beneficiary, Transaction, User, db
+from app.models import Account, BankCard, Beneficiary, Transaction, User
 from app.services.seed_service import seed_synthetic_clients
 
 
@@ -35,9 +35,11 @@ def test_synthetic_seed_is_reproducible_reconciled_and_safe():
             assert len(beneficiary.account_number)==20 and beneficiary.account_number.isdigit()
             assert card.last4.isdigit() and len(card.last4)==4
             assert not hasattr(card,'number')
-            assert len(transactions)==37
+            assert len(transactions)==64
             assert transactions[0].created_at.strftime('%d/%m/%Y')=='30/09/2025'
-            assert transactions[-1].created_at.strftime('%d/%m/%Y')=='22/09/2026'
+            assert transactions[-1].created_at.strftime('%d/%m/%Y')=='28/09/2026'
+            assert len({transaction.created_at for transaction in transactions})==len(transactions)
+            assert sum(transaction.operation_type=='TRANSFERENCIA' for transaction in transactions)==3
 
             running=Decimal('0.00')
             for transaction in transactions:
@@ -47,6 +49,7 @@ def test_synthetic_seed_is_reproducible_reconciled_and_safe():
             assert running==account.balance
             assert all(transaction.amount>0 for transaction in transactions if transaction.operation_type=='INGRESO')
             assert all(transaction.amount<0 for transaction in transactions if transaction.operation_type=='PAGO')
+            assert all(transaction.amount<0 for transaction in transactions if transaction.operation_type=='TRANSFERENCIA')
 
         assert seed_synthetic_clients()==[]
         assert User.query.filter(User.username.like('seed-client-%')).count()==5

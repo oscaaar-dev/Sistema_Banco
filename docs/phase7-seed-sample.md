@@ -14,7 +14,7 @@ Los cinco perfiles y movimientos de esta muestra son inventados para revisión. 
 | SEED-004 | Diego Salazar Ríos | seed-004@example.test | Cuenta Norte ···· 0404 | S/ 3,592.65 | S/ 9,885.05 | true |
 | SEED-005 | Camila Huamán Quispe | seed-005@example.test | Cuenta Norte ···· 0505 | S/ 9,314.20 | S/ 16,767.75 | true |
 
-La muestra abreviada de arriba muestra movimientos seleccionados. El generador completo crea 37 registros por perfil (saldo de apertura y tres movimientos por mes durante 12 meses); cada saldo posterior se calcula sumando el importe a los anteriores. Los comercios y servicios son genéricos; no representan cargos reales.
+La muestra abreviada de arriba muestra movimientos seleccionados. El generador completo crea 64 registros por perfil: apertura, abonos y pagos recurrentes mensuales, gastos cotidianos y tres transferencias ocasionales en 12 meses. Fechas y montos se producen de forma determinista, sin marcas comerciales; cada saldo posterior se calcula desde el movimiento anterior.
 
 Las cuentas y referencias CCI generadas tienen 20 dígitos, pero son identificadores de prueba sintéticos: no se valida su asignación ni se deben usar para transferencias. El campo CCI se conserva como cadena para no perder ceros iniciales. Los teléfonos son marcadores ficticios de nueve dígitos y no se usan para enviar mensajes. Las tarjetas se construyen temporalmente con un prefijo de prueba y se valida Luhn; la base conserva únicamente los últimos cuatro dígitos, nunca el PAN completo.
 

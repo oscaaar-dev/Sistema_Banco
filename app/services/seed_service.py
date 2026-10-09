@@ -27,8 +27,7 @@ def _luhn_valid(number):
     return checksum%10==0
 
 def _synthetic_movements(opening,income,expenses,client_index):
-    balance=Decimal(opening)
-    movements=[(datetime.combine(date(2025,9,30),time()),'INGRESO','Saldo de apertura de muestra',balance)]
+    movements=[(datetime.combine(date(2025,9,30),time()),'INGRESO','Saldo de apertura de muestra',Decimal(opening))]
     categories=(('Servicio del hogar', 'Compras del hogar'),('Servicio de agua','Supermercado'),('Pago de vivienda','Servicio de electricidad'),('Servicios del hogar','Mercado local'),('Telefonía','Compras del hogar'))
     expense_names=categories[client_index]
     income_amount=Decimal(income)
@@ -37,14 +36,18 @@ def _synthetic_movements(opening,income,expenses,client_index):
         year=2025+(9+month_offset)//12
         month=(9+month_offset)%12+1
         month_date=lambda day: datetime.combine(date(year,month,day),time())
-        balance+=income_amount
         movements.append((month_date(5),'INGRESO','Abono de ingresos de muestra',income_amount))
         expense_one=expense_values[month_offset%len(expense_values)]
-        balance-=expense_one
-        movements.append((month_date(12),'PAGO',expense_names[0],-expense_one))
+        movements.append((month_date(8+(month_offset%3)),'PAGO',expense_names[0],-expense_one))
         expense_two=expense_values[(month_offset+1)%len(expense_values)]
-        balance-=expense_two
-        movements.append((month_date(22),'PAGO',expense_names[1],-expense_two))
+        movements.append((month_date(13+(month_offset%3)),'PAGO',expense_names[1],-expense_two))
+        market=Decimal(f'{(23+client_index*7+month_offset*3):02d}.{(13+client_index*11+month_offset*7)%100:02d}')
+        transport=Decimal(f'{(8+client_index*2+month_offset%5):02d}.{(47+client_index*9+month_offset*13)%100:02d}')
+        movements.append((month_date(16+(month_offset%4)),'PAGO','Compra cotidiana de muestra',-market))
+        if month_offset in (3,7,11):
+            transfer=Decimal(f'{(95+client_index*13+month_offset*4):03d}.{(27+client_index*17+month_offset*9)%100:02d}')
+            movements.append((month_date(22),'TRANSFERENCIA','Transferencia a beneficiario de muestra',-transfer))
+        movements.append((month_date(26+(month_offset%3)),'PAGO','Transporte local de muestra',-transport))
     total=Decimal('0.00')
     return [(when,kind,label,amount,(total:=total+amount)) for when,kind,label,amount in movements]
 

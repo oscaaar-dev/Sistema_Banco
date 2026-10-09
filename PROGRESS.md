@@ -9,7 +9,7 @@
 
 ## Fase actual
 
-Fase 7 — implementación del generador sintético aislado en pruebas; falta validar, revisar y cerrar.
+Fase 2 — auditando persistencia e identificando límites de migración; Fase 7 implementada y validada solo en SQLite de pruebas.
 
 ## Hecho
 
@@ -20,17 +20,18 @@ Fase 7 — implementación del generador sintético aislado en pruebas; falta va
 - Fase 6 cerrada: lenguaje público de portada, acceso, registro, espacio personal, tarjetas, operaciones, movimientos, comprobantes, cámara, administración y textos informativos revisado; el aviso legal y las aclaraciones de alcance permanecen visibles. Se actualizaron pruebas de copy sin cambiar efectos.
 - Captura comparativa agregada para portada, login y dashboard en escritorio y móvil. La vista local vigente es `http://127.0.0.1:5001`; la instancia anterior en el puerto 5000 quedó detenida.
 - Fase 6 validada después del commit `3312331`: 30 pruebas de pytest y 7 pruebas E2E aprobadas.
-- Fase 7: la muestra fue aprobada con “continua”. Generador reproducible en desarrollo: cinco perfiles, doce meses y saldos calculados por movimiento. Está protegido para aceptar únicamente SQLite en memoria con `APP_ENV=testing`; no se ejecutó en MySQL local ni en Railway.
+- Fase 7: la muestra fue aprobada con “continua”. Generador reproducible: cinco perfiles, 12 meses, 64 registros por persona y saldos calculados por movimiento; registros seed con `is_seed=true`, tarjeta Luhn validada sin guardar el PAN, email `.test`, teléfonos ficticios y CCI de muestra no utilizables. Está protegido para aceptar únicamente SQLite en memoria con `APP_ENV=testing`; no se ejecutó en MySQL local ni en Railway.
 
 ## Pendiente en el orden autorizado
 
-1. Cerrar Fase 7 con pruebas y commit.
-2. Fases 2, 3, 4, 5, 8 y 9, respetando las paradas obligatorias indicadas por la persona usuaria.
+1. Fases 2, 3, 4, 5, 8 y 9, respetando las paradas obligatorias indicadas por la persona usuaria.
+2. Aplicar cualquier migración fuera de SQLite en memoria solo tras autorización expresa.
 
 ## Registro de avance
 
 - 2026-10-09 — Fase 6 cerrada; 30 pruebas de pytest y 7 pruebas E2E aprobadas; seis capturas generadas y comparadas. Muestra de Fase 7 lista; detenida para aprobación previa a generar datos.
 - 2026-10-09 — Aprobada la muestra de Fase 7 (“continua”). Se añadió el generador restringido a SQLite de pruebas en memoria y pruebas de idempotencia/conciliación. Pendiente ejecutar las suites antes del commit.
+- 2026-10-09 — Fase 7 validada tras commit `36c21c3`: 32 pruebas pytest y 7 E2E aprobadas; incluye capturas E2E de referencia sin modificaciones visuales esperadas. Se inicia auditoría de Fase 2; no se migrará una BD persistente sin aprobación.
 
 ## Hallazgos abiertos
 
