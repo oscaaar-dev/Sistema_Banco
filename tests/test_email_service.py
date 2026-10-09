@@ -81,3 +81,34 @@ def test_transfer_confirmation_uses_brevo_adapter_and_includes_details(monkeypat
     assert '123456' in sent['body']
     assert 'S/ 12.34 a Cliente' in sent['body']
     assert 'Vence en 5 minutos' in sent['body']
+
+
+def test_brevo_sandbox_marks_request_to_drop_email_without_delivery(monkeypatch):
+    app=create_app()
+    app.config.update(
+        EMAIL_TRANSPORT='brevo_api',BREVO_API_KEY='test-api-key',
+        BREVO_SANDBOX=True,SMTP_FROM='sender@example.test',
+    )
+    sent={}
+
+    class FakeResponse:
+        status=201
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self,*args):
+            return False
+
+    def fake_urlopen(request,timeout):
+        import json
+        sent['payload']=json.loads(request.data)
+        sent['timeout']=timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(email_service,'urlopen',fake_urlopen)
+    with app.app_context():
+        email_service.send_login_code('user@example.test','123456')
+
+    assert sent['payload']['headers']=={'X-Sib-Sandbox':'drop'}
+    assert sent['timeout']==15

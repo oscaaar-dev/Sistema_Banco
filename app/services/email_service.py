@@ -81,6 +81,8 @@ def _send_with_brevo_api(recipient,subject,body):
         'subject':subject,
         'textContent':body,
     }
+    if current_app.config.get('BREVO_SANDBOX'):
+        payload['headers']={'X-Sib-Sandbox':'drop'}
     request=Request(
         'https://api.brevo.com/v3/smtp/email',
         data=json.dumps(payload).encode('utf-8'),

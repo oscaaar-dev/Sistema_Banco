@@ -48,6 +48,7 @@ class Config:
     SMTP_USE_TLS=os.getenv('SMTP_USE_TLS','true').lower()=='true'
     SMTP_USE_SSL=os.getenv('SMTP_USE_SSL','false').lower()=='true'
     EMAIL_TRANSPORT=EMAIL_TRANSPORT
+    BREVO_SANDBOX=os.getenv('BREVO_SANDBOX','false').strip().lower()=='true'
     LEGAL_NOTICE=LEGAL_NOTICE
     BREVO_API_KEY=os.getenv('BREVO_API_KEY')
     LOGIN_CODE_TTL_SECONDS=300
