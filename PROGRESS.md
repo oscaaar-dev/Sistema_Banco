@@ -9,7 +9,7 @@
 
 ## Fase actual
 
-Fase 4 — privacidad y cámara. La cámara quedó como vista previa local opcional con consentimiento registrado; las operaciones siempre exigen OTP. No hay envío ni análisis de fotogramas ni persistencia facial nueva. No se requiere migración de esquema para este cambio.
+Fase 5 — revisión funcional de intranet y operaciones. Fase 4 quedó cerrada: la cámara es una vista previa local opcional con consentimiento registrado; las operaciones siempre exigen OTP. No hay envío ni análisis de fotogramas ni persistencia facial nueva. No se requirió migración de esquema.
 
 ## Hecho
 
@@ -30,7 +30,7 @@ Fase 4 — privacidad y cámara. La cámara quedó como vista previa local opcio
 ## Pendiente en el orden autorizado
 
 1. Fase 3 cerrada: migración `b1e4a95c0f27` aplicada y comprobada en staging.
-2. Fase 4: rediseño local implementado; revisar y validar legalmente el mecanismo electrónico de consentimiento antes de usar datos personales reales. Los posibles registros faciales históricos no se inspeccionaron ni eliminaron.
+2. Fase 4 cerrada en código y validación: commit `5e9d146`, post-commit 50 pruebas pytest y 9 E2E aprobadas. La suite E2E volvió a generar seis capturas (portada, login y dashboard, escritorio/móvil); la comparación píxel a píxel queda pendiente porque la interfaz pública no cambió y no se hizo una comparación de archivos en este cierre.
 3. Continuar Fases 5, 8 y 9 en orden. No desplegar, importar MySQL ni cambiar servicios productivos.
 
 ## Registro de avance
@@ -75,4 +75,5 @@ Fase 4 — privacidad y cámara. La cámara quedó como vista previa local opcio
 - 2026-10-09 — Commit `115eb22`: consentimiento explícito antes de enviar fotogramas; el endpoint rechaza envíos sin aceptación y las operaciones dejan de guardar métricas faciales nuevas. Capturas principales regeneradas; post-commit 47 pytest y 8 E2E aprobadas.
 - 2026-10-09 — Commit `8b4d3d4`: email OTP opcional para completar pagos/recargas sin cámara, ligado a cuenta, tipo, monto, objetivo y clave idempotente. La revisión `b4f8a20d17c3` agrega hash del objetivo y permite beneficiario nulo; subida/bajada verificada solo en SQLite de tests. Post-commit: 49 pytest y 8 E2E aprobadas. Pendiente autorización para aplicar a staging; no desplegado.
 - 2026-10-09 — Se corrigió el falso positivo del preflight: consulta directa de metadatos confirmó revisión `b1e4a95c0f27`, 12 columnas, `beneficiary_id` NOT NULL y ausencia de `details_hash` (18 tablas públicas). Con autorización expresa, se aplicó atómicamente en `Norte-staging/staging` el DDL exacto de `b4f8a20d17c3` y se avanzó `alembic_version`; verificación: revisión correcta, 13 columnas, `beneficiary_id` nullable, `details_hash` presente y 18 tablas. Commit `e5ba510`; post-commit: 49 pytest y 8 E2E aprobadas. Sin cambios en datos de negocio, despliegue ni producción.
-- 2026-10-09 — Aprobado rediseño Fase 4: aviso modal por operación; aceptar registra solo usuario/versión/fecha y abre vista previa local; rechazar permite OTP o cancelar. Deshabilitado el análisis servidor y eliminado el bypass de OTP por cámara; las operaciones exigen OTP. Se eliminó la ruta de inserción de nuevas métricas faciales desde el servicio de operaciones; actualizados aviso legal y E2E. Sin migraciones ni cambios de staging/producción. Pendiente ejecución de suites completas después del commit.
+- 2026-10-09 — Fase 4 cerrada. Commit `5e9d146`: aviso modal por operación; aceptar registra solo usuario/versión/fecha y ofrece vista previa local; rechazar permite OTP o cancelar. Deshabilitado el análisis del servidor y eliminado el bypass de OTP por cámara; cada operación exige OTP. Se eliminó la inserción de nuevas métricas faciales; se actualizaron aviso legal, pruebas unitarias y E2E. Post-commit: 50 pytest y 9 E2E aprobadas, incluidas capturas nuevas de portada/login/dashboard en escritorio y móvil. Sin cambios de esquema, staging, producción ni despliegue. Comparación visual píxel a píxel de estas seis capturas no ejecutada en esta fase; pendiente si se exige para el cierre global.
+- 2026-10-09 — Inicio Fase 5. No se han realizado todavía cambios funcionales de esta fase; primero se hará inventario de rutas, modelos, permisos y pruebas para mantener el alcance local y evitar migraciones persistentes.
