@@ -9,7 +9,7 @@
 
 ## Fase actual
 
-Fase 5 — revisión funcional de intranet y operaciones. Fase 4 quedó cerrada: la cámara es una vista previa local opcional con consentimiento registrado; las operaciones siempre exigen OTP. No hay envío ni análisis de fotogramas ni persistencia facial nueva. No se requirió migración de esquema.
+Fase 8 — auditoría de seguridad y dependencias. Fases 4 y 5 quedaron cerradas en código y pruebas. La cámara es una vista previa local opcional con consentimiento registrado; las operaciones siempre exigen OTP. No hay envío ni análisis de fotogramas ni persistencia facial nueva. Estas fases no requirieron migración de esquema.
 
 ## Hecho
 
@@ -20,6 +20,9 @@ Fase 5 — revisión funcional de intranet y operaciones. Fase 4 quedó cerrada:
 - Fase 6 cerrada: lenguaje público de portada, acceso, registro, espacio personal, tarjetas, operaciones, movimientos, comprobantes, cámara, administración y textos informativos revisado; el aviso legal y las aclaraciones de alcance permanecen visibles. Se actualizaron pruebas de copy sin cambiar efectos.
 - Captura comparativa agregada para portada, login y dashboard en escritorio y móvil. La vista local vigente es `http://127.0.0.1:5001`; la instancia anterior en el puerto 5000 quedó detenida.
 - Fase 6 validada después del commit `3312331`: 30 pruebas de pytest y 7 pruebas E2E aprobadas.
+- Fase 5 cerrada con cuentas propias múltiples en dashboard e historial, filtros/paginación por cuenta, transferencias simuladas con OTP, pago/recarga simulados con OTP, control de tarjetas, PDF de movimientos y permisos por rol. El correo sigue usando el adaptador Brevo y se simula en pruebas; no existe pasarela financiera conectada ni se mueve dinero real. Commit `668c9e3`; post-commit: 56 pytest y 9 E2E aprobadas.
+- Commit `ab79df6`: declaración legal común corregida en interfaz, README y PDF; se retiraron afirmaciones sobre regulación SBS, se aclara independencia del BCP y carácter ficticio de los productos/operaciones. Post-commit: 56 pytest y 9 E2E aprobadas.
+- Capturas E2E post-commit de portada, login y dashboard, escritorio/móvil, actualizadas. Las cuatro vistas públicas con referencia siguen idénticas píxel a píxel; dashboard tiene capturas nuevas, sin referencia histórica equivalente.
 - Fase 7: la muestra fue aprobada con “continua”. Generador reproducible: cinco perfiles, 12 meses, 64 registros por persona y saldos calculados por movimiento; registros seed con `is_seed=true`, tarjeta Luhn validada sin guardar el PAN, email `.test`, teléfonos ficticios y CCI de muestra no utilizables. Está protegido para aceptar únicamente SQLite en memoria con `APP_ENV=testing`; no se ejecutó en MySQL local ni en Railway.
 - Fase 2: la auditoría encontró que el arranque aplicaba `ALTER TABLE` y `create_all` fuera de pruebas. Se eliminó ese bootstrap automático; entornos persistentes ahora requieren un esquema ya migrado y compatible, o la app se detiene sin cambiar la base. Se agregaron bloqueo de fila e idempotencia por cuenta para las operaciones internas, validados solo con SQLite. Se preparó Alembic y la revisión inicial `c9f9cff56362`; subida y bajada se probaron exclusivamente en SQLite en memoria. La integración PostgreSQL y migración de datos siguen pendientes.
 - Fase 3 en curso: tras OTP, la sesión queda marcada como permanente con vencimiento de 30 minutos y sin renovación por cada petición. Se agregaron `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` y HSTS solo cuando cookies seguras y proxy HTTPS están presentes. Se añadió bloqueo persistente de 15 minutos tras cinco intentos fallidos por identificador, guardando solo HMAC y registrando fallos sin identificador. La migración `8d6c1a7402b1` quedó aplicada y verificada en el PostgreSQL aislado de staging.
@@ -31,7 +34,7 @@ Fase 5 — revisión funcional de intranet y operaciones. Fase 4 quedó cerrada:
 
 1. Fase 3 cerrada: migración `b1e4a95c0f27` aplicada y comprobada en staging.
 2. Fase 4 cerrada en código y validación: commit `5e9d146`, post-commit 50 pruebas pytest y 9 E2E aprobadas. La suite E2E volvió a generar seis capturas (portada, login y dashboard, escritorio/móvil); la comparación píxel a píxel queda pendiente porque la interfaz pública no cambió y no se hizo una comparación de archivos en este cierre.
-3. Continuar Fases 5, 8 y 9 en orden. No desplegar, importar MySQL ni cambiar servicios productivos.
+3. Continuar Fases 8 y 9 en orden. No desplegar, importar MySQL ni cambiar servicios productivos.
 
 ## Registro de avance
 
@@ -77,3 +80,4 @@ Fase 5 — revisión funcional de intranet y operaciones. Fase 4 quedó cerrada:
 - 2026-10-09 — Se corrigió el falso positivo del preflight: consulta directa de metadatos confirmó revisión `b1e4a95c0f27`, 12 columnas, `beneficiary_id` NOT NULL y ausencia de `details_hash` (18 tablas públicas). Con autorización expresa, se aplicó atómicamente en `Norte-staging/staging` el DDL exacto de `b4f8a20d17c3` y se avanzó `alembic_version`; verificación: revisión correcta, 13 columnas, `beneficiary_id` nullable, `details_hash` presente y 18 tablas. Commit `e5ba510`; post-commit: 49 pytest y 8 E2E aprobadas. Sin cambios en datos de negocio, despliegue ni producción.
 - 2026-10-09 — Fase 4 cerrada. Commit `5e9d146`: aviso modal por operación; aceptar registra solo usuario/versión/fecha y ofrece vista previa local; rechazar permite OTP o cancelar. Deshabilitado el análisis del servidor y eliminado el bypass de OTP por cámara; cada operación exige OTP. Se eliminó la inserción de nuevas métricas faciales; se actualizaron aviso legal, pruebas unitarias y E2E. Post-commit: 50 pytest y 9 E2E aprobadas, incluidas capturas nuevas de portada/login/dashboard en escritorio y móvil. Sin cambios de esquema, staging, producción ni despliegue. Comparación visual píxel a píxel de estas seis capturas no ejecutada en esta fase; pendiente si se exige para el cierre global.
 - 2026-10-09 — Inicio Fase 5. No se han realizado todavía cambios funcionales de esta fase; primero se hará inventario de rutas, modelos, permisos y pruebas para mantener el alcance local y evitar migraciones persistentes.
+- 2026-10-09 — Fase 5 completada localmente; 56 pruebas pytest y 9 E2E aprobadas. Queda pendiente cualquier integración externa de pagos/recargas: se requerirían proveedor, sandbox y credenciales, sin conectar por ahora. Se inicia Fase 8.
