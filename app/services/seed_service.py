@@ -36,7 +36,7 @@ def seed_demo():
         Beneficiary(user_id=client.id,name='María Torres',account_number='009876543210'),
         Beneficiary(user_id=client.id,name='Diego Salas',account_number='008812340056'),
         BankCard(user_id=client.id,account_id=account.id,last4='4582',limit_amount=Decimal('3000')),
-        Transaction(account_id=account.id,operation_type='INGRESO',description='Abono de demostración',amount=Decimal('2500'),balance_after=Decimal('8540.50')),
-        Transaction(account_id=account.id,operation_type='PAGO',description='Pago simulado de servicio',amount=Decimal('-65.90'),balance_after=Decimal('8540.50')),
+        Transaction(account_id=account.id,operation_type='INGRESO',description='Abono inicial',amount=Decimal('2500'),balance_after=Decimal('8540.50')),
+        Transaction(account_id=account.id,operation_type='PAGO',description='Pago de servicio',amount=Decimal('-65.90'),balance_after=Decimal('8540.50')),
     ])
     db.session.commit()

@@ -88,7 +88,7 @@ def test_public_information_topics_have_separate_pages():
     expected={
         '/personas': 'Organiza lo cotidiano',
         '/herramientas': 'Transferencias guiadas',
-        '/seguridad': 'Usa solo datos de práctica',
+        '/seguridad': 'Protege tus datos',
         '/acerca': 'La idea',
     }
 
@@ -104,8 +104,8 @@ def test_public_information_topics_have_separate_pages():
         assert b'href="/seguridad"' in response.data
         assert b'href="/acerca"' in response.data
 
-    assert b'no se procesan pagos ni transferencias' in client.get('/seguridad').data
-    assert 'historia, la marca y los productos de Norte son ficticios'.encode() in client.get('/acerca').data
+    assert b'no procesan pagos ni transferencias fuera de Norte' in client.get('/seguridad').data
+    assert 'Su información no corresponde a productos ofrecidos por una entidad financiera'.encode() in client.get('/acerca').data
 
 
 def test_terms_and_privacy_pages_publish_legal_notice_and_links():
@@ -278,6 +278,7 @@ def test_login_page_and_dashboard(monkeypatch):
     assert response.status_code==200
     assert b'Demo123!' not in response.data
     assert b'Admin123!' not in response.data
+    assert b'Banca demo' not in response.data
     _login(client,monkeypatch)
     response=client.get('/dashboard')
     assert response.status_code==200
@@ -424,7 +425,7 @@ def test_camera_verification_is_required_even_if_hidden_field_is_forged(monkeypa
         'csrf_token':operation_token,
         'camera_verified':'yes',
         'form_duration_seconds':'30',
-        'service':'Agua demo',
+        'service':'Agua',
         'amount':'100',
     })
 
@@ -474,14 +475,14 @@ def test_completed_operation_shows_camera_and_operation_risk_separately(monkeypa
         'csrf_token':operation_token,
         'camera_verified':'yes',
         'form_duration_seconds':'240',
-        'service':'Agua demo',
+        'service':'Agua',
         'amount':'100',
     })
     assert response.status_code==302
 
     receipt=client.get(response.headers['Location'])
     assert b'Duraci\xc3\xb3n del formulario: 240 s' in receipt.data
-    assert b'Riesgo de la operaci\xc3\xb3n:' in receipt.data
+    assert b'Indicador de la operaci\xc3\xb3n:' in receipt.data
     assert b'Verificaci\xc3\xb3n de c\xc3\xa1mara: APROBADA' in receipt.data
     assert b'86.0%' in receipt.data
     assert b'No confirma la identidad' in receipt.data

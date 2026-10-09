@@ -75,42 +75,42 @@ PUBLIC_INFO_PAGES = {
     'personas': {
         'eyebrow': 'UNA EXPERIENCIA PENSADA PARA TI',
         'title': 'Tu día, tus planes y una experiencia digital más clara.',
-        'intro': 'Norte reúne ejemplos sencillos para que puedas conocer cómo se organiza una experiencia de banca digital, a tu ritmo y desde cualquier pantalla.',
+        'intro': 'Norte reúne herramientas sencillas para que puedas conocer cómo se organiza una experiencia de banca digital, a tu ritmo y desde cualquier pantalla.',
         'icon': 'bi-people',
         'highlights': [
-            ('bi-calendar2-check', 'Organiza lo cotidiano', 'Explora un resumen de cuenta de demostración y revisa cómo se presenta la actividad reciente.'),
-            ('bi-lightbulb', 'Aprende paso a paso', 'Conoce recorridos guiados para transferencias, pagos y recargas con información clara en cada etapa.'),
-            ('bi-phone', 'Continúa desde cualquier pantalla', 'La interfaz se adapta a computadora, tablet y celular para que puedas explorar con comodidad.'),
+            ('bi-calendar2-check', 'Organiza lo cotidiano', 'Revisa un resumen de cuenta y la actividad reciente con información clara.'),
+            ('bi-lightbulb', 'Conoce cada paso', 'Revisa los recorridos de transferencias, pagos y recargas con información clara en cada etapa.'),
+            ('bi-phone', 'Continúa desde cualquier pantalla', 'La interfaz se adapta a computadora, tablet y celular para que puedas navegar con comodidad.'),
         ],
-        'note': 'Los perfiles, saldos y operaciones son ficticios y se muestran exclusivamente con fines demostrativos.',
+        'note': 'Los perfiles, saldos y operaciones se muestran dentro de Norte y no producen efectos financieros.',
         'cta_label': 'Explorar herramientas',
         'cta_endpoint': 'main.herramientas',
     },
     'herramientas': {
         'eyebrow': 'FUNCIONES PARA EXPLORAR',
-        'title': 'Todo lo que puedes practicar, explicado con claridad.',
-        'intro': 'Recorre las funciones de Norte y descubre cómo se conectan las tareas habituales de una experiencia financiera digital.',
+        'title': 'Todo lo que puedes hacer, explicado con claridad.',
+        'intro': 'Conoce las funciones de Norte y descubre cómo se conectan las tareas habituales de una experiencia financiera digital.',
         'icon': 'bi-grid',
         'highlights': [
-            ('bi-wallet2', 'Resumen de cuenta', 'Consulta una vista de práctica con saldo ilustrativo y accesos a las principales áreas.'),
-            ('bi-clock-history', 'Movimientos y comprobantes', 'Revisa actividad ficticia y conoce cómo se presenta el detalle de una operación.'),
-            ('bi-arrow-left-right', 'Transferencias guiadas', 'Sigue un recorrido con beneficiarios de prueba y revisa la información antes de continuar.'),
-            ('bi-receipt-cutoff', 'Pagos y recargas', 'Explora formularios de demostración para servicios y recargas sin procesar pagos.'),
-            ('bi-credit-card-2-front', 'Tarjetas de práctica', 'Conoce una vista ilustrativa de tarjetas ficticias dentro del resumen de Norte.'),
+            ('bi-wallet2', 'Resumen de cuenta', 'Consulta tu saldo y accede a las principales áreas.'),
+            ('bi-clock-history', 'Movimientos y comprobantes', 'Revisa actividad y conoce el detalle de una operación.'),
+            ('bi-arrow-left-right', 'Transferencias guiadas', 'Sigue el recorrido con tus beneficiarios y revisa la información antes de continuar.'),
+            ('bi-receipt-cutoff', 'Pagos y recargas', 'Conoce los formularios disponibles para servicios y recargas.'),
+            ('bi-credit-card-2-front', 'Tarjetas', 'Revisa las tarjetas asociadas a tu resumen Norte.'),
         ],
-        'note': 'Las herramientas son demostrativas: no se conectan a cuentas bancarias ni realizan operaciones reales.',
+        'note': 'Las herramientas no se conectan a cuentas externas ni producen operaciones con efectos financieros.',
         'cta_label': 'Conocer la seguridad',
         'cta_endpoint': 'main.seguridad',
     },
     'seguridad': {
         'eyebrow': 'SEGURIDAD Y TRANSPARENCIA',
-        'title': 'Explora con tranquilidad: este entorno es una simulación.',
+        'title': 'Explora con tranquilidad: conoce el alcance de este proyecto.',
         'intro': 'La confianza también significa saber qué servicio estás usando. Norte es un proyecto de banca digital en desarrollo y explica con claridad los límites de sus funcionalidades actuales.',
         'icon': 'bi-shield-check',
         'highlights': [
-            ('bi-person-vcard', 'Usa solo datos de práctica', 'No ingreses contraseñas bancarias reales, números de tarjeta ni otra información financiera sensible.'),
-            ('bi-cash-coin', 'No hay dinero real', 'Los saldos, beneficiarios, movimientos y comprobantes son ficticios; no se procesan pagos ni transferencias.'),
-            ('bi-info-circle', 'Identifica los límites de la demo', 'El acceso y sus pantallas ilustran flujos digitales, pero no equivalen a servicios bancarios reales ni a asesoría financiera.'),
+            ('bi-person-vcard', 'Protege tus datos', 'No ingreses contraseñas bancarias reales, números de tarjeta ni otra información financiera sensible.'),
+            ('bi-cash-coin', 'Sin efectos financieros', 'Los saldos, beneficiarios, movimientos y comprobantes no procesan pagos ni transferencias fuera de Norte.'),
+            ('bi-info-circle', 'Identifica los límites del proyecto', 'El acceso y sus pantallas muestran flujos digitales, pero no equivalen a servicios bancarios ni a asesoría financiera.'),
         ],
         'note': 'Protege tus credenciales reales: Norte no necesita ni debe recibirlas.',
         'cta_label': 'Acerca del proyecto',
@@ -119,19 +119,19 @@ PUBLIC_INFO_PAGES = {
     'acerca': {
         'eyebrow': 'ACERCA DE NORTE',
         'title': 'Una idea académica para hacer más comprensible la banca digital.',
-        'intro': 'Norte nació como un proyecto de demostración con una pregunta sencilla: ¿cómo sería una experiencia financiera si cada pantalla explicara con claridad qué puedes hacer y qué ocurre después?',
+        'intro': 'Norte nació como un proyecto en desarrollo con una pregunta sencilla: ¿cómo sería una experiencia financiera si cada pantalla explicara con claridad qué puedes hacer y qué ocurre después?',
         'icon': 'bi-compass',
         'highlights': [
             ('bi-chat-square-text', 'La idea', 'Crear un entorno cercano donde se puedan entender los pasos y la organización de una banca digital.'),
             ('bi-window', 'La experiencia', 'Reunir cuentas, actividad y recorridos guiados en una interfaz adaptable y fácil de explorar.'),
-            ('bi-bookmark-check', 'El propósito', 'Promover claridad, aprendizaje y transparencia a través de ejemplos, no de servicios financieros reales.'),
+            ('bi-bookmark-check', 'El propósito', 'Promover claridad, aprendizaje y transparencia sobre el alcance actual del proyecto.'),
         ],
         'timeline': [
             ('La pregunta', 'La propuesta parte de hacer más claros los flujos digitales cotidianos.'),
-            ('El prototipo', 'Se construye una experiencia navegable con pantallas y datos ficticios.'),
-            ('La demostración', 'Norte reúne ejemplos para explorar desde diferentes dispositivos.'),
+            ('El prototipo', 'Se construye una experiencia navegable con pantallas y datos de ejemplo.'),
+            ('El proyecto', 'Norte reúne herramientas para conocer desde diferentes dispositivos.'),
         ],
-        'note': 'La historia, la marca y los productos de Norte son ficticios. Este sitio no pertenece a una entidad financiera real.',
+        'note': 'Norte es un proyecto en desarrollo. Su información no corresponde a productos ofrecidos por una entidad financiera.',
         'cta_label': 'Volver al inicio',
         'cta_endpoint': 'main.index',
     },
@@ -276,7 +276,7 @@ def register():
             return render_template('register.html'),409
 
         session.pop('pending_login_user_id',None)
-        flash('Cuenta demo creada. Inicia sesión con tu DNI o correo y contraseña; te enviaremos un código de seguridad.','success')
+        flash('Cuenta creada. Inicia sesión con tu DNI o correo y contraseña; te enviaremos un código de seguridad.','success')
         return redirect(url_for('main.login'))
     return render_template('register.html')
 
@@ -431,11 +431,11 @@ def operation(kind):
             if kind=='transfer':
                 recipient=Beneficiary.query.filter_by(id=beneficiary_id,user_id=current_user.id).first()
                 if not recipient: raise ValueError('Destinatario no válido.')
-                description='Transferencia simulada a '+recipient.name; op='TRANSFERENCIA'
-            elif kind=='payment': description='Pago simulado: '+request.form.get('service','Servicio')[:70]; op='PAGO'
-            else: description='Recarga simulada: '+request.form.get('phone','Número demo')[:40]; op='RECARGA'
+                description='Transferencia a '+recipient.name; op='TRANSFERENCIA'
+            elif kind=='payment': description='Pago: '+request.form.get('service','Servicio')[:70]; op='PAGO'
+            else: description='Recarga: '+request.form.get('phone','Número')[:40]; op='RECARGA'
             tx=process_operation(current_user,op,amount,description,beneficiary_id,request.form.get('service'),True,face_detected=True,face_confidence=camera_state.get('face_confidence'),duration_seconds=duration_seconds)
-            flash('Operación ficticia completada. No se movió dinero real.','success')
+            flash('Operación registrada. No tiene efectos financieros.','success')
             return redirect(url_for('main.receipt',transaction_id=tx.id))
         except (ValueError,InvalidOperation) as e: flash(str(e),'error')
     return render_template('operation.html',kind=kind,recipients=recipients,account=account)

@@ -52,7 +52,7 @@ class Beneficiary(db.Model):
     user_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='CASCADE'),nullable=False,index=True)
     name=db.Column(db.String(100),nullable=False)
     account_number=db.Column(db.String(24),nullable=False)
-    bank_name=db.Column(db.String(80),nullable=False,default='Banco Simulado')
+    bank_name=db.Column(db.String(80),nullable=False,default='Norte')
 
 class BankCard(db.Model):
     __tablename__='cards'

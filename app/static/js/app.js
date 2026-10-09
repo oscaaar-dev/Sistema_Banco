@@ -22,7 +22,7 @@ if(riskPreview){
    const result=await response.json();
    if(!response.ok)throw new Error(result.error||'No se pudo calcular el indicador.');
    title.textContent=`Nivel de alerta estimado: ${result.level} (${result.score}%)`;
-   details.textContent=`${result.reasons.join(' ')} Este porcentaje es un puntaje demostrativo, no una probabilidad real; no bloquea la operación.`;
+   details.textContent=`${result.reasons.join(' ')} Este porcentaje es un indicador orientativo, no una probabilidad real; no bloquea la operación.`;
   }catch(error){
    if(error.name==='AbortError')return;
    title.textContent='Indicador no disponible';
@@ -57,7 +57,7 @@ if(video){
   if(facePosition)facePosition.textContent=`${Math.round(result.position_score||0)}%`;
   if(faceVisibility)faceVisibility.textContent=`${Math.round(result.visibility_score||0)}%`;
   if(analysisBox)analysisBox.dataset.state=result.ready?'ok':'blocked';
-  if(analysisTitle)analysisTitle.textContent=result.ready?'✓ Rostro verificado para la demo':'⚠ Verificación de cámara bloqueada';
+  if(analysisTitle)analysisTitle.textContent=result.ready?'✓ Rostro verificado para esta operación':'⚠ Verificación de cámara bloqueada';
   if(analysisDetails)analysisDetails.textContent=(result.indicators||[]).join(' ')||result.message||'';
   if(analysisField)analysisField.value=JSON.stringify({ready:result.ready,face_confidence:result.face_confidence,position_score:result.position_score,visibility_score:result.visibility_score,possible_obstruction:result.possible_obstruction});
   setVerified(Boolean(result.ready));

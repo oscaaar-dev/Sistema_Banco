@@ -37,7 +37,7 @@ def process_operation(user,kind,amount,description,beneficiary_id=None,service=N
     if not account:raise ValueError('No se encontró una cuenta activa.')
     value=Decimal(str(amount)).quantize(Decimal('0.01'))
     if not (Decimal('0.01')<=value<=Decimal('10000')):raise ValueError('El monto debe estar entre S/ 0.01 y S/ 10,000.00.')
-    if kind in ('TRANSFERENCIA','PAGO','RECARGA') and account.balance<value:raise ValueError('Saldo insuficiente para esta operación simulada.')
+    if kind in ('TRANSFERENCIA','PAGO','RECARGA') and account.balance<value:raise ValueError('Saldo insuficiente para esta operación.')
     if kind=='TRANSFERENCIA' and not beneficiary_id:raise ValueError('Selecciona un destinatario.')
     start=datetime.now(timezone.utc).replace(tzinfo=None)
     risk=operation_risk_for(user,kind,value,duration_seconds)

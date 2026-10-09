@@ -9,7 +9,7 @@
 
 ## Fase actual
 
-Fase 6 — limpieza de textos demo/ficticio, después de cerrar la Fase 1.
+Fase 7 — preparar muestra sintética y contenido para aprobación antes de generar el conjunto completo.
 
 ## Hecho
 
@@ -17,12 +17,17 @@ Fase 6 — limpieza de textos demo/ficticio, después de cerrar la Fase 1.
 - Se añadió una configuración de pytest que fuerza SQLite en memoria y elimina `MYSQL_URL` antes de importar la aplicación.
 - La red E2E cubre parallax de inicio de sesión, menú móvil y diálogos de ayuda/cookies.
 - Fase 1 cerrada: recursos SVG propios de NORTE., favicon, imagen social, tokens de color, textos legales centralizados, rutas `/terminos` y `/privacidad`, enlaces en los pies, páginas de error de marca, transparencia sobre la cámara y credenciales eliminadas de la pantalla de login.
+- Fase 6 cerrada: lenguaje público de portada, acceso, registro, espacio personal, tarjetas, operaciones, movimientos, comprobantes, cámara, administración y textos informativos revisado; el aviso legal y las aclaraciones de alcance permanecen visibles. Se actualizaron pruebas de copy sin cambiar efectos.
+- Captura comparativa agregada para portada, login y dashboard en escritorio y móvil. La vista local vigente es `http://127.0.0.1:5001`; la instancia anterior en el puerto 5000 quedó detenida.
 
 ## Pendiente en el orden autorizado
 
-1. Fase 6 — limpieza de lenguaje demo/ficticio.
-2. Fase 7 — muestra de datos sintéticos y contenido; detener para aprobación antes de generarlo completo.
-3. Fases 2, 3, 4, 5, 8 y 9, respetando las paradas obligatorias indicadas por la persona usuaria.
+1. Fase 7 — preparar muestra de cinco clientes sintéticos, movimientos y tres secciones de texto; detener para aprobación antes de generar el conjunto completo.
+2. Fases 2, 3, 4, 5, 8 y 9, respetando las paradas obligatorias indicadas por la persona usuaria.
+
+## Registro de avance
+
+- 2026-10-09 — Fase 6 cerrada; 30 pruebas de pytest y 7 pruebas E2E aprobadas; capturas de seis vistas generadas y comparadas. Se inicia la preparación de la muestra de Fase 7.
 
 ## Hallazgos abiertos
 

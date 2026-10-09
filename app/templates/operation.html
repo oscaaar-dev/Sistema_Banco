@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% block crumb %}{% if kind=='transfer' %}Transferencias{% elif kind=='payment' %}Pagos{% else %}Recargas{% endif %}{% endblock %}
 {% block content %}
-<div class="eyebrow dark">OPERACIÓN SIMULADA</div>
+<div class="eyebrow dark">OPERACIÓN EN NORTE</div>
 <h1>{% if kind=='transfer' %}Nueva transferencia{% elif kind=='payment' %}Pago de servicio{% else %}Recarga móvil{% endif %}</h1>
-<p class="muted">Completa los datos para registrar una operación ficticia.</p>
+<p class="muted">Completa los datos para registrar una operación dentro de Norte.</p>
 <div class="operation-layout operation-layout-camera">
   <form method="post" class="panel operation-form" id="operationForm">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -16,9 +16,9 @@
       {% if kind=='transfer' %}
       <label>Destinatario<select name="beneficiary_id" required><option value="">Selecciona un contacto</option>{% for person in recipients %}<option value="{{ person.id }}">{{ person.name }} · {{ person.account_number[-4:] }}</option>{% endfor %}</select></label>
       {% elif kind=='payment' %}
-      <label>Servicio<select name="service" required><option value="">Selecciona un servicio</option><option>Electricidad demo</option><option>Agua demo</option><option>Internet demo</option><option>Tarjeta académica</option></select></label>
+      <label>Servicio<select name="service" required><option value="">Selecciona un servicio</option><option>Electricidad</option><option>Agua</option><option>Internet</option><option>Tarjeta académica</option></select></label>
       {% else %}
-      <label>Número de celular<input name="phone" inputmode="tel" minlength="7" maxlength="15" placeholder="Número ficticio" required></label>
+      <label>Número de celular<input name="phone" inputmode="tel" minlength="7" maxlength="15" placeholder="Número de celular" required></label>
       {% endif %}
       <label>Monto a {% if kind=='transfer' %}transferir{% elif kind=='payment' %}pagar{% else %}recargar{% endif %}<div class="amount-input"><span>S/</span><input type="number" name="amount" min="0.01" max="10000" step="0.01" placeholder="0.00" required></div><small>Máximo por operación: S/ 10,000.00</small></label>
     </div>
@@ -27,7 +27,7 @@
       <div><b id="riskTitle">Indicador de riesgo</b><small id="riskDetails">Ingresa un monto para estimar el nivel de alerta. No bloquea la operación.</small></div>
     </section>
     <section class="account-summary"><div class="account-summary-icon"><i class="bi bi-wallet2"></i></div><div class="account-summary-main"><span class="eyebrow dark">CUENTA DE CARGO</span><b>Cuenta de ahorros <span class="account-mask">···· {{ account.number[-4:] if account else '0000' }}</span></b></div><div class="account-summary-balance"><small>Saldo disponible</small><strong>S/ {{ '{:,.2f}'.format(account.balance|float if account else 0) }}</strong></div></section>
-    <div class="operation-notice"><span class="soft-icon"><i class="bi bi-info-circle"></i></span><div><b>Operación ficticia</b><small>No se mueve dinero real. Esta transacción solo se registra en el entorno de demostración.</small></div></div>
+    <div class="operation-notice"><span class="soft-icon"><i class="bi bi-info-circle"></i></span><div><b>Operación dentro de Norte</b><small>No se mueve dinero real. Esta operación solo actualiza los datos de este proyecto.</small></div></div>
     <div class="camera-required-note"><i class="bi bi-shield-lock"></i><span><b>Verificación de cámara requerida</b><small>Activa la cámara de la derecha y mantenla encendida para confirmar.</small></span><span class="required-tag">REQUERIDO</span></div>
     <div class="operation-footer"><a class="text-link" href="{{ url_for('main.dashboard') }}"><i class="bi bi-arrow-left"></i> Cancelar</a><button class="btn btn-primary" type="submit" disabled>Revisar y confirmar <i class="bi bi-arrow-right"></i></button></div>
   </form>
