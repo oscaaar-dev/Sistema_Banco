@@ -1,6 +1,7 @@
 import os
 import secrets
 from pathlib import Path
+from datetime import timedelta
 from dotenv import load_dotenv
 BASE_DIR=Path(__file__).resolve().parent
 load_dotenv(BASE_DIR/'.env')
@@ -35,6 +36,8 @@ class Config:
     SESSION_COOKIE_HTTPONLY=True
     SESSION_COOKIE_SAMESITE='Lax'
     SESSION_COOKIE_SECURE=os.getenv('COOKIE_SECURE',str(APP_ENV=='production').lower()).lower()=='true'
+    PERMANENT_SESSION_LIFETIME=timedelta(minutes=30)
+    SESSION_REFRESH_EACH_REQUEST=False
     WTF_CSRF_TIME_LIMIT=3600
     MAX_CONTENT_LENGTH=2*1024*1024
     SMTP_HOST=os.getenv('SMTP_HOST')

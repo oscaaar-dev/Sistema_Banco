@@ -317,6 +317,7 @@ def verify_login():
             db.session.commit()
             session.clear()
             login_user(user)
+            session.permanent=True
             session['login_2fa_verified']=True
             log(user,'LOGIN','SEGURIDAD')
             db.session.commit()

@@ -193,6 +193,20 @@ def test_customer_can_register_and_login_with_email_otp(monkeypatch):
     })
     assert response.status_code==302
     assert client.get('/dashboard').status_code==200
+    with client.session_transaction() as browser_session:
+        assert browser_session.permanent is True
+        assert browser_session['login_2fa_verified'] is True
+    assert app.permanent_session_lifetime.total_seconds()==1800
+
+
+def test_http_responses_include_baseline_security_headers():
+    app=create_app(); app.config['TESTING']=True
+    response=app.test_client().get('/')
+
+    assert response.headers['X-Content-Type-Options']=='nosniff'
+    assert response.headers['X-Frame-Options']=='DENY'
+    assert response.headers['Referrer-Policy']=='strict-origin-when-cross-origin'
+    assert response.headers['Permissions-Policy']=='camera=(self), geolocation=(), microphone=()'
 
 
 def test_customer_can_start_login_using_dni(monkeypatch):

@@ -1,4 +1,4 @@
-from flask import Flask, flash, redirect, render_template, session, url_for
+from flask import Flask, flash, redirect, render_template, request, session, url_for
 from flask_login import LoginManager, current_user, logout_user
 from flask_wtf.csrf import CSRFProtect
 from pathlib import Path
@@ -45,6 +45,16 @@ def create_app(config_overrides=None):
     @app.context_processor
     def inject_brand_context():
         return {'norte_legal_notice':app.config['LEGAL_NOTICE']}
+
+    @app.after_request
+    def add_security_headers(response):
+        response.headers.setdefault('X-Content-Type-Options','nosniff')
+        response.headers.setdefault('X-Frame-Options','DENY')
+        response.headers.setdefault('Referrer-Policy','strict-origin-when-cross-origin')
+        response.headers.setdefault('Permissions-Policy','camera=(self), geolocation=(), microphone=()')
+        if app.config.get('SESSION_COOKIE_SECURE') and request.headers.get('X-Forwarded-Proto')=='https':
+            response.headers.setdefault('Strict-Transport-Security','max-age=31536000')
+        return response
 
     @app.errorhandler(400)
     @app.errorhandler(403)
