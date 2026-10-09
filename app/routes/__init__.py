@@ -185,7 +185,6 @@ PUBLIC_INFO_PAGES = {
             {'icon': 'bi-briefcase', 'title': 'Gerencia', 'description': 'Perfil de referencia para revisar indicadores de gestión. Esta demostración aún no tiene un rol ni un tablero gerencial independiente.', 'action': 'Conocer el proyecto', 'destination': 'acerca', 'image': 'team/gerencia.jpg', 'image_alt': 'Modelo en retrato profesional para ilustrar el rol de gerencia', 'photo_credit': 'Kampus Production · Pexels', 'photo_url': 'https://www.pexels.com/photo/portrait-of-smiling-woman-in-an-office-8463168/'},
             {'icon': 'bi-pc-display', 'title': 'Sistemas y soporte', 'description': 'La vista de soporte muestra conteos y eventos técnicos; no permite operar cuentas ni muestra datos personales.', 'action': 'Acceso de soporte', 'destination': 'login', 'image': 'team/sistemas-soporte.jpg', 'image_alt': 'Modelo trabajando frente a una computadora para ilustrar sistemas y soporte', 'photo_credit': 'cottonbro studio · Pexels', 'photo_url': 'https://www.pexels.com/photo/portrait-of-a-man-at-his-desk-7504748/'},
         ],
-        'note': 'Las fotografías son de modelos en imágenes de stock; ilustran funciones y no representan a empleados, directivos ni colaboradores de Norte ni implican su respaldo. En el sistema están implementados Administrador y Soporte; Gerencia es una referencia informativa, sin acceso ni tablero propio. Norte es una demostración sin efectos financieros.',
         'cta_label': 'Explorar herramientas',
         'cta_endpoint': 'main.herramientas',
     },

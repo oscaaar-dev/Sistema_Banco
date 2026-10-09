@@ -81,7 +81,7 @@
         </div>
         {% endif %}
 
-        <aside class="info-note" data-reveal><i class="bi bi-info-circle-fill"></i><p>{{ page.note }}</p></aside>
+        {% if page.note %}<aside class="info-note" data-reveal><i class="bi bi-info-circle-fill"></i><p>{{ page.note }}</p></aside>{% endif %}
         <div class="info-bottom-link" data-reveal>
           <span>¿Quieres seguir explorando Norte?</span>
           <a href="{{ url_for(page.cta_endpoint) }}">{{ page.cta_label }} <i class="bi bi-arrow-right"></i></a>

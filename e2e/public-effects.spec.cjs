@@ -87,7 +87,9 @@ test('las páginas informativas muestran tarjetas interactivas y accesos claros'
   await expect(cards).toHaveCount(3);
   const portraits = page.locator('.info-card-photo img');
   await expect(portraits).toHaveCount(3);
-  await expect(page.locator('.info-note')).toContainText('no representan a empleados');
+  await expect(page.locator('.info-note')).toHaveCount(0);
+  await expect(page.locator('.info-card-photo figcaption')).toHaveCount(3);
+  await expect(page.locator('.info-card-photo figcaption').first()).toContainText('Fotografía ilustrativa');
   for (const portrait of await portraits.all()) {
     await expect(portrait).toBeVisible();
     await expect.poll(() => portrait.evaluate((image) => image.complete && image.naturalWidth > 0)).toBeTruthy();
