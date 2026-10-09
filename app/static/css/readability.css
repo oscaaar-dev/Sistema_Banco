@@ -1,0 +1,3 @@
+/* Small global type increase to improve legibility without changing layout effects. */
+body{font-size:16px}
+:is(p,li,label,small,td,th,button,input,select,textarea,.muted,.eyebrow,.text-link,.crumb,.intranet-nav a,.intranet-secure,.intranet-user,.quick-actions a,.movement-filters label){font-size:clamp(12px,1.08em,22px)}

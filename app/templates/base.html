@@ -23,6 +23,7 @@
   {% if request.endpoint in ('main.login','main.register','main.verify_login') %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/auth.css',v='auth-password-toggle-1') }}">
   {% endif %}
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/readability.css',v='readability-1') }}">
 </head>
 <body class="{% if current_user.is_authenticated and request.endpoint!='main.index' %}intranet-body{% elif request.endpoint in ('main.login','main.register','main.verify_login') %}auth-body{% endif %}">
   {% if current_user.is_authenticated and request.endpoint!='main.index' %}<a class="skip-link" href="#contenido">Ir al contenido principal</a>{% endif %}
