@@ -40,7 +40,7 @@
         <button class="btn btn-primary btn-full" type="submit">Crear cuenta <i class="bi bi-arrow-right"></i></button>
       </form>
       <p class="login-legal"><a class="text-link" href="{{ url_for('main.login') }}">Volver al inicio de sesión</a></p>
-      <div class="login-legal">Simulación académica con datos ficticios. No es un servicio oficial de BCP.</div>
+      <div class="login-legal">{{ norte_legal_notice }} <a class="text-link" href="{{ url_for('main.terms') }}">Términos</a> · <a class="text-link" href="{{ url_for('main.privacy') }}">Privacidad</a></div>
     </div>
   </section>
 </main>

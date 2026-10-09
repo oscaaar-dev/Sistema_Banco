@@ -69,7 +69,7 @@ def test_public_homepage_links_to_existing_login_and_registration():
     assert b'href="/login"' in response.data
     assert b'href="/register"' in response.data
     assert 'Operaciones para practicar'.encode() in response.data
-    assert 'No es un banco'.encode() in response.data
+    assert 'No es una entidad del sistema financiero supervisada por la SBS'.encode() in response.data
     assert b'home-parallax' in response.data
     assert response.data.count(b'aria-roledescription="diapositiva"') == 3
     assert b'data-hero-carousel' in response.data
@@ -106,6 +106,31 @@ def test_public_information_topics_have_separate_pages():
 
     assert b'no se procesan pagos ni transferencias' in client.get('/seguridad').data
     assert 'historia, la marca y los productos de Norte son ficticios'.encode() in client.get('/acerca').data
+
+
+def test_terms_and_privacy_pages_publish_legal_notice_and_links():
+    app=create_app(); app.config['TESTING']=True
+    client=app.test_client()
+
+    for path,heading in (
+        ('/terminos','Términos y condiciones de uso'),
+        ('/privacidad','Privacidad y tratamiento de datos personales'),
+    ):
+        response=client.get(path)
+        assert response.status_code==200
+        assert heading.encode() in response.data
+        assert 'No es una entidad del sistema financiero supervisada por la SBS'.encode() in response.data
+        assert b'href="/terminos"' in response.data
+        assert b'href="/privacidad"' in response.data
+
+
+def test_error_pages_keep_the_norte_brand():
+    app=create_app(); app.config['TESTING']=True
+    response=app.test_client().get('/ruta-inexistente')
+
+    assert response.status_code==404
+    assert b'Norte' in response.data
+    assert b'No encontramos esta p' in response.data
 
 
 def test_authenticated_user_can_still_open_public_homepage():

@@ -41,7 +41,7 @@ def send_login_code(recipient, code):
         'Tu código de seguridad para iniciar sesión en Norte es: '
         f'{code}\n\n'
         'Vence en 5 minutos. Si no solicitaste este código, ignora este mensaje.\n'
-        'Norte es una simulación académica; este correo no representa una entidad financiera real.'
+        + current_app.config['LEGAL_NOTICE']
     )
 
     try:
@@ -75,7 +75,7 @@ def _send_with_brevo_api(recipient,code):
             'Tu código de seguridad para iniciar sesión en Norte es: '
             f'{code}\n\n'
             'Vence en 5 minutos. Si no solicitaste este código, ignora este mensaje.\n'
-            'Norte es una simulación académica; este correo no representa una entidad financiera real.'
+            + current_app.config['LEGAL_NOTICE']
         ),
     }
     request=Request(

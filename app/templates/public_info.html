@@ -85,7 +85,7 @@
     </main>
 
     <footer class="info-footer">
-      <div class="info-container"><a class="home-brand info-brand" href="{{ url_for('main.index') }}"><span class="home-brand-symbol"><i class="bi bi-compass-fill"></i></span><span>NORTE<span class="home-brand-dot">.</span><small>BANCA DIGITAL DEMO</small></span></a><p>Proyecto académico independiente. No es un banco ni representa al BCP.</p><a href="{{ url_for('main.index') }}">Volver al inicio <i class="bi bi-arrow-up-right"></i></a></div>
+      <div class="info-container"><a class="home-brand info-brand" href="{{ url_for('main.index') }}"><span class="home-brand-symbol"><img src="{{ url_for('static',filename='brand/norte-favicon.svg') }}" alt=""></span><span>NORTE<span class="home-brand-dot">.</span><small>BANCA DIGITAL</small></span></a><p>{{ norte_legal_notice }}</p><span class="info-legal-links"><a href="{{ url_for('main.terms') }}">Términos</a><a href="{{ url_for('main.privacy') }}">Privacidad</a><a href="{{ url_for('main.index') }}">Volver al inicio <i class="bi bi-arrow-up-right"></i></a></span></div>
     </footer>
   </div>
     <script src="{{ url_for('static',filename='js/reveal.js',v='reveal-3') }}"></script>

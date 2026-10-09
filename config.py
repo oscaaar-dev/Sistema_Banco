@@ -8,6 +8,7 @@ APP_ENV=os.getenv('APP_ENV','development').strip().lower()
 DATABASE_URL=os.getenv('DATABASE_URL') or os.getenv('MYSQL_URL')
 SECRET_KEY=os.getenv('SECRET_KEY')
 EMAIL_TRANSPORT=os.getenv('EMAIL_TRANSPORT','smtp').strip().lower()
+LEGAL_NOTICE='Norte es un proyecto de banca digital en desarrollo. No es una entidad del sistema financiero supervisada por la SBS.'
 if APP_ENV=='production':
     required_production_settings=['SECRET_KEY','DATABASE_URL']
     if EMAIL_TRANSPORT=='brevo_api':
@@ -44,6 +45,7 @@ class Config:
     SMTP_USE_TLS=os.getenv('SMTP_USE_TLS','true').lower()=='true'
     SMTP_USE_SSL=os.getenv('SMTP_USE_SSL','false').lower()=='true'
     EMAIL_TRANSPORT=EMAIL_TRANSPORT
+    LEGAL_NOTICE=LEGAL_NOTICE
     BREVO_API_KEY=os.getenv('BREVO_API_KEY')
     LOGIN_CODE_TTL_SECONDS=300
     LOGIN_CODE_RESEND_SECONDS=60

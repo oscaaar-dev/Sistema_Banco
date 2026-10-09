@@ -105,7 +105,7 @@ PUBLIC_INFO_PAGES = {
     'seguridad': {
         'eyebrow': 'SEGURIDAD Y TRANSPARENCIA',
         'title': 'Explora con tranquilidad: este entorno es una simulación.',
-        'intro': 'La confianza también significa saber qué servicio estás usando. Norte es un proyecto académico independiente y no es un banco ni representa al BCP.',
+        'intro': 'La confianza también significa saber qué servicio estás usando. Norte es un proyecto de banca digital en desarrollo y explica con claridad los límites de sus funcionalidades actuales.',
         'icon': 'bi-shield-check',
         'highlights': [
             ('bi-person-vcard', 'Usa solo datos de práctica', 'No ingreses contraseñas bancarias reales, números de tarjeta ni otra información financiera sensible.'),
@@ -160,6 +160,16 @@ def seguridad():
 @bp.route('/acerca')
 def acerca():
     return _public_info_page('acerca')
+
+
+@bp.route('/terminos')
+def terms():
+    return render_template('legal.html',page_key='terminos')
+
+
+@bp.route('/privacidad')
+def privacy():
+    return render_template('legal.html',page_key='privacidad')
 
 
 @bp.route('/login',methods=['GET','POST'])

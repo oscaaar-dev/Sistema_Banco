@@ -1,4 +1,4 @@
-from flask import Flask, flash, redirect, session, url_for
+from flask import Flask, flash, redirect, render_template, session, url_for
 from flask_login import LoginManager, current_user, logout_user
 from flask_wtf.csrf import CSRFProtect
 from pathlib import Path
@@ -21,6 +21,25 @@ def create_app():
     db.init_app(app); login_manager.init_app(app); csrf.init_app(app)
     from .routes import bp
     app.register_blueprint(bp)
+    @app.context_processor
+    def inject_brand_context():
+        return {'norte_legal_notice':app.config['LEGAL_NOTICE']}
+
+    @app.errorhandler(400)
+    @app.errorhandler(403)
+    @app.errorhandler(404)
+    @app.errorhandler(500)
+    def render_error_page(error):
+        status=getattr(error,'code',500)
+        messages={
+            400:('No pudimos procesar esta solicitud.','Revisa la información e inténtalo nuevamente.'),
+            403:('No tienes acceso a esta sección.','Inicia sesión con una cuenta que tenga los permisos necesarios.'),
+            404:('No encontramos esta página.','Es posible que la dirección haya cambiado o ya no esté disponible.'),
+            500:('Ocurrió un problema temporal.','Inténtalo nuevamente en unos minutos.'),
+        }
+        title,detail=messages.get(status,messages[500])
+        return render_template('error.html',status=status,title=title,detail=detail),status
+
     @app.before_request
     def require_email_second_factor():
         if current_user.is_authenticated and not session.get('login_2fa_verified'):

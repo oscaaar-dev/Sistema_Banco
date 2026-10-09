@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="{{ url_for('static',filename='css/app.css',v='camera-layout-4') }}">
-  {% if request.endpoint=='main.index' %}
+  {% if request.endpoint in ('main.index','main.terms','main.privacy') %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/home.css',v='home-24') }}">
   {% endif %}
   {% if request.endpoint=='main.operation' %}
@@ -69,7 +69,7 @@
         {% endfor %}
       {% endwith %}
       {% block content %}{% endblock %}
-      <footer class="footer">© 2026 Norte · Simulación académica. No es una entidad financiera real.</footer>
+      <footer class="footer">© 2026 Norte · {{ norte_legal_notice }} · <a href="{{ url_for('main.terms') }}">Términos</a> · <a href="{{ url_for('main.privacy') }}">Privacidad</a></footer>
     </div>
   </main>
   </div>

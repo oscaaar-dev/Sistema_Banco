@@ -210,7 +210,7 @@
           <li><i class="bi bi-check2"></i><span>Consultar tus tarjetas ficticias desde el resumen.</span></li>
         </ul>
         <a class="home-cta-primary" href="{{ url_for('main.login') }}">Ir a mi banca digital <i class="bi bi-arrow-right"></i></a>
-        <small class="home-operations-disclaimer">Las operaciones no mueven dinero ni se conectan con el BCP.</small>
+        <small class="home-operations-disclaimer">Las operaciones no mueven dinero ni se conectan con cuentas bancarias reales.</small>
       </div>
     </section>
 
@@ -235,9 +235,9 @@
       <div class="home-footer-about"><a class="home-brand home-footer-brand" href="{{ url_for('main.index') }}"><span class="home-brand-symbol"><img src="{{ url_for('static',filename='brand/norte-favicon.svg') }}" alt=""></span><span>NORTE<span class="home-brand-dot">.</span><small>BANCA DIGITAL</small></span></a><p>Una experiencia académica para conocer las funciones de una banca digital.</p></div>
       <div class="home-footer-column"><b>EXPLORA</b><a href="{{ url_for('main.personas') }}">Personas</a><a href="{{ url_for('main.herramientas') }}">Herramientas</a><a href="{{ url_for('main.seguridad') }}">Seguridad</a><a href="{{ url_for('main.acerca') }}">Acerca de Norte</a></div>
       <div class="home-footer-column"><b>ACCESO</b><a href="{{ url_for('main.login') }}">Banca por Internet</a><a href="{{ url_for('main.login') }}">Movimientos</a><a href="{{ url_for('main.login') }}">Tarjetas</a></div>
-      <div class="home-footer-disclaimer"><span><i class="bi bi-info-circle"></i> IMPORTANTE</span><p>Simulación académica con datos ficticios. No es un banco, no representa al BCP, no asesora ni procesa dinero real.</p></div>
+      <div class="home-footer-disclaimer"><span><i class="bi bi-info-circle"></i> IMPORTANTE</span><p>{{ norte_legal_notice }}</p></div>
     </div>
-    <div class="home-footer-bottom"><div class="home-container"><span>© 2026 Norte · Proyecto académico</span><a href="{{ url_for('main.index') }}">Volver al inicio <i class="bi bi-arrow-up"></i></a></div></div>
+    <div class="home-footer-bottom"><div class="home-container"><span>© 2026 Norte · Proyecto académico</span><span class="home-footer-links"><a href="{{ url_for('main.terms') }}">Términos</a><a href="{{ url_for('main.privacy') }}">Privacidad</a><a href="{{ url_for('main.index') }}">Volver al inicio <i class="bi bi-arrow-up"></i></a></span></div></div>
   </footer>
 
   <div class="home-floating-actions" aria-label="Opciones de ayuda y privacidad">
@@ -264,7 +264,7 @@
       <p class="home-help-intro">Elige una opción para continuar en el entorno de práctica de Norte.</p>
       <a class="home-help-option" href="{{ url_for('main.login') }}"><span class="home-help-icon help-icon-blue"><i class="bi bi-arrow-left-right"></i></span><span><b>Explorar operaciones</b><small>Transferencias, pagos y recargas de prueba</small></span><i class="bi bi-chevron-right"></i></a>
       <a class="home-help-option" href="{{ url_for('main.register') }}"><span class="home-help-icon help-icon-orange"><i class="bi bi-person-plus"></i></span><span><b>Quiero crear una cuenta</b><small>Abre tu perfil demo para empezar</small></span><i class="bi bi-chevron-right"></i></a>
-      <details class="home-help-faq"><summary><span class="home-help-icon help-icon-mint"><i class="bi bi-question-circle"></i></span><span><b>Preguntas frecuentes</b><small>Resuelve tus dudas sobre la demo</small></span><i class="bi bi-chevron-down"></i></summary><div><b>¿Se usa dinero real?</b><p>No. Los saldos y operaciones son ficticios y solo sirven para practicar.</p><b>¿Es el sitio oficial del BCP?</b><p>No. Norte es un proyecto académico independiente y no representa al BCP.</p><b>¿Necesitas ayuda con tu acceso?</b><p>Usa la opción “Banca por Internet” para ingresar o crear tu cuenta demo.</p></div></details>
+      <details class="home-help-faq"><summary><span class="home-help-icon help-icon-mint"><i class="bi bi-question-circle"></i></span><span><b>Preguntas frecuentes</b><small>Resuelve tus dudas sobre la demo</small></span><i class="bi bi-chevron-down"></i></summary><div><b>¿Se usa dinero real?</b><p>No. Los saldos y operaciones son ficticios y solo sirven para practicar.</p><b>¿Qué es Norte?</b><p>{{ norte_legal_notice }}</p><b>¿Necesitas ayuda con tu acceso?</b><p>Usa la opción “Banca por Internet” para ingresar o crear tu cuenta demo.</p></div></details>
       <div class="home-help-foot"><i class="bi bi-info-circle"></i> Norte es una simulación académica; no brinda asesoría financiera.</div>
     </div>
   </dialog>

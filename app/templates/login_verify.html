@@ -42,7 +42,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="text-link" type="submit">Cancelar y volver al inicio de sesión</button>
       </form>
-      <div class="login-legal">No compartas este código. Norte es una simulación académica, no un servicio oficial de BCP.</div>
+      <div class="login-legal">No compartas este código. {{ norte_legal_notice }} <a class="text-link" href="{{ url_for('main.privacy') }}">Privacidad</a></div>
     </div>
   </section>
 </main>
