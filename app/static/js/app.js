@@ -35,101 +35,83 @@ if(riskPreview){
  });
 }
 if(video){
- let stream=null, analysisTimer=null, lastAnalysis=null;
+ let stream=null;
  const start=document.getElementById('startCamera'), stop=document.getElementById('stopCamera');
  const consent=document.getElementById('cameraConsent');
  const status=document.getElementById('cameraStatus'), placeholder=document.getElementById('cameraPlaceholder'), indicator=document.getElementById('cameraIndicator');
- const verified=document.getElementById('cameraVerified');
- const analysisField=document.getElementById('cameraAnalysis');
  const form=document.getElementById('operationForm');
- const formDuration=document.getElementById('formDurationSeconds');
  const submitButton=form?.querySelector('button[type="submit"]');
  const otpInput=form?.querySelector('input[name="otp_code"]');
- const operationKind=riskPreview?.dataset.kind;
- const analysisBox=document.getElementById('cameraAnalysisBox');
- const analysisTitle=document.getElementById('cameraAnalysisTitle');
- const analysisDetails=document.getElementById('cameraAnalysisDetails');
- const facePosition=document.getElementById('facePosition');
- const faceVisibility=document.getElementById('faceVisibility');
+ const formDuration=form?.querySelector('#formDurationSeconds');
  const formStartedAt=performance.now();
- if(start)start.disabled=!consent?.checked;
- if(submitButton) submitButton.disabled=true;
+ const consentDialog=document.getElementById('operationConsentDialog');
+ const acceptConsent=document.getElementById('acceptCameraConsent');
+ const declineConsent=document.getElementById('declineCameraConsent');
+ const consentVersion=consentDialog?.dataset.version;
+ const consentError=document.getElementById('cameraConsentError');
+ const csrfToken=form?.querySelector('input[name="csrf_token"]')?.value || document.querySelector('#cameraCsrfForm input[name="csrf_token"]')?.value || '';
+ if(start)start.disabled=form?consent?.value!=='yes':!consent?.checked;
  const setStatus=(text)=>{if(status) status.textContent=text};
- const cameraReady=()=>Boolean(stream?.active&&lastAnalysis?.ready&&consent?.checked);
  const otpReady=()=>Boolean(otpInput&&/^\d{6}$/.test(otpInput.value));
  const updateSubmitState=()=>{
-  const allowed=operationKind==='transfer'?otpReady():(cameraReady()||otpReady());
-  if(submitButton)submitButton.disabled=!allowed;
+  if(submitButton)submitButton.disabled=!otpReady();
  };
- const setVerified=(value)=>{if(verified)verified.value=value?'yes':'no';updateSubmitState()};
- const paintAnalysis=(result)=>{
-  lastAnalysis=result;
-  if(facePosition)facePosition.textContent=`${Math.round(result.position_score||0)}%`;
-  if(faceVisibility)faceVisibility.textContent=`${Math.round(result.visibility_score||0)}%`;
-  if(analysisBox)analysisBox.dataset.state=result.ready?'ok':'blocked';
-  if(analysisTitle)analysisTitle.textContent=result.ready?'✓ Rostro verificado para esta operación':'⚠ Verificación de cámara bloqueada';
-  if(analysisDetails)analysisDetails.textContent=(result.indicators||[]).join(' ')||result.message||'';
-  if(analysisField)analysisField.value=JSON.stringify({ready:result.ready,face_confidence:result.face_confidence,position_score:result.position_score,visibility_score:result.visibility_score,possible_obstruction:result.possible_obstruction});
-  setVerified(Boolean(result.ready));
- };
- const analyzeCamera=async()=>{
-  if(!stream?.active || video.readyState<2) return;
-  const canvas=document.createElement('canvas');
-  canvas.width=640; canvas.height=Math.round(640*(video.videoHeight/video.videoWidth||0.5625));
-  const ctx=canvas.getContext('2d'); ctx.drawImage(video,0,0,canvas.width,canvas.height);
-  const token=form?.querySelector('input[name="csrf_token"]')?.value || document.querySelector('#cameraCsrfForm input[name="csrf_token"]')?.value;
-  const body=new URLSearchParams({frame:canvas.toDataURL('image/jpeg',0.72)});
-  if(consent?.checked)body.set('camera_consent','yes');
-  if(token)body.set('csrf_token',token);
-  try{
-   const response=await fetch('/camera/analyze',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':token||''},body});
-   if(!response.headers.get('content-type')?.includes('application/json')){
-    throw new Error(`El servidor respondió con un formato inesperado (HTTP ${response.status}).`);
-   }
-   const result=await response.json();
-   if(!response.ok)throw new Error(result.error||'No se pudo analizar la cámara.');
-   paintAnalysis(result);
-  }catch(error){
-   setVerified(false);
-   if(analysisTitle)analysisTitle.textContent='⚠ No se pudo validar la cámara';
-   if(analysisDetails)analysisDetails.textContent=error.message;
-  }
- };
- const startAnalysis=()=>{clearInterval(analysisTimer);analyzeCamera();analysisTimer=setInterval(analyzeCamera,1200)};
  const stopCamera=()=>{
-  clearInterval(analysisTimer);analysisTimer=null;
   if(stream){stream.getTracks().forEach(track=>track.stop());stream=null}
   video.srcObject=null;video.hidden=true;placeholder.hidden=false;indicator.hidden=true;
-  start.disabled=!consent?.checked;stop.disabled=true;setVerified(false);setStatus('Cámara apagada. Actívala y verifica tu rostro para continuar.');
-  if(analysisTitle)analysisTitle.textContent='Esperando análisis del rostro';
-  if(analysisDetails)analysisDetails.textContent='Activa la cámara y colócate frente a ella.';
+  start.disabled=Boolean(form&&consent?.value!=='yes');stop.disabled=true;
+  setStatus('Cámara apagada. La operación se confirma con el código de correo.');
  };
  if(otpInput)otpInput.addEventListener('input',updateSubmitState);
- start.addEventListener('click',async()=>{
-  if(!consent?.checked){setStatus('Lee y acepta el aviso de privacidad antes de activar la cámara.');start.disabled=true;return}
-  if(!navigator.mediaDevices?.getUserMedia){setStatus('Este navegador no permite acceso a cámara. Usa localhost.');return}
-  start.disabled=true;setStatus('Solicitando permiso del navegador…');
+ const startCamera=async()=>{
+  if(form&&consent?.value!=='yes'){setStatus('Acepta el aviso para habilitar la vista previa local.');return}
+  if(!form&&consent&&!consent.checked){setStatus('Acepta el aviso antes de activar la cámara.');return}
+  if(!navigator.mediaDevices?.getUserMedia){setStatus('Este navegador no permite acceso a cámara. Continúa con el código de correo.');return}
+  start.disabled=true;setStatus('Solicitando permiso de cámara al navegador…');
   try{
    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});
    video.srcObject=stream;await video.play();video.hidden=false;placeholder.hidden=true;indicator.hidden=false;
-   stop.disabled=false;setVerified(false);setStatus('Cámara activa. Analizando posición y visibilidad del rostro…');startAnalysis();
+   stop.disabled=false;setStatus('Vista previa local activa. No se envían ni guardan fotogramas; confirma la operación con el código de correo.');
   }catch(error){
    if(stream){stream.getTracks().forEach(track=>track.stop());stream=null}
-   start.disabled=false;setVerified(false);
-   setStatus(error.name==='NotAllowedError'?'Permiso denegado. Habilita la cámara.':error.name==='NotFoundError'?'No se encontró una cámara conectada.':'No se pudo iniciar la cámara.');
+   start.disabled=Boolean(form&&consent?.value!=='yes');
+   setStatus(error.name==='NotAllowedError'?'Permiso denegado. Puedes continuar con el código de correo.':error.name==='NotFoundError'?'No se encontró una cámara. Puedes continuar con el código de correo.':'No se pudo iniciar la cámara. Usa el código de correo.');
   }
+ };
+ start.addEventListener('click',async()=>{
+  await startCamera();
  });
- if(consent)consent.addEventListener('change',()=>{
-  if(!consent.checked){stopCamera();setStatus('Acepta el aviso de privacidad para habilitar la cámara.')}
-  else if(!stream?.active){start.disabled=false;setStatus('Consentimiento registrado para esta sesión. Puedes activar la cámara.')}
+ if(acceptConsent&&consentDialog){
+  acceptConsent.addEventListener('click',async()=>{
+   acceptConsent.disabled=true;
+   if(consentError)consentError.textContent='';
+   try{
+    const response=await fetch('/camera/consent',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrfToken},body:JSON.stringify({version:consentVersion,kind:consentDialog.dataset.kind,idempotency_key:consentDialog.dataset.operationKey})});
+    const result=await response.json();
+    if(!response.ok)throw new Error(result.error||'No se pudo registrar el consentimiento.');
+    if(consent)consent.value='yes';
+    consentDialog.close('accepted');
+    start.disabled=false;
+    await startCamera();
+   }catch(error){if(consentError)consentError.textContent=error.message;else setStatus(error.message)}
+   finally{acceptConsent.disabled=false}
+  });
+ }
+ declineConsent?.addEventListener('click',()=>{
+  if(consent)consent.value='no';
+  stopCamera();
+  consentDialog?.close('declined');
+  otpInput?.focus();
  });
+ consentDialog?.addEventListener('cancel',()=>{if(consent)consent.value='no';stopCamera()});
+ if(consent&&!form)consent.addEventListener('change',()=>{start.disabled=!consent.checked;if(!consent.checked)stopCamera()});
  stop.addEventListener('click',stopCamera);
  if(form) form.addEventListener('submit',event=>{
   if(formDuration)formDuration.value=String(Math.max(0,Math.round((performance.now()-formStartedAt)/1000)));
-  if(operationKind==='transfer'&&!otpReady()){event.preventDefault();setStatus('Ingresa el código de correo para confirmar la transferencia.');return}
-  if(!cameraReady()&&!otpReady()){event.preventDefault();setVerified(false);setStatus('Verifica con cámara o solicita un código de seguridad por correo.');return}
+  if(!otpReady()){event.preventDefault();setStatus('Ingresa el código enviado a tu correo para confirmar la operación.');otpInput?.focus();return}
   if(submitButton){submitButton.disabled=true;submitButton.innerHTML='Procesando…'}
  });
+ if(consentDialog&&typeof consentDialog.showModal==='function')consentDialog.showModal();
  window.addEventListener('pagehide',stopCamera);
 }
 const toggle=document.getElementById('menuToggle');

@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import secrets
-import time
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 import re
@@ -12,11 +11,6 @@ from sqlalchemy.exc import IntegrityError
 from ..models import db, User, LoginChallenge, LoginAttemptLimit, OperationChallenge, Account, BankCard, Beneficiary, Transaction, InteractionSession, AuditLog, now_utc
 from ..services.banking_service import account_for, process_operation, log, operation_risk_for
 from ..services.email_service import EmailDeliveryError, send_login_code, send_operation_code
-from ..ai.camera_analysis import analyze_frame
-import base64
-import time
-import cv2
-import numpy as np
 bp=Blueprint('main',__name__)
 
 LOGIN_FAILURE_LIMIT=5
@@ -25,6 +19,7 @@ LOGIN_LOCK_DURATION=timedelta(minutes=15)
 OPERATION_CODE_TTL=timedelta(minutes=5)
 OPERATION_CODE_RESEND=timedelta(seconds=60)
 OPERATION_CODE_MAX_ATTEMPTS=5
+CAMERA_CONSENT_VERSION='2026-10-v1'
 
 def _login_attempt_hash(identifier):
     key=str(current_app.config['SECRET_KEY']).encode('utf-8')
@@ -457,31 +452,36 @@ def operation_risk():
         return jsonify(operation_risk_for(current_user,kind,amount))
     except (ValueError,InvalidOperation):
         return jsonify(error='Ingresa un monto entre S/ 0.01 y S/ 10,000.00.'),400
+
+@bp.route('/camera/consent', methods=['POST'])
+@login_required
+def record_camera_consent():
+    data=request.get_json(silent=True) or request.form
+    kind=data.get('kind','')
+    operation_key=data.get('idempotency_key','').strip()
+    if (data.get('version')!=CAMERA_CONSENT_VERSION
+            or kind not in ('transfer','payment','recharge')
+            or not re.fullmatch(r'[A-Za-z0-9_-]{22,64}',operation_key)):
+        return jsonify(error='No se pudo validar el consentimiento para esta operación.'),400
+    action=f"CAMERA_CONSENT_ACCEPTED_{CAMERA_CONSENT_VERSION.replace('-', '_').upper()}_{kind.upper()}"
+    log(current_user,action,'PRIVACIDAD')
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('No se pudo registrar el consentimiento de cámara.')
+        return jsonify(error='No se pudo guardar tu consentimiento. Puedes continuar con el código de correo.'),503
+    session['camera_consent_receipt']={
+        'version':CAMERA_CONSENT_VERSION,
+        'kind':kind,
+        'idempotency_key':operation_key,
+    }
+    return jsonify(recorded=True,version=CAMERA_CONSENT_VERSION)
+
 @bp.route('/camera/analyze', methods=['POST'])
 @login_required
 def camera_analyze():
-    token = request.form.get('csrf_token')
-    image_data = request.form.get('frame', '')
-    if request.form.get('camera_consent') != 'yes':
-        session.pop('camera_state', None)
-        return jsonify(error='Debes autorizar el análisis temporal antes de enviar fotogramas.'), 403
-    if not image_data:
-        return jsonify(error='No se recibió el fotograma de la cámara.'), 400
-    try:
-        raw = base64.b64decode(image_data.split(',', 1)[-1], validate=True)
-        frame = cv2.imdecode(np.frombuffer(raw, dtype=np.uint8), cv2.IMREAD_COLOR)
-        result = analyze_frame(frame)
-        if result.get('ready'):
-            session['camera_state'] = {
-                'ready': True,
-                'checked_at': time.time(),
-            }
-        else:
-            session['camera_state'] = {'ready': False, 'checked_at': time.time()}
-        return jsonify(result)
-    except Exception:
-        session['camera_state'] = {'ready': False, 'checked_at': time.time()}
-        return jsonify(error='No se pudo analizar el fotograma.'), 400
+    return jsonify(error='El análisis de cámara del servidor está deshabilitado. La vista previa es local al navegador.'),410
 
 @bp.route('/operation/<kind>',methods=['GET','POST'])
 @login_required
@@ -491,19 +491,22 @@ def operation(kind):
     submitted_idempotency_key=request.form.get('idempotency_key','').strip() if request.method=='POST' else ''
     idempotency_key=(submitted_idempotency_key if re.fullmatch(r'[A-Za-z0-9_-]{22,64}',submitted_idempotency_key)
                      else secrets.token_urlsafe(24))
+    if request.method=='GET':
+        session.pop('camera_consent_receipt',None)
     if request.method=='POST':
-        camera_state = session.get('camera_state', {})
-        camera_consent = request.form.get('camera_consent') == 'yes'
-        camera_ok = bool(camera_consent and request.form.get('camera_verified') == 'yes'
-                         and camera_state.get('ready')
-                         and time.time() - camera_state.get('checked_at', 0) <= 10)
-        if not camera_consent:
-            session.pop('camera_state', None)
+        receipt=session.get('camera_consent_receipt',{})
+        camera_consent=bool(
+            request.form.get('camera_consent')=='yes'
+            and receipt.get('version')==CAMERA_CONSENT_VERSION
+            and receipt.get('kind')==kind
+            and receipt.get('idempotency_key')==submitted_idempotency_key
+        )
         if not re.fullmatch(r'[A-Za-z0-9_-]{22,64}',submitted_idempotency_key):
             flash('El formulario venció. Vuelve a cargarlo antes de confirmar.','error')
             return render_template('operation.html',kind=kind,recipients=recipients,account=account,
                                    idempotency_key=idempotency_key,
-                                   masked_email=_masked_email(current_user.email or '')), 400
+                                   masked_email=_masked_email(current_user.email or ''),
+                                   camera_consent_version=CAMERA_CONSENT_VERSION), 400
         try:
             amount=Decimal(request.form.get('amount','0'))
             duration_seconds=int(request.form.get('form_duration_seconds','0'))
@@ -529,7 +532,7 @@ def operation(kind):
                 description='Recarga: '+phone[:40]; op='RECARGA'; details='phone:'+phone
 
             code=request.form.get('otp_code','').strip()
-            must_use_otp=(kind=='transfer' or not camera_ok or bool(code))
+            must_use_otp=True
             if must_use_otp:
                 if not current_user.email:
                     raise ValueError('Esta cuenta no tiene un correo de seguridad configurado. Contacta a la administración.')
@@ -562,17 +565,16 @@ def operation(kind):
                     raise ValueError('El código de confirmación no es válido o venció.')
                 challenge.consumed_at=now
                 log(current_user,'OPERATION_OTP_VERIFIED','SEGURIDAD')
-            elif not camera_ok:
-                raise ValueError('Verifica con cámara o solicita un código de seguridad por correo.')
-
-            tx=process_operation(current_user,op,amount,description,beneficiary_id,request.form.get('service'),camera_ok,face_detected=False,face_confidence=None,duration_seconds=duration_seconds,idempotency_key=idempotency_key)
+            tx=process_operation(current_user,op,amount,description,beneficiary_id,request.form.get('service'),camera_consent,duration_seconds=duration_seconds,idempotency_key=idempotency_key)
+            session.pop('camera_consent_receipt',None)
             flash('Operación registrada. No tiene efectos financieros.','success')
             return redirect(url_for('main.receipt',transaction_id=tx.id))
         except (ValueError,InvalidOperation) as e:
             db.session.rollback()
             flash(str(e),'error')
     return render_template('operation.html',kind=kind,recipients=recipients,account=account,
-                           idempotency_key=idempotency_key,masked_email=_masked_email(current_user.email or ''))
+                           idempotency_key=idempotency_key,masked_email=_masked_email(current_user.email or ''),
+                           camera_consent_version=CAMERA_CONSENT_VERSION)
 
 @bp.route('/operation/<kind>/send-code',methods=['POST'])
 @login_required

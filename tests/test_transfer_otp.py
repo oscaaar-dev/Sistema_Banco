@@ -1,5 +1,4 @@
 import re
-import time
 from decimal import Decimal
 
 from app import create_app
@@ -43,20 +42,12 @@ def _send_code(client, token, key, beneficiary_id, amount='12.34'):
 
 
 def _submit_transfer(client, token, key, beneficiary_id, code, amount='12.34'):
-    with client.session_transaction() as browser_session:
-        browser_session['camera_state'] = {
-            'ready': True,
-            'checked_at': time.time(),
-            'face_confidence': 0.9,
-        }
     return client.post('/operation/transfer', data={
         'csrf_token': token,
         'idempotency_key': key,
         'beneficiary_id': str(beneficiary_id),
         'amount': amount,
         'otp_code': code,
-        'camera_consent': 'yes',
-        'camera_verified': 'yes',
         'form_duration_seconds': '10',
     })
 

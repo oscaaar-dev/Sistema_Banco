@@ -458,49 +458,8 @@ def test_operation_risk_preview_returns_score_with_limited_history(monkeypatch):
     assert result['enough_history'] is False
     assert any('Historial limitado' in reason for reason in result['reasons'])
 
-def test_operation_requires_camera_or_transaction_email_otp(monkeypatch):
-    app=create_app(); app.config['TESTING']=True
-    client=app.test_client()
-    _login(client,monkeypatch)
-
-    operation_page=client.get('/operation/payment')
-    operation_token=_csrf_token(operation_page)
-    response=client.post('/operation/payment',data={
-        'csrf_token':operation_token,
-        'camera_consent':'yes',
-        'camera_verified':'yes',
-        'form_duration_seconds':'30',
-        'service':'Agua',
-        'amount':'100',
-    })
-
-    assert response.status_code==400
-    from app.models import Transaction
-    with app.app_context():
-        assert Transaction.query.filter_by(operation_type='PAGO',is_seed=False).count()==0
-
-def test_camera_analysis_requires_explicit_consent(monkeypatch):
-    app=create_app(); app.config['TESTING']=True
-    client=app.test_client()
-    _login(client,monkeypatch)
-    operation_page=client.get('/operation/payment')
-    response=client.post('/camera/analyze',data={
-        'csrf_token':_csrf_token(operation_page),
-        'frame':'data:image/jpeg;base64,AA==',
-    })
-    assert response.status_code==403
-    assert 'autorizar el análisis temporal' in response.get_json()['error']
-    with client.session_transaction() as browser_session:
-        assert 'camera_state' not in browser_session
-
-
-def test_completed_operation_does_not_persist_new_camera_results(monkeypatch):
-    import base64
+def test_operation_requires_email_otp_even_after_camera_consent(monkeypatch):
     import re
-
-    import cv2
-    import numpy as np
-    import app.routes as routes_module
 
     app=create_app(); app.config['TESTING']=True
     client=app.test_client()
@@ -509,67 +468,83 @@ def test_completed_operation_does_not_persist_new_camera_results(monkeypatch):
     operation_page=client.get('/operation/payment')
     operation_token=_csrf_token(operation_page)
     idempotency_key=re.search(rb'name="idempotency_key" value="([^"]+)"',operation_page.data).group(1).decode()
-    monkeypatch.setattr(routes_module,'analyze_frame',lambda frame:{
-        'ready':True,
-        'blocked':False,
-        'face_detected':True,
-        'face_count':1,
-        'face_confidence':86.0,
-        'position_score':90.0,
-        'visibility_score':82.0,
-        'eyes_visible':True,
-        'possible_obstruction':False,
-        'indicators':['No se detectaron problemas de visibilidad.'],
-        'message':'Visibilidad y encuadre adecuados.',
-    })
-    success, encoded = cv2.imencode('.jpg',np.full((32,32,3),127,dtype=np.uint8))
-    assert success
-    frame='data:image/jpeg;base64,'+base64.b64encode(encoded.tobytes()).decode()
-
-    analysis=client.post('/camera/analyze',data={
-        'csrf_token':operation_token,
-        'camera_consent':'yes',
-        'frame':frame,
-    })
-    assert analysis.status_code==200
-    assert analysis.get_json()['ready'] is True
-
+    consent=client.post('/camera/consent',json={
+        'version':'2026-10-v1','kind':'payment','idempotency_key':idempotency_key,
+    },headers={'X-CSRFToken':operation_token})
+    assert consent.status_code==200
     response=client.post('/operation/payment',data={
         'csrf_token':operation_token,
         'idempotency_key':idempotency_key,
         'camera_consent':'yes',
-        'camera_verified':'yes',
-        'form_duration_seconds':'240',
+        'form_duration_seconds':'30',
         'service':'Agua',
         'amount':'100',
     })
-    assert response.status_code==302
 
-    retry=client.post('/operation/payment',data={
-        'csrf_token':operation_token,
-        'idempotency_key':idempotency_key,
-        'camera_consent':'yes',
-        'camera_verified':'yes',
-        'form_duration_seconds':'240',
-        'service':'Agua',
-        'amount':'100',
-    })
-    assert retry.status_code==302
-    assert retry.headers['Location']==response.headers['Location']
-    from app.models import FacialAnalysis, InteractionFeatures, InteractionSession, Transaction
+    assert response.status_code==200
+    assert b'Solicita un nuevo c' in response.data
+    from app.models import Transaction
     with app.app_context():
-        assert Transaction.query.filter_by(idempotency_key=idempotency_key).count()==1
-        session_record=InteractionSession.query.join(Transaction).filter(Transaction.idempotency_key==idempotency_key).one()
-        assert session_record.consent_given is True
-        assert session_record.face_detected is False
-        assert FacialAnalysis.query.count()==0
-        assert InteractionFeatures.query.filter_by(session_id=session_record.id).one().face_detection_rate==0
+        assert Transaction.query.filter_by(operation_type='PAGO',is_seed=False).count()==0
 
-    receipt=client.get(response.headers['Location'])
-    assert b'Duraci\xc3\xb3n del formulario: 240 s' in receipt.data
-    assert b'Indicador de la operaci\xc3\xb3n:' in receipt.data
-    assert b'Verificaci\xc3\xb3n de c\xc3\xa1mara: APROBADA' not in receipt.data
-    assert b'86.0%' not in receipt.data
+def test_camera_frame_endpoint_is_disabled_and_does_not_store_state(monkeypatch):
+    app=create_app(); app.config['TESTING']=True
+    client=app.test_client()
+    _login(client,monkeypatch)
+    operation_page=client.get('/operation/payment')
+    response=client.post('/camera/analyze',data={
+        'csrf_token':_csrf_token(operation_page),
+        'camera_consent':'yes',
+        'frame':'data:image/jpeg;base64,AA==',
+    })
+    assert response.status_code==410
+    assert 'deshabilitado' in response.get_json()['error']
+    with client.session_transaction() as browser_session:
+        assert 'camera_state' not in browser_session
+
+
+def test_camera_consent_records_only_user_version_and_timestamp(monkeypatch):
+    import re
+    from app.models import AuditLog, User
+    app=create_app(); app.config['TESTING']=True
+    client=app.test_client()
+    _login(client,monkeypatch)
+    page=client.get('/operation/payment')
+    token=_csrf_token(page)
+    key=re.search(rb'data-operation-key="([^"]+)"',page.data).group(1).decode()
+    response=client.post('/camera/consent',json={
+        'version':'2026-10-v1','kind':'payment','idempotency_key':key,
+    },headers={'X-CSRFToken':token})
+    assert response.status_code==200
+    assert response.get_json()=={'recorded':True,'version':'2026-10-v1'}
+    with app.app_context():
+        user=User.query.filter_by(username='demo').one()
+        consent=AuditLog.query.filter_by(user_id=user.id,module='PRIVACIDAD').one()
+        assert consent.action=='CAMERA_CONSENT_ACCEPTED_2026_10_V1_PAYMENT'
+        assert consent.created_at is not None
+        assert consent.ip_local is None
+        assert AuditLog.query.filter_by(module='PRIVACIDAD').count()==1
+    with client.session_transaction() as browser_session:
+        assert browser_session['camera_consent_receipt']=={
+            'version':'2026-10-v1','kind':'payment','idempotency_key':key,
+        }
+
+
+def test_invalid_camera_consent_version_is_not_recorded(monkeypatch):
+    import re
+    from app.models import AuditLog
+    app=create_app(); app.config['TESTING']=True
+    client=app.test_client()
+    _login(client,monkeypatch)
+    page=client.get('/operation/payment')
+    token=_csrf_token(page)
+    key=re.search(rb'data-operation-key="([^"]+)"',page.data).group(1).decode()
+    response=client.post('/camera/consent',json={
+        'version':'old','kind':'payment','idempotency_key':key,
+    },headers={'X-CSRFToken':token})
+    assert response.status_code==400
+    with app.app_context():
+        assert AuditLog.query.filter_by(module='PRIVACIDAD').count()==0
 
 def test_payment_can_be_confirmed_by_email_otp_without_camera(monkeypatch):
     import re

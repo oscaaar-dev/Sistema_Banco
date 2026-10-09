@@ -9,7 +9,7 @@
 
 ## Fase actual
 
-Fase 4 — privacidad y cámara. Consentimiento, cero persistencia facial nueva y alternativa por OTP implementados; pendientes la migración de staging y resolver el alcance del score antifraude frente a la política de cero retención.
+Fase 4 — privacidad y cámara. La cámara quedó como vista previa local opcional con consentimiento registrado; las operaciones siempre exigen OTP. No hay envío ni análisis de fotogramas ni persistencia facial nueva. No se requiere migración de esquema para este cambio.
 
 ## Hecho
 
@@ -30,8 +30,8 @@ Fase 4 — privacidad y cámara. Consentimiento, cero persistencia facial nueva 
 ## Pendiente en el orden autorizado
 
 1. Fase 3 cerrada: migración `b1e4a95c0f27` aplicada y comprobada en staging.
-2. Fase 4: migración `b4f8a20d17c3` aplicada y verificada en PostgreSQL de staging; continuar con cambios locales no bloqueados por las paradas de privacidad. No desplegar la app.
-3. Después completar Fase 4 y continuar Fases 5, 8 y 9 en orden. No desplegar, importar MySQL ni cambiar servicios productivos.
+2. Fase 4: rediseño local implementado; revisar y validar legalmente el mecanismo electrónico de consentimiento antes de usar datos personales reales. Los posibles registros faciales históricos no se inspeccionaron ni eliminaron.
+3. Continuar Fases 5, 8 y 9 en orden. No desplegar, importar MySQL ni cambiar servicios productivos.
 
 ## Registro de avance
 
@@ -66,8 +66,8 @@ Fase 4 — privacidad y cámara. Consentimiento, cero persistencia facial nueva 
 - La MySQL anterior puede contener cuentas/datos que no existen en staging. No se ha hecho inventario de filas ni importación; no se asume que la copia sea vacía o que contenga solo datos sintéticos.
 - La app en staging requiere que la revisión vigente coincida con el HEAD; la revisión `b4f8a20d17c3` ya está aplicada. La app aún no está desplegada.
 - Aviso operativo: una instancia ya iniciada puede seguir respondiendo con el código cargado previamente, pero el código actual se negará a arrancar contra una base persistente antigua hasta que se apruebe y aplique una migración compatible. No reiniciar el servidor local con la base actual antes de resolver ese paso.
-- **Riesgo legal de privacidad:** el flujo exige consentimiento explícito y el código nuevo no persiste imágenes ni métricas faciales, pero conserva la transmisión actual de fotogramas al servidor cada ~1.2 s. No se inspeccionaron ni eliminaron posibles registros faciales históricos. La detección local en navegador aún no está implementada.
-- **Alcance antifraude pendiente:** el score persistido actual usa señales operativas no faciales. No se combinará una señal facial con un score persistido mientras la política aprobada sea cero persistencia de resultados faciales. Requiere rediseño privacy-preserving o una decisión expresa distinta.
+- **Riesgo legal de privacidad:** la cámara ahora solo muestra una vista previa local, sin envío/análisis de fotogramas; se registra únicamente aceptación, usuario, versión del aviso y fecha. La suficiencia legal de la constancia electrónica requiere revisión profesional antes de usar datos personales reales. No se inspeccionaron ni eliminaron posibles registros faciales históricos.
+- El indicador persistente de riesgo sigue usando señales operativas no faciales; la cámara no participa en decisiones de riesgo ni sustituye el OTP.
 
 ## Registro de avance (continuación)
 
@@ -75,3 +75,4 @@ Fase 4 — privacidad y cámara. Consentimiento, cero persistencia facial nueva 
 - 2026-10-09 — Commit `115eb22`: consentimiento explícito antes de enviar fotogramas; el endpoint rechaza envíos sin aceptación y las operaciones dejan de guardar métricas faciales nuevas. Capturas principales regeneradas; post-commit 47 pytest y 8 E2E aprobadas.
 - 2026-10-09 — Commit `8b4d3d4`: email OTP opcional para completar pagos/recargas sin cámara, ligado a cuenta, tipo, monto, objetivo y clave idempotente. La revisión `b4f8a20d17c3` agrega hash del objetivo y permite beneficiario nulo; subida/bajada verificada solo en SQLite de tests. Post-commit: 49 pytest y 8 E2E aprobadas. Pendiente autorización para aplicar a staging; no desplegado.
 - 2026-10-09 — Se corrigió el falso positivo del preflight: consulta directa de metadatos confirmó revisión `b1e4a95c0f27`, 12 columnas, `beneficiary_id` NOT NULL y ausencia de `details_hash` (18 tablas públicas). Con autorización expresa, se aplicó atómicamente en `Norte-staging/staging` el DDL exacto de `b4f8a20d17c3` y se avanzó `alembic_version`; verificación: revisión correcta, 13 columnas, `beneficiary_id` nullable, `details_hash` presente y 18 tablas. Commit `e5ba510`; post-commit: 49 pytest y 8 E2E aprobadas. Sin cambios en datos de negocio, despliegue ni producción.
+- 2026-10-09 — Aprobado rediseño Fase 4: aviso modal por operación; aceptar registra solo usuario/versión/fecha y abre vista previa local; rechazar permite OTP o cancelar. Deshabilitado el análisis servidor y eliminado el bypass de OTP por cámara; las operaciones exigen OTP. Se eliminó la ruta de inserción de nuevas métricas faciales desde el servicio de operaciones; actualizados aviso legal y E2E. Sin migraciones ni cambios de staging/producción. Pendiente ejecución de suites completas después del commit.

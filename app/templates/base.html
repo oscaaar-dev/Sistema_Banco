@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="{{ url_for('static',filename='css/home.css',v='home-24') }}">
   {% endif %}
   {% if request.endpoint=='main.operation' %}
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/operation.css',v='layout-1') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/operation.css',v='consent-2') }}">
   {% endif %}
   {% if current_user.is_authenticated and request.endpoint!='main.index' %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/intranet.css',v='shell-3') }}">
@@ -83,7 +83,7 @@
   {% if request.endpoint in ('main.login','main.register','main.verify_login') %}
   <script src="{{ url_for('static',filename='js/auth.js',v='auth-parallax-2') }}"></script>
   {% endif %}
-  <script src="{{ url_for('static',filename='js/app.js',v='camera-layout-4') }}"></script>
+  <script src="{{ url_for('static',filename='js/app.js',v='camera-privacy-5') }}"></script>
   {% if request.endpoint=='main.operation' and request.view_args.kind=='transfer' %}
   <script src="{{ url_for('static',filename='js/transfer-auth.js',v='transfer-auth-1') }}"></script>
   {% endif %}

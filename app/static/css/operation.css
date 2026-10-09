@@ -75,3 +75,10 @@
 .camera-analysis-box b{font-size:13px}.camera-analysis-box small{color:#5d6878;line-height:1.4}
 .camera-analysis-box[data-state="ok"]{border-color:#a8d5b5;background:#f3fbf5}.camera-analysis-box[data-state="blocked"]{border-color:#efc2c2;background:#fff7f7}
 .camera-metrics{display:flex;gap:18px;font-size:12px;color:#667085}.camera-metrics b{font-size:12px}
+.privacy-consent-dialog{width:min(560px,calc(100vw - 32px));border:1px solid #dce5f1;border-radius:18px;padding:clamp(22px,4vw,34px);color:#142d50;box-shadow:0 24px 80px #071a3340}
+.privacy-consent-dialog::backdrop{background:#10233f8c;backdrop-filter:blur(3px)}
+.privacy-consent-dialog h2{margin:8px 0 12px;font-size:clamp(23px,4vw,30px)}
+.privacy-consent-dialog p{line-height:1.6;color:#51627a}
+.privacy-consent-dialog .camera-consent-error{display:block;min-height:18px;color:#a52b2b}
+.privacy-consent-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;margin-top:18px}
+@media(max-width:540px){.privacy-consent-actions{flex-direction:column-reverse}.privacy-consent-actions .btn{width:100%}}

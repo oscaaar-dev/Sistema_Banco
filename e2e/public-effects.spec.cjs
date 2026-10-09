@@ -90,12 +90,19 @@ test('la cámara requiere consentimiento explícito antes de habilitarse', async
     path: '/',
   }]);
   await page.goto('/operation/payment');
+  const dialog = page.locator('#operationConsentDialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('Los fotogramas no se envían ni se guardan');
   const consent = page.locator('#cameraConsent');
   const start = page.locator('#startCamera');
-  await expect(consent).not.toBeChecked();
+  await expect(consent).toHaveValue('no');
   await expect(start).toBeDisabled();
   const submit = page.locator('#operationForm button[type="submit"]');
   const code = page.locator('#operationForm input[name="otp_code"]');
+  await page.locator('#declineCameraConsent').click();
+  await expect(dialog).not.toBeVisible();
+  await expect(consent).toHaveValue('no');
+  await expect(start).toBeDisabled();
   await code.fill('123456');
   await expect(submit).toBeEnabled();
   await code.fill('');
@@ -108,10 +115,25 @@ test('la cámara requiere consentimiento explícito antes de habilitarse', async
   await expect(page.locator('#transferCodeForm input[name="amount"]')).toHaveValue('55.25');
   await expect(page.locator('#transferCodeForm input[name="service"]')).toHaveValue('Agua');
   await expect(page.locator('#transferCodeForm input[name="idempotency_key"]')).toHaveValue(/^[A-Za-z0-9_-]{22,64}$/);
-  await consent.check();
-  await expect(start).toBeEnabled();
-  await consent.uncheck();
-  await expect(start).toBeDisabled();
+});
+
+test('la aceptación de cámara queda registrada y no se envían fotogramas', async ({ page }) => {
+  await page.context().addCookies([{
+    name: 'session',
+    value: authenticatedSessionCookie(),
+    domain: '127.0.0.1',
+    path: '/',
+  }]);
+  let cameraFrameRequests = 0;
+  await page.route('**/camera/analyze', async (route) => {
+    cameraFrameRequests += 1;
+    await route.fulfill({ status: 410, contentType: 'application/json', body: '{"error":"disabled"}' });
+  });
+  await page.goto('/operation/payment');
+  await page.locator('#acceptCameraConsent').click();
+  await expect(page.locator('#operationConsentDialog')).not.toBeVisible();
+  await expect(page.locator('#cameraConsent')).toHaveValue('yes');
+  expect(cameraFrameRequests).toBe(0);
 });
 
 test('los diálogos de cookies y ayuda se abren y cierran', async ({ page }) => {

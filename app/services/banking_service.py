@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import re
-from ..models import db, Account, Beneficiary, Transaction, Transfer, InteractionSession, MLResult, InteractionFeatures, TransactionStep, AuditLog, FacialAnalysis, OperationRiskAssessment
+from ..models import db, Account, Beneficiary, Transaction, Transfer, InteractionSession, MLResult, InteractionFeatures, TransactionStep, AuditLog, OperationRiskAssessment
 from ..ai.interaction_model import cluster_interactions
 from ..ai.operation_risk import assess_operation_risk
 
@@ -33,7 +33,7 @@ def _store_cluster_results():
         else:
             db.session.add(MLResult(session_id=session.id,cluster_id=outcome['cluster_id'],label=outcome['label'],method='K-Means (sesiones de interacción)'))
 
-def process_operation(user,kind,amount,description,beneficiary_id=None,service=None,consent=False,face_detected=False,face_confidence=None,duration_seconds=None,idempotency_key=None):
+def process_operation(user,kind,amount,description,beneficiary_id=None,service=None,consent=False,duration_seconds=None,idempotency_key=None):
     account=(Account.query.filter_by(user_id=user.id,status='ACTIVA')
              .with_for_update().first())
     if not account:raise ValueError('No se encontró una cuenta activa.')
@@ -55,11 +55,9 @@ def process_operation(user,kind,amount,description,beneficiary_id=None,service=N
     start=datetime.now(timezone.utc).replace(tzinfo=None)
     risk=operation_risk_for(user,kind,value,duration_seconds)
     session_duration=max(1,int(duration_seconds)) if duration_seconds is not None else 1
-    session=InteractionSession(user_id=user.id,operation_type=kind,started_at=start,consent_given=bool(consent),steps=5,errors=0,back_actions=0,face_detected=bool(face_detected),duration_seconds=session_duration)
+    session=InteractionSession(user_id=user.id,operation_type=kind,started_at=start,consent_given=bool(consent),steps=5,errors=0,back_actions=0,face_detected=False,duration_seconds=session_duration)
     db.session.add(session);db.session.flush()
     db.session.add(OperationRiskAssessment(session_id=session.id,score=risk['score'],level=risk['level'],reasons=risk['reasons']))
-    if face_detected:
-        db.session.add(FacialAnalysis(session_id=session.id,face_detected=True,detection_confidence=face_confidence,model_name='OpenCV Haar Cascade'))
     TransactionStep(session_id=session.id,event_type='completed',step_name='Confirmación de operación',metadata_json={'operation_type':kind})
     account.balance=(account.balance-value).quantize(Decimal('0.01'))
     tx=Transaction(account_id=account.id,session_id=session.id,operation_type=kind,description=description[:180],amount=-value,balance_after=account.balance,status='COMPLETADA',idempotency_key=idempotency_key)
@@ -76,7 +74,7 @@ def process_operation(user,kind,amount,description,beneficiary_id=None,service=N
             status='REGISTRADA',
             is_seed=tx.is_seed,
         ))
-    db.session.add(InteractionFeatures(session_id=session.id,duration_seconds=session.duration_seconds,steps=session.steps,errors=session.errors,back_actions=session.back_actions,face_detection_rate=1.0 if face_detected else 0.0,operation_type=kind))
+    db.session.add(InteractionFeatures(session_id=session.id,duration_seconds=session.duration_seconds,steps=session.steps,errors=session.errors,back_actions=session.back_actions,face_detection_rate=0.0,operation_type=kind))
     db.session.add(MLResult(session_id=session.id,cluster_id=None,label='Pendiente de datos suficientes',method='K-Means exploratorio'))
     log(user,kind,'OPERACIONES')
     _store_cluster_results()
