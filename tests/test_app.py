@@ -276,6 +276,8 @@ def test_login_page_and_dashboard(monkeypatch):
     client=app.test_client()
     response=client.get('/login')
     assert response.status_code==200
+    assert b'Demo123!' not in response.data
+    assert b'Admin123!' not in response.data
     _login(client,monkeypatch)
     response=client.get('/dashboard')
     assert response.status_code==200
