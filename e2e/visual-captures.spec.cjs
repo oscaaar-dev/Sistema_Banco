@@ -40,6 +40,14 @@ test('captura portada, login y dashboard en escritorio y móvil', async ({ page 
   await resetScroll(page);
   await page.screenshot({ path: `${captureDir}\\home-desktop.png` });
 
+  for (const section of ['personas', 'herramientas', 'seguridad', 'acerca']) {
+    await page.goto(`/${section}`);
+    await expect(page.locator('.info-card').first()).toBeVisible();
+    await page.waitForTimeout(500);
+    await resetScroll(page);
+    await page.screenshot({ path: `${captureDir}\\info-${section}-desktop.png` });
+  }
+
   await page.goto('/login');
   await expect(page.locator('.auth-panel')).toBeVisible();
   await resetScroll(page);
@@ -63,6 +71,14 @@ test('captura portada, login y dashboard en escritorio y móvil', async ({ page 
   await pauseHero(page);
   await resetScroll(page);
   await page.screenshot({ path: `${captureDir}\\home-mobile.png` });
+
+  for (const section of ['personas', 'herramientas', 'seguridad', 'acerca']) {
+    await page.goto(`/${section}`);
+    await expect(page.locator('.info-card').first()).toBeVisible();
+    await page.waitForTimeout(500);
+    await resetScroll(page);
+    await page.screenshot({ path: `${captureDir}\\info-${section}-mobile.png` });
+  }
 
   await page.context().clearCookies();
   await page.goto('/login');

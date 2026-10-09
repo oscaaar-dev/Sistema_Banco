@@ -302,10 +302,10 @@ def test_public_information_topics_have_separate_pages():
     app=create_app(); app.config['TESTING']=True
     client=app.test_client()
     expected={
-        '/personas': 'Organiza lo cotidiano',
-        '/herramientas': 'Transferencias guiadas',
-        '/seguridad': 'Protege tus datos',
-        '/acerca': 'La idea',
+        '/personas': 'Cuando quieres revisar tu saldo',
+        '/herramientas': 'Transferencias internas',
+        '/seguridad': 'Acceso verificado por correo',
+        '/acerca': 'Por qué existe',
     }
 
     for path, heading in expected.items():
@@ -315,13 +315,31 @@ def test_public_information_topics_have_separate_pages():
         assert b'class="info-page"' in response.data
         assert b'data-reveal' in response.data
         assert b'class="info-card" data-reveal' in response.data
+        assert b'class="info-card-action"' in response.data
         assert b'href="/personas"' in response.data
         assert b'href="/herramientas"' in response.data
         assert b'href="/seguridad"' in response.data
         assert b'href="/acerca"' in response.data
 
-    assert b'no procesan pagos ni transferencias fuera de Norte' in client.get('/seguridad').data
-    assert 'Su información no corresponde a productos ofrecidos por una entidad financiera'.encode() in client.get('/acerca').data
+    assert b'Norte no procesa dinero real ni pagos externos' in client.get('/seguridad').data
+    assert b'independiente y sin relaci' in client.get('/acerca').data
+
+
+def test_public_cards_link_to_relevant_routes_and_personas_are_not_fake_testimonials():
+    app=create_app(); app.config['TESTING']=True
+    client=app.test_client()
+    personas=client.get('/personas').data
+    tools=client.get('/herramientas').data
+    security=client.get('/seguridad').data
+
+    assert b'no testimonios ni historias de clientes' in personas
+    assert b'href="/register"' in personas
+    assert b'href="/#operaciones"' in personas
+    assert b'Banca por Internet' in personas
+    assert b'Abrir cuenta' in personas
+    assert b'href="/login"' in tools
+    assert b'href="/terminos"' in security
+    assert b'href="/privacidad"' in security
 
 
 def test_terms_and_privacy_pages_publish_legal_notice_and_links():

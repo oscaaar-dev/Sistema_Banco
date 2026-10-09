@@ -81,6 +81,33 @@ test('los campos de contraseña pueden mostrarse y ocultarse con el ojito', asyn
   await expect(loginPassword).toHaveAttribute('type', 'text');
 });
 
+test('las páginas informativas muestran tarjetas interactivas y accesos claros', async ({ page }) => {
+  await page.goto('/personas');
+  const cards = page.locator('.info-card');
+  await expect(cards).toHaveCount(3);
+  await expect(page.getByRole('link', { name: /Banca por Internet/ })).toHaveAttribute('href', '/login');
+  await expect(page.getByRole('link', { name: /Abrir cuenta/ })).toHaveAttribute('href', '/register');
+  await expect(cards.nth(0)).toHaveAttribute('href', '/register');
+  const initialTransform = await cards.nth(0).evaluate((element) => getComputedStyle(element).transform);
+  await cards.nth(0).hover();
+  await expect.poll(() => cards.nth(0).evaluate((element) => getComputedStyle(element).transform)).not.toBe(initialTransform);
+  await cards.nth(0).click();
+  await expect(page).toHaveURL(/\/register$/);
+
+  await page.goto('/herramientas');
+  await expect(page.locator('.info-card')).toHaveCount(5);
+  await expect(page.locator('.info-card').first()).toHaveAttribute('href', '/login');
+
+  await page.goto('/seguridad');
+  await expect(page.getByRole('link', { name: /Leer privacidad/ })).toHaveAttribute('href', '/privacidad');
+  await expect(page.getByRole('link', { name: /Leer términos/ })).toHaveAttribute('href', '/terminos');
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/personas');
+  await expect(page.getByRole('link', { name: /Abrir cuenta/ })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+});
+
 test('el menú móvil de la intranet se abre y se cierra', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.context().addCookies([{

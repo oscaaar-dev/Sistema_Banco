@@ -176,65 +176,66 @@ def index():
 
 PUBLIC_INFO_PAGES = {
     'personas': {
-        'eyebrow': 'UNA EXPERIENCIA PENSADA PARA TI',
-        'title': 'Tu día, tus planes y una experiencia digital más clara.',
-        'intro': 'Norte reúne herramientas sencillas para que puedas conocer cómo se organiza una experiencia de banca digital, a tu ritmo y desde cualquier pantalla.',
+        'eyebrow': 'PERSONAS · SITUACIONES COTIDIANAS',
+        'title': 'Tus pendientes de cada día, en un recorrido más claro.',
+        'intro': 'Conoce cómo se verían tareas digitales comunes: consultar un saldo de ejemplo, revisar movimientos y recorrer una operación antes de confirmarla.',
         'icon': 'bi-people',
         'highlights': [
-            ('bi-calendar2-check', 'Organiza lo cotidiano', 'Revisa un resumen de cuenta y la actividad reciente con información clara.'),
-            ('bi-lightbulb', 'Conoce cada paso', 'Revisa los recorridos de transferencias, pagos y recargas con información clara en cada etapa.'),
-            ('bi-phone', 'Continúa desde cualquier pantalla', 'La interfaz se adapta a computadora, tablet y celular para que puedas navegar con comodidad.'),
+            {'icon': 'bi-wallet2', 'title': 'Cuando quieres revisar tu saldo', 'description': 'El resumen reúne un saldo de ejemplo y accesos a las secciones principales.', 'action': 'Crear mi perfil', 'destination': 'register'},
+            {'icon': 'bi-clock-history', 'title': 'Cuando buscas un movimiento', 'description': 'Explora cómo se presenta la actividad reciente y el detalle de cada registro.', 'action': 'Entrar a Norte', 'destination': 'login'},
+            {'icon': 'bi-arrow-left-right', 'title': 'Antes de hacer una operación', 'description': 'Recorre los pasos y revisa los datos de ejemplo antes de continuar.', 'action': 'Ver el recorrido', 'destination': '#operaciones'},
         ],
-        'note': 'Los perfiles, saldos y operaciones se muestran dentro de Norte y no producen efectos financieros.',
+        'note': 'Estas son situaciones ilustrativas, no testimonios ni historias de clientes. Norte es una experiencia de demostración: sus saldos y operaciones no tienen efecto financiero.',
         'cta_label': 'Explorar herramientas',
         'cta_endpoint': 'main.herramientas',
     },
     'herramientas': {
-        'eyebrow': 'FUNCIONES PARA EXPLORAR',
-        'title': 'Todo lo que puedes hacer, explicado con claridad.',
-        'intro': 'Conoce las funciones de Norte y descubre cómo se conectan las tareas habituales de una experiencia financiera digital.',
+        'eyebrow': 'HERRAMIENTAS · RECORRIDOS DISPONIBLES',
+        'title': 'Encuentra la función que necesitas explorar.',
+        'intro': 'Entra a cada sección para conocer sus pantallas y el recorrido. El sistema usa datos de demostración; no se conecta a bancos ni a empresas de servicios.',
         'icon': 'bi-grid',
         'highlights': [
-            ('bi-wallet2', 'Resumen de cuenta', 'Consulta tu saldo y accede a las principales áreas.'),
-            ('bi-clock-history', 'Movimientos y comprobantes', 'Revisa actividad y conoce el detalle de una operación.'),
-            ('bi-arrow-left-right', 'Transferencias guiadas', 'Sigue el recorrido con tus beneficiarios y revisa la información antes de continuar.'),
-            ('bi-receipt-cutoff', 'Pagos y recargas', 'Conoce los formularios disponibles para servicios y recargas.'),
-            ('bi-credit-card-2-front', 'Tarjetas', 'Revisa las tarjetas asociadas a tu resumen Norte.'),
+            {'icon': 'bi-wallet2', 'title': 'Resumen y cuentas', 'description': 'Consulta el saldo ficticio y los datos de la cuenta de demostración.', 'action': 'Ver resumen', 'destination': 'login'},
+            {'icon': 'bi-clock-history', 'title': 'Movimientos', 'description': 'Revisa el historial y abre el detalle de una operación de ejemplo.', 'action': 'Ver movimientos', 'destination': 'login'},
+            {'icon': 'bi-arrow-left-right', 'title': 'Transferencias internas', 'description': 'Conoce el formulario y los pasos de confirmación dentro de Norte.', 'action': 'Explorar transferencias', 'destination': 'login'},
+            {'icon': 'bi-receipt-cutoff', 'title': 'Pagos y recargas', 'description': 'Explora formularios de demostración; no se envían pagos a terceros.', 'action': 'Explorar operaciones', 'destination': '#operaciones'},
+            {'icon': 'bi-credit-card-2-front', 'title': 'Tarjetas de muestra', 'description': 'Consulta tarjetas ficticias asociadas a una cuenta de demostración.', 'action': 'Conocer las tarjetas', 'destination': 'login'},
         ],
-        'note': 'Las herramientas no se conectan a cuentas externas ni producen operaciones con efectos financieros.',
+        'note': 'Las funciones no se conectan a cuentas externas. Los pagos, recargas y transferencias son recorridos de demostración sin efectos financieros fuera de Norte.',
         'cta_label': 'Conocer la seguridad',
         'cta_endpoint': 'main.seguridad',
     },
     'seguridad': {
         'eyebrow': 'SEGURIDAD Y TRANSPARENCIA',
-        'title': 'Explora con tranquilidad: conoce el alcance de este proyecto.',
-        'intro': 'La confianza también significa saber qué servicio estás usando. Norte es un proyecto de banca digital en desarrollo y explica con claridad los límites de sus funcionalidades actuales.',
+        'title': 'Saber qué ocurre con tus datos también es seguridad.',
+        'intro': 'Antes de crear una cuenta o probar una función, aquí puedes revisar cómo funciona el acceso y qué límites tiene Norte.',
         'icon': 'bi-shield-check',
         'highlights': [
-            ('bi-person-vcard', 'Protege tus datos', 'No ingreses contraseñas bancarias reales, números de tarjeta ni otra información financiera sensible.'),
-            ('bi-cash-coin', 'Sin efectos financieros', 'Los saldos, beneficiarios, movimientos y comprobantes no procesan pagos ni transferencias fuera de Norte.'),
-            ('bi-info-circle', 'Identifica los límites del proyecto', 'El acceso y sus pantallas muestran flujos digitales, pero no equivalen a servicios bancarios ni a asesoría financiera.'),
+            {'icon': 'bi-envelope-check', 'title': 'Acceso verificado por correo', 'description': 'Al iniciar sesión, Norte envía un código de verificación al correo registrado.', 'action': 'Ir al acceso', 'destination': 'login'},
+            {'icon': 'bi-key', 'title': 'Elige una clave exclusiva', 'description': 'No reutilices la contraseña de tu correo, banco u otros servicios.', 'action': 'Crear perfil', 'destination': 'register'},
+            {'icon': 'bi-person-lock', 'title': 'Conoce el uso de tus datos', 'description': 'Revisa qué información se solicita al crear una cuenta de demostración.', 'action': 'Leer privacidad', 'destination': 'privacy'},
+            {'icon': 'bi-shield-exclamation', 'title': 'Reconoce sus límites', 'description': 'Norte no es una entidad financiera ni procesa dinero real o pagos externos.', 'action': 'Leer términos', 'destination': 'terms'},
         ],
-        'note': 'Protege tus credenciales reales: Norte no necesita ni debe recibirlas.',
+        'note': 'Usa datos de acceso que no emplees en otros servicios. No ingreses claves bancarias ni números de tarjeta reales. Norte no procesa dinero real ni pagos externos.',
         'cta_label': 'Acerca del proyecto',
         'cta_endpoint': 'main.acerca',
     },
     'acerca': {
         'eyebrow': 'ACERCA DE NORTE',
-        'title': 'Una idea académica para hacer más comprensible la banca digital.',
-        'intro': 'Norte nació como un proyecto en desarrollo con una pregunta sencilla: ¿cómo sería una experiencia financiera si cada pantalla explicara con claridad qué puedes hacer y qué ocurre después?',
+        'title': 'Un proyecto independiente para aprender explorando.',
+        'intro': 'Norte es una experiencia académica de banca digital en desarrollo. Reúne pantallas y recorridos de demostración para explicar cómo se organiza un sistema de este tipo.',
         'icon': 'bi-compass',
         'highlights': [
-            ('bi-chat-square-text', 'La idea', 'Crear un entorno cercano donde se puedan entender los pasos y la organización de una banca digital.'),
-            ('bi-window', 'La experiencia', 'Reunir cuentas, actividad y recorridos guiados en una interfaz adaptable y fácil de explorar.'),
-            ('bi-bookmark-check', 'El propósito', 'Promover claridad, aprendizaje y transparencia sobre el alcance actual del proyecto.'),
+            {'icon': 'bi-lightbulb', 'title': 'Por qué existe', 'description': 'Para mostrar de forma sencilla cómo se conectan el resumen, los movimientos y los recorridos digitales.', 'action': 'Conocer las herramientas', 'destination': 'herramientas'},
+            {'icon': 'bi-window', 'title': 'Qué puedes explorar', 'description': 'Perfiles de demostración, vistas adaptables y operaciones internas con datos ficticios.', 'action': 'Ver la experiencia', 'destination': '#operaciones'},
+            {'icon': 'bi-info-circle', 'title': 'Qué no es Norte', 'description': 'No es BCP ni está afiliado a esa entidad; tampoco ofrece productos bancarios reales.', 'action': 'Leer términos', 'destination': 'terms'},
         ],
         'timeline': [
-            ('La pregunta', 'La propuesta parte de hacer más claros los flujos digitales cotidianos.'),
-            ('El prototipo', 'Se construye una experiencia navegable con pantallas y datos de ejemplo.'),
-            ('El proyecto', 'Norte reúne herramientas para conocer desde diferentes dispositivos.'),
+            ('La idea', 'Hacer más claros los pasos de una experiencia financiera digital.'),
+            ('El prototipo', 'Construir una interfaz navegable con datos ficticios.'),
+            ('La exploración', 'Probar las pantallas desde computadora, tablet o celular.'),
         ],
-        'note': 'Norte es un proyecto en desarrollo. Su información no corresponde a productos ofrecidos por una entidad financiera.',
+        'note': 'Norte es independiente y no está afiliado, patrocinado ni respaldado por el BCP. Sus nombres, pantallas, datos y operaciones pertenecen a un proyecto de demostración.',
         'cta_label': 'Volver al inicio',
         'cta_endpoint': 'main.index',
     },
@@ -242,7 +243,15 @@ PUBLIC_INFO_PAGES = {
 
 
 def _public_info_page(page_key):
-    return render_template('public_info.html', page=PUBLIC_INFO_PAGES[page_key], page_key=page_key)
+    page=dict(PUBLIC_INFO_PAGES[page_key])
+    page['highlights']=[dict(card) for card in page['highlights']]
+    for card in page['highlights']:
+        destination=card['destination']
+        if destination.startswith('#'):
+            card['href']=url_for('main.index')+destination
+        else:
+            card['href']=url_for('main.'+destination)
+    return render_template('public_info.html', page=page, page_key=page_key)
 
 
 @bp.route('/personas')
