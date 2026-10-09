@@ -12,14 +12,18 @@ py -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
-python app.py
+$env:APP_ENV = 'testing'
+$env:DATABASE_URL = 'sqlite:///:memory:'
+$env:SECRET_KEY = 'solo-para-pruebas-locales-cambiar'
+$env:PORT = '5001'
+python run.py
 ```
 
-3. Abre http://127.0.0.1:5000
+3. Abre http://127.0.0.1:5001
 
 La ruta `/` muestra la portada pública de Norte. Sus botones de banca digital y creación de cuenta enlazan al flujo existente de autenticación y registro (`/login` y `/register`). Después de autenticarte, las rutas protegidas mantienen el dashboard y las funciones actuales.
 
-La primera ejecución local utiliza SQLite en `instance/norte_local.db` y crea tablas y datos demo. Para usar la base MySQL dedicada y transferir los datos actuales, sigue la guía de migración a continuación.
+Este comando arranca en modo de pruebas con SQLite en memoria: las tablas y los datos sintéticos de demostración solo existen mientras el proceso está activo y se descartan al detenerlo. No apunta a MySQL ni cambia bases persistentes. Para usar la base MySQL dedicada y transferir datos locales, revisa cuidadosamente la guía siguiente; su inicializador migra datos y no debe ejecutarse sin confirmar el origen y el destino.
 
 ## Base MySQL independiente del proyecto
 
@@ -72,14 +76,14 @@ Este OTP es una medida demostrativa para la aplicación académica; no debe trat
 - Administración con sesiones y auditoría.
 - CSRF en formularios y sesiones de Flask protegidas.
 - Modelo de datos creado desde SQLAlchemy para SQLite y MySQL.
-- Cámara requerida para habilitar la confirmación de transferencias, pagos y recargas; debe permanecer activa hasta enviar.
+- Vista previa de cámara opcional y local; las operaciones se confirman mediante el código OTP enviado al correo.
 - Clustering K-Means exploratorio sobre métricas de interacción en `app/ai/interaction_model.py`.
 - Indicador demostrativo, basado en reglas transparentes, sobre montos y frecuencia de operaciones; no decide ni bloquea operaciones.
 - Escenarios de prueba sintéticos del indicador en `tests/fixtures/operation_risk_scenarios.csv`; se usan para validar niveles, no para entrenar un detector de fraude.
 
 ## Alcance honesto de IA y privacidad
 
-La verificación requerida captura fotogramas en el navegador y los envía temporalmente al servidor local para evaluar con OpenCV si hay un solo rostro visible y suficientemente centrado, grande y con los ojos detectables. Los fotogramas se procesan en memoria y no se guardan; se conserva en el registro de la operación solo el resultado numérico de calidad y si se detectó un rostro. La verificación debe haberse aprobado en los últimos 10 segundos para completar la simulación. Es una validación demostrativa de visibilidad/encuadre: **no identifica a la persona, no es autenticación biométrica y no detecta fraude**. La app no analiza emociones. K-Means agrupa métricas de navegación únicamente cuando hay suficientes sesiones variadas; sus etiquetas no son diagnósticos ni evaluaciones personales. El indicador de riesgo de operación calcula un puntaje de alerta de 0 a 100 basado en reglas: monto frente al saldo, comparación con operaciones del mismo tipo, intensidad de operaciones recientes y duración del formulario (3 minutos o más suma 15 puntos). La duración se mide en el navegador desde que se carga el formulario hasta el envío y se muestra después de registrar la operación. Los niveles son Bajo (0-19), Moderado (20-59) y Alto (60-100). **No es una probabilidad calibrada ni un modelo entrenado**: el porcentaje es únicamente un puntaje de demostración, puede tener historial limitado y no bloquea ni aprueba transacciones. Los ejemplos sintéticos sirven para probar que las reglas asignen niveles esperados; no enseñan al sistema qué es fraude. Para entrenar y validar un modelo predictivo harían falta transacciones reales debidamente anonimizadas y etiquetadas tras una investigación, con controles de calidad y privacidad. Ninguno de estos indicadores debe usarse para decisiones financieras reales.
+La cámara solo muestra una vista previa local opcional en el navegador. La interfaz registra el consentimiento explícito (usuario, versión del aviso y fecha), pero **no transmite fotogramas, no analiza ni identifica rostros y no guarda imágenes ni nuevos datos biométricos**. La cámara no autentica ni es necesaria para operar; cada operación sigue requiriendo el OTP de correo. El endpoint de análisis de cámara está deshabilitado. El esquema conserva por compatibilidad el modelo histórico de análisis facial; esta actualización no inspecciona ni elimina registros antiguos, pero el código nuevo no consulta sus métricas faciales para agrupar interacciones ni para mostrar comprobantes. K-Means agrupa señales operativas no faciales (duración, errores, pasos y retrocesos) únicamente cuando hay suficientes sesiones variadas; sus etiquetas son exploratorias, no diagnósticos ni evaluaciones personales. El indicador de riesgo de operación calcula un puntaje de alerta de 0 a 100 basado en reglas: monto frente al saldo, comparación con operaciones del mismo tipo, intensidad de operaciones recientes y duración del formulario (3 minutos o más suma 15 puntos). La duración se mide en el navegador desde que se carga el formulario hasta el envío y se muestra después de registrar la operación. Los niveles son Bajo (0-19), Moderado (20-59) y Alto (60-100). **No es una probabilidad calibrada ni un modelo entrenado**: el porcentaje es únicamente un puntaje de demostración, puede tener historial limitado y no bloquea ni aprueba transacciones. Los ejemplos sintéticos sirven para probar que las reglas asignen niveles esperados; no enseñan al sistema qué es fraude. Para entrenar y validar un modelo predictivo harían falta transacciones reales debidamente anonimizadas y etiquetadas tras una investigación, con controles de calidad y privacidad. Ninguno de estos indicadores debe usarse para decisiones financieras reales.
 
 ## Estructura
 
@@ -112,4 +116,19 @@ El proceso de producción usa Gunicorn y escucha en el puerto `PORT` que proporc
 - Los usuarios, sus contraseñas hasheadas y sus correos se migran desde la base actual; no se pasan por variables del hosting.
 - Para Railway Hobby: `EMAIL_TRANSPORT=brevo_api`, `BREVO_API_KEY` y `SMTP_FROM` verificado en Brevo. Alternativamente, para SMTP, configura `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_USE_TLS` y `SMTP_USE_SSL` (SMTP saliente requiere Railway Pro).
 
-El proyecto usa `run:app` como punto de entrada WSGI. La aplicación crea las tablas y cuentas demo al iniciar una base vacía; configura las variables antes del primer arranque, ya que cambiar las contraseñas en el hosting no reemplaza las claves de usuarios ya creados. No cargues el archivo `.env` ni la base SQLite local al hosting. `.railwayignore` excluye secretos, entornos virtuales y datos locales de la subida.
+El punto de entrada WSGI es `run:app` (Procfile: `gunicorn run:app`). En `APP_ENV=production`, el arranque valida que el esquema ya esté migrado y sea compatible; si faltan tablas o columnas, se detiene sin crearlas, alterarlas ni sembrar cuentas. Las migraciones deben revisarse y ejecutarse por separado solo con autorización para la base elegida. No cargues el archivo `.env` ni la base SQLite local al hosting. `.railwayignore` excluye secretos, entornos virtuales y datos locales de la subida. No se ha autorizado ni realizado un despliegue de la aplicación.
+
+## Pruebas
+
+Las pruebas de pytest fijan SQLite en memoria y eliminan `MYSQL_URL` antes de importar la app. En PowerShell, con las dependencias instaladas en `.venv`:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+$venvScripts = (Resolve-Path '.venv\Scripts').Path
+$env:PATH = $venvScripts + ';' + $env:PATH
+$env:PYTHON = Join-Path $venvScripts 'python.exe'
+npm ci
+npm run test:e2e
+```
+
+Playwright levanta un servidor local de pruebas; la suite no usa Railway ni modifica bases persistentes.
