@@ -342,18 +342,16 @@ def register():
         email_pattern=r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$"
         if len(email)>254 or not re.fullmatch(email_pattern,email):
             errors.append('Ingresa una dirección de correo electrónico válida.')
-        allowed_password_characters="!@#$%&*+-=?"
+        allowed_password_characters="."
         if (
-            not 10<=len(password)<=64
+            not 8<=len(password)<=10
             or not password.isascii()
-            or any(character.isspace() or character=='_' for character in password)
             or not any(character.isupper() for character in password)
             or not any(character.islower() for character in password)
             or not any(character.isdigit() for character in password)
-            or not any(character in allowed_password_characters for character in password)
             or any(not (character.isalnum() or character in allowed_password_characters) for character in password)
         ):
-            errors.append('La contraseña debe tener 10-64 caracteres ASCII, mayúscula, minúscula, número y símbolo (!@#$%&*+-=?); no puede contener espacios ni guion bajo (_).')
+            errors.append('La contraseña debe tener 8-10 caracteres ASCII, incluir mayúscula, minúscula y número, y solo puede usar letras, números y puntos (.).')
         if password!=password_confirmation:
             errors.append('Las contraseñas no coinciden.')
         if errors:

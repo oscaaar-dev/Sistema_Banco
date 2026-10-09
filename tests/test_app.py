@@ -41,7 +41,7 @@ def _registration_form(client):
     return client.get('/register')
 
 
-def _register(client, full_name, dni, email, password='NorteSeguro9!', confirmation=None):
+def _register(client, full_name, dni, email, password='Norte9.Aa', confirmation=None):
     response=_registration_form(client)
     return client.post('/register',data={
         'csrf_token':_csrf_token(response),
@@ -387,7 +387,7 @@ def test_customer_can_register_and_login_with_email_otp(monkeypatch):
         assert user.username==dni
         assert user.email==email
         assert user.role=='CLIENTE'
-        assert user.check_password('NorteSeguro9!')
+        assert user.check_password('Norte9.Aa')
         account=Account.query.filter_by(user_id=user.id).first()
         assert account is not None
         assert account.balance==0
@@ -397,7 +397,7 @@ def test_customer_can_register_and_login_with_email_otp(monkeypatch):
     login_page=client.get('/login')
     response=client.post('/login',data={
         'username':email,
-        'password':'NorteSeguro9!',
+        'password':'Norte9.Aa',
         'csrf_token':_csrf_token(login_page),
     })
     assert response.status_code==302
@@ -427,7 +427,7 @@ def test_login_otp_rate_limit_is_shared_per_ip_across_customer_accounts(monkeypa
         for index in range(2):
             username=f'ratelimit-{secrets.token_hex(4)}-{index}'
             user=User(username=username,full_name='Cliente Prueba',email=f'{username}@example.test',role='CLIENTE')
-            user.set_password('NorteSeguro9!')
+            user.set_password('Norte9.Aa')
             db.session.add(user)
             users.append((username,user.email))
         db.session.commit()
@@ -436,13 +436,13 @@ def test_login_otp_rate_limit_is_shared_per_ip_across_customer_accounts(monkeypa
     monkeypatch.setattr(routes_module,'send_login_code',lambda recipient,code:delivered.append(recipient))
     first_page=client.get('/login')
     first=client.post('/login',data={
-        'username':users[0][0],'password':'NorteSeguro9!',
+        'username':users[0][0],'password':'Norte9.Aa',
         'csrf_token':_csrf_token(first_page),
     })
     second_client=app.test_client()
     second_page=second_client.get('/login')
     second=second_client.post('/login',data={
-        'username':users[1][0],'password':'NorteSeguro9!',
+        'username':users[1][0],'password':'Norte9.Aa',
         'csrf_token':_csrf_token(second_page),
     })
 
@@ -472,8 +472,8 @@ def test_registration_rate_limit_is_audited_without_plaintext_ip():
     form=client.get('/register',environ_overrides={'REMOTE_ADDR':remote_ip})
     response=client.post('/register',data={
         'csrf_token':_csrf_token(form),'full_name':'Cliente Prueba','dni':'12345678',
-        'email':f'{secrets.token_hex(4)}@example.test','password':'NorteSeguro9!',
-        'password_confirmation':'NorteSeguro9!',
+        'email':f'{secrets.token_hex(4)}@example.test','password':'Norte9.Aa',
+        'password_confirmation':'Norte9.Aa',
     },environ_overrides={'REMOTE_ADDR':remote_ip})
 
     assert response.status_code==429
@@ -507,7 +507,7 @@ def test_customer_can_start_login_using_dni(monkeypatch):
     login_page=client.get('/login')
     response=client.post('/login',data={
         'username':dni,
-        'password':'NorteSeguro9!',
+        'password':'Norte9.Aa',
         'csrf_token':_csrf_token(login_page),
     })
 
@@ -549,7 +549,7 @@ def test_password_login_is_temporarily_blocked_after_five_failures():
 def test_registration_rejects_passwords_outside_policy():
     import secrets
 
-    for password in ('Norte_Seguro9!','NorteSeguro123','Short1!','NoSpaces 9A!'):
+    for password in ('Norte_S9A','NorteSeguro123','Short1A','NoSpaces 9A.'):
         app=create_app(); app.config['TESTING']=True
         client=app.test_client()
         suffix=secrets.token_hex(4)
@@ -557,7 +557,7 @@ def test_registration_rejects_passwords_outside_policy():
         response=_register(client,'Cliente Prueba',dni,f'policy{suffix}@example.test',password)
 
         assert response.status_code==400
-        assert 'La contraseña debe tener 10-64 caracteres'.encode() in response.data
+        assert 'La contraseña debe tener 8-10 caracteres'.encode() in response.data
         with app.app_context():
             assert User.query.filter_by(dni=dni).first() is None
 
@@ -570,7 +570,7 @@ def test_registration_rejects_invalid_dni_email_and_mismatched_passwords():
     suffix=secrets.token_hex(4)
     response=_register(
         client,'Cliente Prueba','1234',f'invalid{suffix}@',
-        password='NorteSeguro9!',confirmation='NorteSeguro8!',
+        password='Norte9.Aa',confirmation='Norte8.Aa',
     )
 
     assert response.status_code==400
