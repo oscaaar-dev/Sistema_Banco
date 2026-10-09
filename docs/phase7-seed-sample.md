@@ -1,6 +1,6 @@
 # Fase 7 — muestra para aprobación
 
-Estado: propuesta de revisión. No se ejecutó `seed_demo`, no se insertaron registros ni se cambió ninguna base de datos.
+Estado: muestra aprobada e implementación preparada. El generador se ejecuta únicamente en pruebas con SQLite en memoria; no se ha ejecutado sobre MySQL local ni sobre Railway.
 
 ## Datos sintéticos propuestos
 
@@ -14,7 +14,9 @@ Los cinco perfiles y movimientos de esta muestra son inventados para revisión. 
 | SEED-004 | Diego Salazar Ríos | seed-004@example.test | Cuenta Norte ···· 0404 | S/ 3,592.65 | S/ 9,885.05 | true |
 | SEED-005 | Camila Huamán Quispe | seed-005@example.test | Cuenta Norte ···· 0505 | S/ 9,314.20 | S/ 16,767.75 | true |
 
-Cada fila de movimiento muestra el saldo posterior. Al sumar los importes al saldo inicial se obtiene exactamente el saldo de cierre indicado arriba. Los comercios y servicios son genéricos; no representan cargos reales.
+La muestra abreviada de arriba muestra movimientos seleccionados. El generador completo crea 37 registros por perfil (saldo de apertura y tres movimientos por mes durante 12 meses); cada saldo posterior se calcula sumando el importe a los anteriores. Los comercios y servicios son genéricos; no representan cargos reales.
+
+Las cuentas y referencias CCI generadas tienen 20 dígitos, pero son identificadores de prueba sintéticos: no se valida su asignación ni se deben usar para transferencias. El campo CCI se conserva como cadena para no perder ceros iniciales. Los teléfonos son marcadores ficticios de nueve dígitos y no se usan para enviar mensajes. Las tarjetas se construyen temporalmente con un prefijo de prueba y se valida Luhn; la base conserva únicamente los últimos cuatro dígitos, nunca el PAN completo.
 
 | Cliente | Fecha | Movimiento | Importe | Saldo posterior |
 | --- | --- | --- | ---: | ---: |
@@ -75,6 +77,6 @@ La tercera propuesta describe el comportamiento actual y deja explícito el trab
 
 ## Hallazgos de implementación pendientes
 
-- Los modelos actuales no tienen `is_seed`; `Account.number` acepta hasta 24 caracteres, pero no existe un campo CCI. La muestra no cambia el esquema.
-- No se ejecutó ningún seed ni se aplicó migración. Cualquier migración de una base distinta a SQLite de pruebas requiere la parada y autorización indicadas.
+- Los modelos incluyen `is_seed` en usuarios, cuentas, beneficiarios, tarjetas y movimientos; `phone` en usuarios y `cci` en cuentas. Las modificaciones de esquema solo se probaron con la base SQLite en memoria.
+- No se ejecutó ningún seed en una base persistente ni se aplicó migración. Cualquier migración de una base distinta a SQLite de pruebas requiere la parada y autorización indicadas.
 - La operación de cámara transmite fotogramas al servidor sin una pantalla de consentimiento informado propia. El diseño de privacidad permanece bloqueado para la Fase 4.

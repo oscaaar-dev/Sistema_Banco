@@ -9,7 +9,7 @@
 
 ## Fase actual
 
-Fase 7 — muestra sintética y propuesta institucional preparadas; esperando aprobación antes de generar el conjunto completo.
+Fase 7 — implementación del generador sintético aislado en pruebas; falta validar, revisar y cerrar.
 
 ## Hecho
 
@@ -20,16 +20,17 @@ Fase 7 — muestra sintética y propuesta institucional preparadas; esperando ap
 - Fase 6 cerrada: lenguaje público de portada, acceso, registro, espacio personal, tarjetas, operaciones, movimientos, comprobantes, cámara, administración y textos informativos revisado; el aviso legal y las aclaraciones de alcance permanecen visibles. Se actualizaron pruebas de copy sin cambiar efectos.
 - Captura comparativa agregada para portada, login y dashboard en escritorio y móvil. La vista local vigente es `http://127.0.0.1:5001`; la instancia anterior en el puerto 5000 quedó detenida.
 - Fase 6 validada después del commit `3312331`: 30 pruebas de pytest y 7 pruebas E2E aprobadas.
-- Fase 7: muestra de cinco perfiles sintéticos, 30 movimientos con saldos conciliados y tres textos institucionales preparada en `docs/phase7-seed-sample.md`. No se ejecutó el seed ni se modificó ningún esquema; se espera aprobación.
+- Fase 7: la muestra fue aprobada con “continua”. Generador reproducible en desarrollo: cinco perfiles, doce meses y saldos calculados por movimiento. Está protegido para aceptar únicamente SQLite en memoria con `APP_ENV=testing`; no se ejecutó en MySQL local ni en Railway.
 
 ## Pendiente en el orden autorizado
 
-1. Aprobación de la muestra de Fase 7 antes de crear el seed completo.
+1. Cerrar Fase 7 con pruebas y commit.
 2. Fases 2, 3, 4, 5, 8 y 9, respetando las paradas obligatorias indicadas por la persona usuaria.
 
 ## Registro de avance
 
 - 2026-10-09 — Fase 6 cerrada; 30 pruebas de pytest y 7 pruebas E2E aprobadas; seis capturas generadas y comparadas. Muestra de Fase 7 lista; detenida para aprobación previa a generar datos.
+- 2026-10-09 — Aprobada la muestra de Fase 7 (“continua”). Se añadió el generador restringido a SQLite de pruebas en memoria y pruebas de idempotencia/conciliación. Pendiente ejecutar las suites antes del commit.
 
 ## Hallazgos abiertos
 

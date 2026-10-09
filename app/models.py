@@ -17,6 +17,8 @@ class User(UserMixin, db.Model):
     full_name=db.Column(db.String(100),nullable=False)
     email=db.Column(db.String(254),nullable=True)
     dni=db.Column(db.String(8),nullable=True)
+    phone=db.Column(db.String(9),nullable=True)
+    is_seed=db.Column(db.Boolean,nullable=False,default=False)
     password_hash=db.Column(db.String(255),nullable=False)
     role=db.Column(db.String(20),nullable=False,default='CLIENTE')
     created_at=db.Column(db.DateTime,nullable=False,default=now_utc)
@@ -45,6 +47,8 @@ class Account(db.Model):
     currency=db.Column(db.String(3),nullable=False,default='PEN')
     balance=db.Column(db.Numeric(12,2),nullable=False,default=0)
     status=db.Column(db.String(20),nullable=False,default='ACTIVA')
+    cci=db.Column(db.String(20),nullable=True,unique=True)
+    is_seed=db.Column(db.Boolean,nullable=False,default=False)
 
 class Beneficiary(db.Model):
     __tablename__='beneficiaries'
@@ -53,6 +57,7 @@ class Beneficiary(db.Model):
     name=db.Column(db.String(100),nullable=False)
     account_number=db.Column(db.String(24),nullable=False)
     bank_name=db.Column(db.String(80),nullable=False,default='Norte')
+    is_seed=db.Column(db.Boolean,nullable=False,default=False)
 
 class BankCard(db.Model):
     __tablename__='cards'
@@ -63,6 +68,7 @@ class BankCard(db.Model):
     card_type=db.Column(db.String(30),nullable=False,default='Débito')
     status=db.Column(db.String(20),nullable=False,default='Activa')
     limit_amount=db.Column(db.Numeric(12,2),nullable=False,default=3000)
+    is_seed=db.Column(db.Boolean,nullable=False,default=False)
     account=db.relationship('Account')
 
 class InteractionSession(db.Model):
@@ -96,6 +102,7 @@ class Transaction(db.Model):
     balance_after=db.Column(db.Numeric(12,2),nullable=False)
     status=db.Column(db.String(20),nullable=False,default='COMPLETADA')
     created_at=db.Column(db.DateTime,nullable=False,default=now_utc,index=True)
+    is_seed=db.Column(db.Boolean,nullable=False,default=False)
     account=db.relationship('Account',backref=db.backref('transactions',lazy=True))
     session=db.relationship('InteractionSession',backref=db.backref('transactions',lazy=True))
 
