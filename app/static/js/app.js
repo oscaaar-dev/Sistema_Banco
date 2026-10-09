@@ -44,6 +44,8 @@ if(video){
  const form=document.getElementById('operationForm');
  const formDuration=document.getElementById('formDurationSeconds');
  const submitButton=form?.querySelector('button[type="submit"]');
+ const otpInput=form?.querySelector('input[name="otp_code"]');
+ const operationKind=riskPreview?.dataset.kind;
  const analysisBox=document.getElementById('cameraAnalysisBox');
  const analysisTitle=document.getElementById('cameraAnalysisTitle');
  const analysisDetails=document.getElementById('cameraAnalysisDetails');
@@ -53,7 +55,13 @@ if(video){
  if(start)start.disabled=!consent?.checked;
  if(submitButton) submitButton.disabled=true;
  const setStatus=(text)=>{if(status) status.textContent=text};
- const setVerified=(value)=>{if(verified)verified.value=value?'yes':'no';if(submitButton)submitButton.disabled=!value};
+ const cameraReady=()=>Boolean(stream?.active&&lastAnalysis?.ready&&consent?.checked);
+ const otpReady=()=>Boolean(otpInput&&/^\d{6}$/.test(otpInput.value));
+ const updateSubmitState=()=>{
+  const allowed=operationKind==='transfer'?otpReady():(cameraReady()||otpReady());
+  if(submitButton)submitButton.disabled=!allowed;
+ };
+ const setVerified=(value)=>{if(verified)verified.value=value?'yes':'no';updateSubmitState()};
  const paintAnalysis=(result)=>{
   lastAnalysis=result;
   if(facePosition)facePosition.textContent=`${Math.round(result.position_score||0)}%`;
@@ -96,6 +104,7 @@ if(video){
   if(analysisTitle)analysisTitle.textContent='Esperando análisis del rostro';
   if(analysisDetails)analysisDetails.textContent='Activa la cámara y colócate frente a ella.';
  };
+ if(otpInput)otpInput.addEventListener('input',updateSubmitState);
  start.addEventListener('click',async()=>{
   if(!consent?.checked){setStatus('Lee y acepta el aviso de privacidad antes de activar la cámara.');start.disabled=true;return}
   if(!navigator.mediaDevices?.getUserMedia){setStatus('Este navegador no permite acceso a cámara. Usa localhost.');return}
@@ -117,11 +126,23 @@ if(video){
  stop.addEventListener('click',stopCamera);
  if(form) form.addEventListener('submit',event=>{
   if(formDuration)formDuration.value=String(Math.max(0,Math.round((performance.now()-formStartedAt)/1000)));
-  if(!stream || !stream.active || !lastAnalysis?.ready){event.preventDefault();setVerified(false);setStatus('La operación está bloqueada: el rostro debe estar visible, centrado y sin una obstrucción detectada.');return}
+  if(operationKind==='transfer'&&!otpReady()){event.preventDefault();setStatus('Ingresa el código de correo para confirmar la transferencia.');return}
+  if(!cameraReady()&&!otpReady()){event.preventDefault();setVerified(false);setStatus('Verifica con cámara o solicita un código de seguridad por correo.');return}
   if(submitButton){submitButton.disabled=true;submitButton.innerHTML='Procesando…'}
  });
  window.addEventListener('pagehide',stopCamera);
 }
 const toggle=document.getElementById('menuToggle');
 if(toggle){const nav=document.getElementById('intranetNav');toggle.addEventListener('click',()=>{const isOpen=nav?.classList.toggle('open')??false;toggle.setAttribute('aria-expanded',String(isOpen));toggle.setAttribute('aria-label',isOpen?'Cerrar menú':'Abrir menú')});document.addEventListener('click',e=>{if(nav?.classList.contains('open')&&!nav.contains(e.target)&&!toggle.contains(e.target)){nav.classList.remove('open');toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-label','Abrir menú')}});nav?.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>{nav.classList.remove('open');toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-label','Abrir menú')}))}
+const operationForm=document.getElementById('operationForm');
+const challengeForm=document.getElementById('transferCodeForm');
+if(operationForm&&challengeForm){
+ challengeForm.addEventListener('submit',()=>{
+  ['beneficiary_id','amount','idempotency_key','service','phone'].forEach(name=>{
+   const source=operationForm.querySelector(`[name="${name}"]`);
+   const target=challengeForm.querySelector(`[name="${name}"]`);
+   if(source&&target)target.value=source.value;
+  });
+ });
+}
 document.querySelectorAll('form').forEach(form=>{if(form.id==='operationForm')return;form.addEventListener('submit',()=>{const button=form.querySelector('button[type="submit"],button:not([type])');if(button){button.disabled=true;button.dataset.original=button.innerHTML;button.innerHTML='Procesando…'}})});

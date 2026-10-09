@@ -18,8 +18,8 @@ def send_login_code(recipient, code):
 
 
 def send_operation_code(recipient, code, details):
-    _send_security_code(recipient, code, 'Confirma tu transferencia · Norte',
-                        'confirmar esta transferencia en Norte: '+details)
+    _send_security_code(recipient, code, 'Confirma tu operación · Norte',
+                        'confirmar esta operación en Norte: '+details)
 
 
 def _send_security_code(recipient, code, subject, purpose):

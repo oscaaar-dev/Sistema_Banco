@@ -77,7 +77,7 @@ def test_transfer_confirmation_uses_brevo_adapter_and_includes_details(monkeypat
         email_service.send_operation_code('user@example.test','123456','S/ 12.34 a Cliente ···· 7890')
 
     assert sent['recipient']=='user@example.test'
-    assert sent['subject']=='Confirma tu transferencia · Norte'
+    assert sent['subject']=='Confirma tu operación · Norte'
     assert '123456' in sent['body']
     assert 'S/ 12.34 a Cliente' in sent['body']
     assert 'Vence en 5 minutos' in sent['body']

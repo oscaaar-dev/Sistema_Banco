@@ -458,7 +458,7 @@ def test_operation_risk_preview_returns_score_with_limited_history(monkeypatch):
     assert result['enough_history'] is False
     assert any('Historial limitado' in reason for reason in result['reasons'])
 
-def test_camera_verification_is_required_even_if_hidden_field_is_forged(monkeypatch):
+def test_operation_requires_camera_or_transaction_email_otp(monkeypatch):
     app=create_app(); app.config['TESTING']=True
     client=app.test_client()
     _login(client,monkeypatch)
@@ -475,7 +475,9 @@ def test_camera_verification_is_required_even_if_hidden_field_is_forged(monkeypa
     })
 
     assert response.status_code==400
-    assert 'cámara no está vigente'.encode() in response.data
+    from app.models import Transaction
+    with app.app_context():
+        assert Transaction.query.filter_by(operation_type='PAGO',is_seed=False).count()==0
 
 def test_camera_analysis_requires_explicit_consent(monkeypatch):
     app=create_app(); app.config['TESTING']=True
@@ -568,3 +570,72 @@ def test_completed_operation_does_not_persist_new_camera_results(monkeypatch):
     assert b'Indicador de la operaci\xc3\xb3n:' in receipt.data
     assert b'Verificaci\xc3\xb3n de c\xc3\xa1mara: APROBADA' not in receipt.data
     assert b'86.0%' not in receipt.data
+
+def test_payment_can_be_confirmed_by_email_otp_without_camera(monkeypatch):
+    import re
+    from decimal import Decimal
+    import app.routes as routes_module
+    from app.models import Account, FacialAnalysis, InteractionSession, OperationChallenge, Transaction, User
+
+    sent=[]
+    monkeypatch.setattr(routes_module,'send_operation_code',lambda email,code,details:sent.append((email,code,details)))
+    app=create_app(); app.config['TESTING']=True
+    client=app.test_client()
+    _login(client,monkeypatch)
+    page=client.get('/operation/payment')
+    token=_csrf_token(page)
+    key=re.search(rb'name="idempotency_key" value="([^"]+)"',page.data).group(1).decode()
+    request_code=client.post('/operation/payment/send-code',data={
+        'csrf_token':token,'idempotency_key':key,'amount':'25.50','service':'Agua',
+    })
+    assert request_code.status_code==302
+    assert sent and 'Agua' in sent[0][2]
+    with app.app_context():
+        user=User.query.filter_by(username='demo').one()
+        challenge=OperationChallenge.query.filter_by(user_id=user.id,operation_type='PAGO').one()
+        assert challenge.beneficiary_id is None
+        assert challenge.details_hash
+        assert sent[0][1] not in challenge.code_hash
+
+    response=client.post('/operation/payment',data={
+        'csrf_token':token,'idempotency_key':key,'amount':'25.50','service':'Agua',
+        'otp_code':sent[0][1],'form_duration_seconds':'12',
+    })
+    assert response.status_code==302
+    with app.app_context():
+        user=User.query.filter_by(username='demo').one()
+        challenge=OperationChallenge.query.filter_by(user_id=user.id,operation_type='PAGO').one()
+        tx=Transaction.query.filter_by(idempotency_key=key).one()
+        session_record=InteractionSession.query.filter_by(id=tx.session_id).one()
+        assert challenge.consumed_at is not None
+        assert session_record.consent_given is False
+        assert session_record.face_detected is False
+        assert FacialAnalysis.query.count()==0
+        assert tx.amount==Decimal('-25.50')
+
+def test_operation_otp_is_bound_to_service(monkeypatch):
+    import re
+    import app.routes as routes_module
+    from app.models import OperationChallenge, Transaction, User
+
+    sent=[]
+    monkeypatch.setattr(routes_module,'send_operation_code',lambda email,code,details:sent.append(code))
+    app=create_app(); app.config['TESTING']=True
+    client=app.test_client()
+    _login(client,monkeypatch)
+    page=client.get('/operation/payment')
+    token=_csrf_token(page)
+    key=re.search(rb'name="idempotency_key" value="([^"]+)"',page.data).group(1).decode()
+    client.post('/operation/payment/send-code',data={
+        'csrf_token':token,'idempotency_key':key,'amount':'25.50','service':'Agua',
+    })
+    response=client.post('/operation/payment',data={
+        'csrf_token':token,'idempotency_key':key,'amount':'25.50','service':'Internet',
+        'otp_code':sent[0],'form_duration_seconds':'12',
+    })
+    assert response.status_code==200
+    assert 'Los datos cambiaron'.encode() in response.data
+    with app.app_context():
+        user=User.query.filter_by(username='demo').one()
+        assert OperationChallenge.query.filter_by(user_id=user.id,operation_type='PAGO').one().consumed_at is not None
+        assert Transaction.query.filter_by(idempotency_key=key).count()==0

@@ -80,7 +80,12 @@ def _login_code_hash(user_id, code):
 
 def _operation_code_hash(user_id, code):
     key=str(current_app.config['SECRET_KEY']).encode('utf-8')
-    message=f'transfer:{user_id}:{code}'.encode('utf-8')
+    message=f'operation:{user_id}:{code}'.encode('utf-8')
+    return hmac.new(key,message,hashlib.sha256).hexdigest()
+
+def _operation_details_hash(operation_type, details):
+    key=str(current_app.config['SECRET_KEY']).encode('utf-8')
+    message=f'operation-details:{operation_type}:{details}'.encode('utf-8')
     return hmac.new(key,message,hashlib.sha256).hexdigest()
 
 def _masked_email(address):
@@ -489,17 +494,11 @@ def operation(kind):
     if request.method=='POST':
         camera_state = session.get('camera_state', {})
         camera_consent = request.form.get('camera_consent') == 'yes'
+        camera_ok = bool(camera_consent and request.form.get('camera_verified') == 'yes'
+                         and camera_state.get('ready')
+                         and time.time() - camera_state.get('checked_at', 0) <= 10)
         if not camera_consent:
-            flash('Debes aceptar el aviso de privacidad antes de usar la cámara.','error')
-            return render_template('operation.html',kind=kind,recipients=recipients,account=account,
-                                   idempotency_key=idempotency_key,
-                                   masked_email=_masked_email(current_user.email or '')), 400
-        camera_ok = request.form.get('camera_verified') == 'yes' and camera_state.get('ready') and (time.time() - camera_state.get('checked_at', 0) <= 10)
-        if not camera_ok:
-            flash('La verificación de cámara no está vigente o el rostro no es suficientemente visible. Corrige la posición y vuelve a verificar.','error')
-            return render_template('operation.html',kind=kind,recipients=recipients,account=account,
-                                   idempotency_key=idempotency_key,
-                                   masked_email=_masked_email(current_user.email or '')), 400
+            session.pop('camera_state', None)
         if not re.fullmatch(r'[A-Za-z0-9_-]{22,64}',submitted_idempotency_key):
             flash('El formulario venció. Vuelve a cargarlo antes de confirmar.','error')
             return render_template('operation.html',kind=kind,recipients=recipients,account=account,
@@ -517,35 +516,56 @@ def operation(kind):
                 recipient=Beneficiary.query.filter_by(id=beneficiary_id,user_id=current_user.id).first()
                 if not recipient: raise ValueError('Destinatario no válido.')
                 description='Transferencia a '+recipient.name; op='TRANSFERENCIA'
+                details=f'beneficiary:{recipient.id}'
+            elif kind=='payment':
+                service=request.form.get('service','').strip()
+                if service not in {'Electricidad','Agua','Internet','Tarjeta académica'}:
+                    raise ValueError('Selecciona un servicio válido.')
+                description='Pago: '+service[:70]; op='PAGO'; details='service:'+service
+            else:
+                phone=request.form.get('phone','').strip()
+                if not re.fullmatch(r'[0-9]{7,15}',phone):
+                    raise ValueError('Ingresa un número de celular válido, solo con dígitos.')
+                description='Recarga: '+phone[:40]; op='RECARGA'; details='phone:'+phone
+
+            code=request.form.get('otp_code','').strip()
+            must_use_otp=(kind=='transfer' or not camera_ok or bool(code))
+            if must_use_otp:
+                if not current_user.email:
+                    raise ValueError('Esta cuenta no tiene un correo de seguridad configurado. Contacta a la administración.')
                 challenge=OperationChallenge.query.filter_by(
                     user_id=current_user.id,operation_type=op
                 ).with_for_update().first()
-                code=request.form.get('otp_code','').strip()
+                now=now_utc()
                 if (not challenge or challenge.consumed_at is not None
-                        or now_utc()>=challenge.expires_at):
+                        or now>=challenge.expires_at or challenge.details_hash is None):
                     if challenge and challenge.consumed_at is None:
-                        challenge.consumed_at=now_utc()
+                        challenge.consumed_at=now
                         db.session.commit()
-                    raise ValueError('Solicita un nuevo código de seguridad antes de confirmar la transferencia.')
-                if (challenge.account_id!=account.id or challenge.beneficiary_id!=recipient.id
+                    raise ValueError('Solicita un nuevo código de seguridad antes de confirmar la operación.')
+                expected_details_hash=_operation_details_hash(op,details)
+                if (challenge.account_id!=account.id
+                        or challenge.beneficiary_id!=(recipient.id if kind=='transfer' else None)
                         or challenge.amount!=amount.quantize(Decimal('0.01'))
-                        or challenge.idempotency_key!=submitted_idempotency_key):
-                    challenge.consumed_at=now_utc()
+                        or challenge.idempotency_key!=submitted_idempotency_key
+                        or not hmac.compare_digest(challenge.details_hash,expected_details_hash)):
+                    challenge.consumed_at=now
                     db.session.commit()
                     raise ValueError('Los datos cambiaron después de enviar el código. Solicita uno nuevo.')
                 if (len(code)!=6 or not code.isascii() or not code.isdigit()
                         or not hmac.compare_digest(challenge.code_hash,_operation_code_hash(current_user.id,code))):
                     challenge.attempts+=1
                     if challenge.attempts>=OPERATION_CODE_MAX_ATTEMPTS:
-                        challenge.consumed_at=now_utc()
-                    log(current_user,'TRANSFER_OTP_FAILURE','SEGURIDAD',result='RECHAZADA')
+                        challenge.consumed_at=now
+                    log(current_user,'OPERATION_OTP_FAILURE','SEGURIDAD',result='RECHAZADA')
                     db.session.commit()
                     raise ValueError('El código de confirmación no es válido o venció.')
-                challenge.consumed_at=now_utc()
-                log(current_user,'TRANSFER_OTP_VERIFIED','SEGURIDAD')
-            elif kind=='payment': description='Pago: '+request.form.get('service','Servicio')[:70]; op='PAGO'
-            else: description='Recarga: '+request.form.get('phone','Número')[:40]; op='RECARGA'
-            tx=process_operation(current_user,op,amount,description,beneficiary_id,request.form.get('service'),camera_consent,face_detected=False,face_confidence=None,duration_seconds=duration_seconds,idempotency_key=idempotency_key)
+                challenge.consumed_at=now
+                log(current_user,'OPERATION_OTP_VERIFIED','SEGURIDAD')
+            elif not camera_ok:
+                raise ValueError('Verifica con cámara o solicita un código de seguridad por correo.')
+
+            tx=process_operation(current_user,op,amount,description,beneficiary_id,request.form.get('service'),camera_ok,face_detected=False,face_confidence=None,duration_seconds=duration_seconds,idempotency_key=idempotency_key)
             flash('Operación registrada. No tiene efectos financieros.','success')
             return redirect(url_for('main.receipt',transaction_id=tx.id))
         except (ValueError,InvalidOperation) as e:
@@ -554,12 +574,13 @@ def operation(kind):
     return render_template('operation.html',kind=kind,recipients=recipients,account=account,
                            idempotency_key=idempotency_key,masked_email=_masked_email(current_user.email or ''))
 
-@bp.route('/operation/transfer/send-code',methods=['POST'])
+@bp.route('/operation/<kind>/send-code',methods=['POST'])
 @login_required
-def send_transfer_code():
+def send_transfer_code(kind):
+    if kind not in ('transfer','payment','recharge'): abort(404)
     if not current_user.email:
         flash('Esta cuenta no tiene un correo de seguridad configurado. Contacta a la administración.','error')
-        return redirect(url_for('main.operation',kind='transfer'))
+        return redirect(url_for('main.operation',kind=kind))
     try:
         amount=Decimal(request.form.get('amount','0')).quantize(Decimal('0.01'))
         if not Decimal('0.01')<=amount<=Decimal('10000'):
@@ -568,38 +589,53 @@ def send_transfer_code():
         if account is None or account.balance<amount:
             raise ValueError('No hay saldo suficiente en la cuenta seleccionada.')
         beneficiary_id=request.form.get('beneficiary_id',type=int)
-        beneficiary=Beneficiary.query.filter_by(id=beneficiary_id,user_id=current_user.id).first()
-        if beneficiary is None:
-            raise ValueError('Selecciona un destinatario válido antes de pedir el código.')
+        if kind=='transfer':
+            beneficiary=Beneficiary.query.filter_by(id=beneficiary_id,user_id=current_user.id).first()
+            if beneficiary is None:
+                raise ValueError('Selecciona un destinatario válido antes de pedir el código.')
+            op='TRANSFERENCIA'; details=f'beneficiary:{beneficiary.id}'
+            readable=f'S/ {amount:.2f} a {beneficiary.name}, cuenta terminada en {beneficiary.account_number[-4:]}'
+        elif kind=='payment':
+            service=request.form.get('service','').strip()
+            if service not in {'Electricidad','Agua','Internet','Tarjeta académica'}:
+                raise ValueError('Selecciona un servicio válido antes de pedir el código.')
+            beneficiary=None; op='PAGO'; details='service:'+service
+            readable=f'S/ {amount:.2f} para el servicio {service}'
+        else:
+            phone=request.form.get('phone','').strip()
+            if not re.fullmatch(r'[0-9]{7,15}',phone):
+                raise ValueError('Ingresa un número de celular válido antes de pedir el código.')
+            beneficiary=None; op='RECARGA'; details='phone:'+phone
+            readable=f'S/ {amount:.2f} para la recarga terminada en {phone[-4:]}'
         idempotency_key=request.form.get('idempotency_key','').strip()
         if not re.fullmatch(r'[A-Za-z0-9_-]{22,64}',idempotency_key):
             raise ValueError('El formulario venció. Vuelve a cargarlo antes de pedir un código.')
 
         challenge=OperationChallenge.query.filter_by(
-            user_id=current_user.id,operation_type='TRANSFERENCIA'
+            user_id=current_user.id,operation_type=op
         ).with_for_update().first()
         now=now_utc()
         if challenge and now-challenge.last_sent_at<OPERATION_CODE_RESEND:
-            flash('Espera antes de solicitar otro código de transferencia.','error')
-            return redirect(url_for('main.operation',kind='transfer'))
+            flash('Espera antes de solicitar otro código de seguridad.','error')
+            return redirect(url_for('main.operation',kind=kind))
         code=f'{secrets.randbelow(1_000_000):06d}'
         if challenge is None:
-            challenge=OperationChallenge(user_id=current_user.id,operation_type='TRANSFERENCIA')
+            challenge=OperationChallenge(user_id=current_user.id,operation_type=op)
             db.session.add(challenge)
         challenge.account_id=account.id
-        challenge.beneficiary_id=beneficiary.id
+        challenge.beneficiary_id=beneficiary.id if beneficiary else None
         challenge.amount=amount
         challenge.idempotency_key=idempotency_key
+        challenge.details_hash=_operation_details_hash(op,details)
         challenge.code_hash=_operation_code_hash(current_user.id,code)
         challenge.expires_at=now+OPERATION_CODE_TTL
         challenge.last_sent_at=now
         challenge.attempts=0
         challenge.consumed_at=None
-        details=f'S/ {amount:.2f} a {beneficiary.name}, cuenta terminada en {beneficiary.account_number[-4:]}'
-        send_operation_code(current_user.email,code,details)
-        log(current_user,'TRANSFER_OTP_SENT','SEGURIDAD')
+        send_operation_code(current_user.email,code,readable)
+        log(current_user,'OPERATION_OTP_SENT','SEGURIDAD')
         db.session.commit()
-        flash(f'Enviamos un código para confirmar {details} al correo { _masked_email(current_user.email) }.','success')
+        flash(f'Enviamos un código para confirmar {readable} al correo { _masked_email(current_user.email) }.','success')
     except EmailDeliveryError:
         db.session.rollback()
         current_app.logger.exception('No se pudo enviar el código de transferencia para el usuario %s.',current_user.id)
@@ -607,7 +643,7 @@ def send_transfer_code():
     except (ValueError,InvalidOperation) as error:
         db.session.rollback()
         flash(str(error),'error')
-    return redirect(url_for('main.operation',kind='transfer'))
+    return redirect(url_for('main.operation',kind=kind))
 @bp.route('/receipt/<int:transaction_id>')
 @login_required
 def receipt(transaction_id):

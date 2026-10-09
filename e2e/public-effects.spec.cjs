@@ -94,6 +94,20 @@ test('la cámara requiere consentimiento explícito antes de habilitarse', async
   const start = page.locator('#startCamera');
   await expect(consent).not.toBeChecked();
   await expect(start).toBeDisabled();
+  const submit = page.locator('#operationForm button[type="submit"]');
+  const code = page.locator('#operationForm input[name="otp_code"]');
+  await code.fill('123456');
+  await expect(submit).toBeEnabled();
+  await code.fill('');
+  await expect(submit).toBeDisabled();
+  await page.locator('#operationForm select[name="service"]').selectOption('Agua');
+  await page.locator('#operationForm input[name="amount"]').fill('55.25');
+  await page.locator('#transferCodeForm').evaluate((form) =>
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+  );
+  await expect(page.locator('#transferCodeForm input[name="amount"]')).toHaveValue('55.25');
+  await expect(page.locator('#transferCodeForm input[name="service"]')).toHaveValue('Agua');
+  await expect(page.locator('#transferCodeForm input[name="idempotency_key"]')).toHaveValue(/^[A-Za-z0-9_-]{22,64}$/);
   await consent.check();
   await expect(start).toBeEnabled();
   await consent.uncheck();
