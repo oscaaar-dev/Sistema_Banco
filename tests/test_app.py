@@ -720,6 +720,54 @@ def test_camera_frame_endpoint_is_disabled_and_does_not_store_state(monkeypatch)
         assert 'camera_state' not in browser_session
 
 
+def test_interaction_clustering_does_not_read_legacy_facial_metrics():
+    from app.ai.interaction_model import FEATURES, cluster_interactions
+
+    class LegacySession:
+        def __init__(self, index):
+            self.duration_seconds=10+index
+            self.errors=index % 3
+            self.steps=3+index
+            self.back_actions=index % 2
+
+        @property
+        def facial_analysis(self):
+            raise AssertionError('El agrupador no debe leer análisis faciales históricos')
+
+    sessions=[LegacySession(index) for index in range(5)]
+    assert 'face_detection_rate' not in FEATURES
+    assert len(cluster_interactions(sessions))==len(sessions)
+
+
+def test_receipt_does_not_expose_legacy_facial_analysis_or_cluster(monkeypatch):
+    from decimal import Decimal
+    from app.models import Account, FacialAnalysis, InteractionSession, MLResult, Transaction, User
+
+    app=create_app(); app.config['TESTING']=True
+    client=app.test_client()
+    _login(client,monkeypatch)
+    with app.app_context():
+        user=User.query.filter_by(username='demo').one()
+        account=Account.query.filter_by(user_id=user.id).first()
+        interaction=InteractionSession(user_id=user.id,operation_type='PAGO',duration_seconds=18,
+                                      steps=5,errors=0,back_actions=0,face_detected=True)
+        db.session.add(interaction); db.session.flush()
+        db.session.add(FacialAnalysis(session_id=interaction.id,face_detected=True,detection_confidence=99.9))
+        db.session.add(MLResult(session_id=interaction.id,label='LEGACY FACE CLUSTER',method='legacy'))
+        tx=Transaction(account_id=account.id,session_id=interaction.id,operation_type='PAGO',
+                       description='Pago histórico de prueba',amount=Decimal('-1.00'),
+                       balance_after=account.balance,status='COMPLETADA')
+        db.session.add(tx); db.session.commit()
+        transaction_id=tx.id
+
+    response=client.get(f'/receipt/{transaction_id}')
+    assert response.status_code==200
+    assert b'Pago hist' in response.data
+    assert b'Verificaci' not in response.data
+    assert b'99.9' not in response.data
+    assert b'LEGACY FACE CLUSTER' not in response.data
+
+
 def test_camera_consent_records_only_user_version_and_timestamp(monkeypatch):
     import re
     from app.models import AuditLog, User

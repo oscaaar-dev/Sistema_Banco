@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 
-FEATURES=['duration_seconds','errors','steps','back_actions','face_detection_rate']
+FEATURES=['duration_seconds','errors','steps','back_actions']
 LABELS={0:'Interacción estable',1:'Interacción con algunas dificultades',2:'Interacción más compleja'}
 
 def cluster_interactions(sessions):
@@ -10,8 +10,7 @@ def cluster_interactions(sessions):
     rows=[]
     for session in sessions:
         rows.append({'duration_seconds':float(session.duration_seconds or 0),'errors':float(session.errors or 0),
-                     'steps':float(session.steps or 0),'back_actions':float(session.back_actions or 0),
-                     'face_detection_rate':float(session.facial_analysis.detection_confidence or 0) if session.facial_analysis and session.facial_analysis.face_detected else 0.0})
+                     'steps':float(session.steps or 0),'back_actions':float(session.back_actions or 0)})
     if len(rows)<3:return None
     frame=pd.DataFrame(rows,columns=FEATURES).replace([float('inf'),float('-inf')],0).fillna(0)
     scaled=StandardScaler().fit_transform(frame)
