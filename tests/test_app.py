@@ -332,8 +332,13 @@ def test_public_cards_link_to_relevant_routes_and_personas_are_not_fake_testimon
     tools=client.get('/herramientas').data
     security=client.get('/seguridad').data
 
-    assert b'perfiles por funci' in personas
+    assert b'fotograf' in personas
     assert b'Gerencia es una referencia informativa' in personas
+    assert b'no representan a empleados' in personas
+    assert personas.count(b'class="info-card-photo"') == 3
+    assert b'/static/team/administrador.jpg' in personas
+    assert b'/static/team/gerencia.jpg' in personas
+    assert b'/static/team/sistemas-soporte.jpg' in personas
     assert b'href="/register"' in personas
     assert b'href="/acerca"' in personas
     assert b'Banca por Internet' in personas

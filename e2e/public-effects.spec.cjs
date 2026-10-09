@@ -85,6 +85,13 @@ test('las páginas informativas muestran tarjetas interactivas y accesos claros'
   await page.goto('/personas');
   const cards = page.locator('.info-card');
   await expect(cards).toHaveCount(3);
+  const portraits = page.locator('.info-card-photo img');
+  await expect(portraits).toHaveCount(3);
+  await expect(page.locator('.info-note')).toContainText('no representan a empleados');
+  for (const portrait of await portraits.all()) {
+    await expect(portrait).toBeVisible();
+    await expect.poll(() => portrait.evaluate((image) => image.complete && image.naturalWidth > 0)).toBeTruthy();
+  }
   await expect(page.getByRole('link', { name: /Banca por Internet/ })).toHaveAttribute('href', '/login');
   await expect(page.getByRole('link', { name: /Abrir cuenta/ })).toHaveAttribute('href', '/register');
   await expect(cards.nth(0)).toHaveAttribute('href', '/login');

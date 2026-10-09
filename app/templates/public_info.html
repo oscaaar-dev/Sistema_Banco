@@ -61,6 +61,9 @@
         <div class="info-card-grid">
           {% for card in page.highlights %}
           <a class="info-card" data-reveal href="{{ card.href }}" aria-label="{{ card.action }}: {{ card.title }}">
+            {% if page_key=='personas' and card.image %}
+            <figure class="info-card-photo info-card-photo-{{ loop.index }}"><img src="{{ url_for('static',filename=card.image) }}" alt="{{ card.image_alt }}" loading="lazy"><figcaption>Fotografía ilustrativa · {{ card.photo_credit }}</figcaption></figure>
+            {% endif %}
             <span class="info-card-icon"><i class="bi {{ card.icon }}"></i></span>
             {% if page_key=='acerca' %}<span class="info-card-index">0{{ loop.index }}</span>{% endif %}
             <h3>{{ card.title }}</h3>
