@@ -4,12 +4,13 @@ import secrets
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 import re
-from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, abort, jsonify, session
+from flask import Blueprint, Response, current_app, render_template, request, redirect, url_for, flash, abort, jsonify, session
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import desc, or_
 from sqlalchemy.exc import IntegrityError
 from ..models import db, User, LoginChallenge, LoginAttemptLimit, OperationChallenge, Account, BankCard, Beneficiary, Transaction, InteractionSession, AuditLog, now_utc
 from ..services.banking_service import account_for, process_operation, log, operation_risk_for
+from ..services.statement_service import account_statement_pdf
 from ..services.email_service import EmailDeliveryError, send_login_code, send_operation_code
 bp=Blueprint('main',__name__)
 
@@ -463,6 +464,29 @@ def movements():
     return render_template('movements.html',items=items,account=account,page=page,pages=pages,total=total,
                            selected_type=operation_type,start_date=start.isoformat() if start else '',
                            end_date=end.isoformat() if end else '')
+
+@bp.route('/statements/<int:account_id>.pdf')
+@login_required
+def account_statement(account_id):
+    account=Account.query.filter_by(id=account_id,user_id=current_user.id).first_or_404()
+    try:
+        start=date.fromisoformat(request.args['from']) if request.args.get('from') else None
+        end=date.fromisoformat(request.args['to']) if request.args.get('to') else None
+    except (TypeError,ValueError):
+        abort(400)
+    if start and end and start>end:
+        abort(400)
+    query=Transaction.query.filter_by(account_id=account.id)
+    if start:
+        query=query.filter(Transaction.created_at>=datetime.combine(start,time.min))
+    if end:
+        query=query.filter(Transaction.created_at<datetime.combine(end+timedelta(days=1),time.min))
+    items=query.order_by(desc(Transaction.created_at),desc(Transaction.id)).all()
+    pdf=account_statement_pdf(account,items,start.isoformat() if start else None,end.isoformat() if end else None)
+    response=Response(pdf,mimetype='application/pdf')
+    response.headers['Content-Disposition']='attachment; filename="norte-estado-de-cuenta.pdf"'
+    response.headers['Cache-Control']='no-store'
+    return response
 @bp.route('/cards')
 @login_required
 def cards(): return render_template('cards.html',cards=BankCard.query.filter_by(user_id=current_user.id).all())

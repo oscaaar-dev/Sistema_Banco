@@ -156,6 +156,36 @@ def test_card_locking_is_csrf_protected_audited_and_owner_scoped():
     assert other_update.status_code==404
 
 
+def test_account_statement_pdf_is_date_filtered_and_owner_scoped(monkeypatch):
+    app=create_app(); app.config['TESTING']=True
+    client=app.test_client()
+    _login(client,monkeypatch)
+    with app.app_context():
+        user=User.query.filter_by(username='demo').one()
+        account=Account.query.filter_by(user_id=user.id).one()
+        account_id=account.id
+        other=User(username='statement-owner-other',full_name='Titular de prueba',role='CLIENTE')
+        other.set_password('TestOnlyPass123!')
+        db.session.add(other)
+        db.session.flush()
+        other_account=Account(user_id=other.id,account_type='Ahorros',number='900000000000000098')
+        db.session.add(other_account)
+        db.session.commit()
+        other_account_id=other_account.id
+
+    response=client.get(f'/statements/{account_id}.pdf?from=2025-09-30&to=2025-09-30')
+    assert response.status_code==200
+    assert response.mimetype=='application/pdf'
+    assert response.headers['Cache-Control']=='no-store'
+    assert response.data.startswith(b'%PDF-1.4')
+    assert response.data.endswith(b'%%EOF')
+    assert b'NORTE.' in response.data
+    assert b'Saldo de apertura de muestra' in response.data
+    assert b'Servicio del hogar' not in response.data
+    assert client.get(f'/statements/{other_account_id}.pdf').status_code==404
+    assert client.get(f'/statements/{account_id}.pdf?from=2026-02-30').status_code==400
+
+
 def test_public_information_topics_have_separate_pages():
     app=create_app(); app.config['TESTING']=True
     client=app.test_client()
