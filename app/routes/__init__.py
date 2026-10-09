@@ -38,6 +38,31 @@ def _login_attempt_hash(identifier):
     normalized=(identifier or '').strip().casefold()
     return hmac.new(key,('login-attempt:'+normalized).encode('utf-8'),hashlib.sha256).hexdigest()
 
+def _request_ip_hash(purpose):
+    key=str(current_app.config['SECRET_KEY']).encode('utf-8')
+    if current_app.config.get('RAILWAY_ENVIRONMENT_NAME'):
+        address=request.headers.get('X-Real-IP') or request.remote_addr or 'unknown'
+    else:
+        address=request.remote_addr or 'unknown'
+    return hmac.new(key,(purpose+':'+address.strip()).encode('utf-8'),hashlib.sha256).hexdigest()
+
+def _recent_audit_count(action, since, *, user_id=None, ip_hash=None):
+    query=AuditLog.query.filter_by(action=action).filter(AuditLog.created_at>=since)
+    if user_id is not None:
+        query=query.filter_by(user_id=user_id)
+    if ip_hash is not None:
+        query=query.filter_by(ip_local=ip_hash)
+    return query.count()
+
+def _login_code_rate_limited(user):
+    now=now_utc()
+    since=now-timedelta(seconds=current_app.config['LOGIN_CODE_RATE_LIMIT_WINDOW_SECONDS'])
+    ip_hash=_request_ip_hash('login-otp-ip')
+    return (
+        _recent_audit_count('LOGIN_OTP_SENT',since,ip_hash=ip_hash)>=current_app.config['LOGIN_CODE_RATE_LIMIT_IP']
+        or _recent_audit_count('LOGIN_OTP_SENT',since,user_id=user.id)>=current_app.config['LOGIN_CODE_RATE_LIMIT_USER']
+    )
+
 def _login_is_blocked(identifier):
     attempt=LoginAttemptLimit.query.filter_by(identifier_hash=_login_attempt_hash(identifier)).first()
     if attempt is None:
@@ -108,6 +133,9 @@ def _issue_login_code(user):
     if challenge and now-challenge.last_sent_at<cooldown:
         session['pending_login_user_id']=user.id
         return 'cooldown'
+    if _login_code_rate_limited(user):
+        session['pending_login_user_id']=user.id
+        return 'rate_limited'
 
     code=f'{secrets.randbelow(1_000_000):06d}'
     if challenge is None:
@@ -120,6 +148,10 @@ def _issue_login_code(user):
     try:
         db.session.flush()
         send_login_code(user.email,code)
+        db.session.add(AuditLog(
+            user_id=user.id,action='LOGIN_OTP_SENT',module='SEGURIDAD',result='ENVIADO',
+            ip_local=_request_ip_hash('login-otp-ip'),created_at=now,
+        ))
         db.session.commit()
     except EmailDeliveryError:
         db.session.rollback()
@@ -271,6 +303,9 @@ def login():
             if result=='delivery_error':
                 flash('No se pudo enviar el código de seguridad. Revisa la configuración de correo o contacta a la administración.','error')
                 return redirect(url_for('main.login'))
+            if result=='rate_limited':
+                flash('Se alcanzó el límite temporal de códigos. Inténtalo más tarde.','error')
+                return render_template('login.html'),429
             if result=='cooldown':
                 flash('Ya se envió un código recientemente. Revisa el correo registrado o espera antes de solicitar otro.','info')
             else:
@@ -285,6 +320,12 @@ def register():
     if current_user.is_authenticated:
         return redirect(_home_for_role(current_user))
     if request.method=='POST':
+        now=now_utc()
+        since=now-timedelta(seconds=current_app.config['REGISTRATION_RATE_LIMIT_WINDOW_SECONDS'])
+        registration_ip=_request_ip_hash('registration-ip')
+        if _recent_audit_count('CUSTOMER_REGISTERED',since,ip_hash=registration_ip)>=current_app.config['REGISTRATION_RATE_LIMIT_IP']:
+            flash('Se alcanzó el límite temporal de registros desde esta conexión. Inténtalo más tarde.','error')
+            return render_template('register.html'),429
         full_name=' '.join(request.form.get('full_name','').split())
         dni=request.form.get('dni','').strip()
         email=request.form.get('email','').strip().lower()
@@ -344,6 +385,10 @@ def register():
                 account_type='Cuenta de ahorros',
                 number=account_number,
                 balance=Decimal('0.00'),
+            ))
+            db.session.add(AuditLog(
+                user_id=user.id,action='CUSTOMER_REGISTERED',module='ACCESO',result='COMPLETADO',
+                ip_local=registration_ip,created_at=now,
             ))
             db.session.commit()
         except IntegrityError:
@@ -421,6 +466,9 @@ def resend_login_code():
     if result=='delivery_error':
         flash('No se pudo enviar el código de seguridad. Revisa la configuración de correo o contacta a la administración.','error')
         return redirect(url_for('main.verify_login'))
+    if result=='rate_limited':
+        flash('Se alcanzó el límite temporal de códigos. Inténtalo más tarde.','error')
+        return render_template('login_verify.html',masked_email=_masked_email(user.email)),429
     flash('Enviamos un nuevo código al correo registrado.','success')
     return redirect(url_for('main.verify_login'))
 

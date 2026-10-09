@@ -114,11 +114,11 @@ def test_brevo_sandbox_marks_request_to_drop_email_without_delivery(monkeypatch)
     assert sent['timeout']==15
 
 
-def test_live_staging_email_is_limited_to_approved_test_recipient(monkeypatch):
+def test_live_staging_email_can_be_sent_to_any_registered_customer(monkeypatch):
     app=create_app()
     app.config.update(
         EMAIL_TRANSPORT='brevo_api',BREVO_API_KEY='test-api-key',
-        BREVO_SANDBOX=False,BREVO_TEST_RECIPIENT='oscarquinonesvallejos@gmail.com',
+        BREVO_SANDBOX=False,
         RAILWAY_ENVIRONMENT_NAME='staging',SMTP_FROM='sender@example.test',
     )
     sent=[]
@@ -139,10 +139,10 @@ def test_live_staging_email_is_limited_to_approved_test_recipient(monkeypatch):
 
     monkeypatch.setattr(email_service,'urlopen',fake_urlopen)
     with app.app_context():
-        with pytest.raises(EmailDeliveryError,match='destinatario autorizado'):
-            email_service.send_login_code('other@example.test','123456')
+        email_service.send_login_code('customer@example.test','123456')
         email_service.send_login_code('OSCARQUINONESVALLEJOS@gmail.com','123456')
 
-    assert len(sent)==1
-    assert sent[0]['to']==[{'email':'OSCARQUINONESVALLEJOS@gmail.com'}]
+    assert len(sent)==2
+    assert sent[0]['to']==[{'email':'customer@example.test'}]
+    assert sent[1]['to']==[{'email':'OSCARQUINONESVALLEJOS@gmail.com'}]
     assert 'headers' not in sent[0]

@@ -416,6 +416,71 @@ def test_customer_can_register_and_login_with_email_otp(monkeypatch):
     assert app.permanent_session_lifetime.total_seconds()==1800
 
 
+def test_login_otp_rate_limit_is_shared_per_ip_across_customer_accounts(monkeypatch):
+    import secrets
+    import app.routes as routes_module
+
+    app=create_app(); app.config.update(TESTING=True,LOGIN_CODE_RATE_LIMIT_IP=1)
+    client=app.test_client()
+    users=[]
+    with app.app_context():
+        for index in range(2):
+            username=f'ratelimit-{secrets.token_hex(4)}-{index}'
+            user=User(username=username,full_name='Cliente Prueba',email=f'{username}@example.test',role='CLIENTE')
+            user.set_password('NorteSeguro9!')
+            db.session.add(user)
+            users.append((username,user.email))
+        db.session.commit()
+
+    delivered=[]
+    monkeypatch.setattr(routes_module,'send_login_code',lambda recipient,code:delivered.append(recipient))
+    first_page=client.get('/login')
+    first=client.post('/login',data={
+        'username':users[0][0],'password':'NorteSeguro9!',
+        'csrf_token':_csrf_token(first_page),
+    })
+    second_client=app.test_client()
+    second_page=second_client.get('/login')
+    second=second_client.post('/login',data={
+        'username':users[1][0],'password':'NorteSeguro9!',
+        'csrf_token':_csrf_token(second_page),
+    })
+
+    assert first.status_code==302
+    assert second.status_code==429
+    assert delivered==[users[0][1]]
+
+
+def test_registration_rate_limit_is_audited_without_plaintext_ip():
+    import secrets
+    import app.routes as routes_module
+    from app.models import AuditLog
+
+    app=create_app(); app.config.update(TESTING=True,REGISTRATION_RATE_LIMIT_IP=1)
+    remote_ip='198.51.100.24'
+    with app.test_request_context('/register',environ_base={'REMOTE_ADDR':remote_ip}):
+        ip_hash=routes_module._request_ip_hash('registration-ip')
+    with app.app_context():
+        existing_user=User.query.filter_by(username='demo').one()
+        db.session.add(AuditLog(
+            user_id=existing_user.id,action='CUSTOMER_REGISTERED',module='ACCESO',
+            result='COMPLETADO',ip_local=ip_hash,
+        ))
+        db.session.commit()
+
+    client=app.test_client()
+    form=client.get('/register',environ_overrides={'REMOTE_ADDR':remote_ip})
+    response=client.post('/register',data={
+        'csrf_token':_csrf_token(form),'full_name':'Cliente Prueba','dni':'12345678',
+        'email':f'{secrets.token_hex(4)}@example.test','password':'NorteSeguro9!',
+        'password_confirmation':'NorteSeguro9!',
+    },environ_overrides={'REMOTE_ADDR':remote_ip})
+
+    assert response.status_code==429
+    assert len(ip_hash)==64
+    assert remote_ip not in ip_hash
+
+
 def test_http_responses_include_baseline_security_headers():
     app=create_app(); app.config['TESTING']=True
     response=app.test_client().get('/')

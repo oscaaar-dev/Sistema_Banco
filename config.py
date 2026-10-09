@@ -10,15 +10,12 @@ DATABASE_URL=os.getenv('DATABASE_URL') or os.getenv('MYSQL_URL')
 SECRET_KEY=os.getenv('SECRET_KEY')
 EMAIL_TRANSPORT=os.getenv('EMAIL_TRANSPORT','smtp').strip().lower()
 BREVO_SANDBOX=os.getenv('BREVO_SANDBOX','false').strip().lower()=='true'
-BREVO_TEST_RECIPIENT=os.getenv('BREVO_TEST_RECIPIENT','').strip().lower()
 RAILWAY_ENVIRONMENT_NAME=os.getenv('RAILWAY_ENVIRONMENT_NAME','').strip().lower()
 LEGAL_NOTICE='Norte es un proyecto académico de demostración, independiente y sin relación con el BCP. Sus productos, saldos y operaciones son ficticios; no presta servicios financieros ni mueve dinero real.'
 if APP_ENV=='production':
     required_production_settings=['SECRET_KEY','DATABASE_URL']
     if EMAIL_TRANSPORT=='brevo_api':
         required_production_settings.extend(('BREVO_API_KEY','SMTP_FROM'))
-        if RAILWAY_ENVIRONMENT_NAME=='staging' and not BREVO_SANDBOX and not BREVO_TEST_RECIPIENT:
-            required_production_settings.append('BREVO_TEST_RECIPIENT (required when staging email sandbox is disabled)')
     else:
         required_production_settings.extend(('SMTP_HOST','SMTP_USERNAME','SMTP_PASSWORD','SMTP_FROM'))
     missing_production_settings=[name for name in required_production_settings if not os.getenv(name)]
@@ -54,10 +51,14 @@ class Config:
     SMTP_USE_SSL=os.getenv('SMTP_USE_SSL','false').lower()=='true'
     EMAIL_TRANSPORT=EMAIL_TRANSPORT
     BREVO_SANDBOX=BREVO_SANDBOX
-    BREVO_TEST_RECIPIENT=BREVO_TEST_RECIPIENT
     RAILWAY_ENVIRONMENT_NAME=RAILWAY_ENVIRONMENT_NAME
     LEGAL_NOTICE=LEGAL_NOTICE
     BREVO_API_KEY=os.getenv('BREVO_API_KEY')
     LOGIN_CODE_TTL_SECONDS=300
     LOGIN_CODE_RESEND_SECONDS=60
     LOGIN_CODE_MAX_ATTEMPTS=5
+    LOGIN_CODE_RATE_LIMIT_IP=5
+    LOGIN_CODE_RATE_LIMIT_USER=3
+    LOGIN_CODE_RATE_LIMIT_WINDOW_SECONDS=900
+    REGISTRATION_RATE_LIMIT_IP=5
+    REGISTRATION_RATE_LIMIT_WINDOW_SECONDS=3600
