@@ -65,6 +65,11 @@
 .auth-panel .form-stack{gap:15px}
 .auth-panel .form-stack label{gap:7px;color:#293d5e;font-size:11px}
 .auth-panel .form-stack input{height:48px;padding:0 14px;border:1px solid #dce4ef;border-radius:8px;background:#fff;color:#17294a;transition:border .2s,box-shadow .2s}
+.auth-panel .form-stack .password-field{position:relative;display:block;width:100%}
+.auth-panel .form-stack .password-field input{width:100%;padding-right:48px}
+.auth-panel .form-stack .password-toggle{position:absolute;top:50%;right:8px;display:grid;width:34px;height:34px;place-items:center;transform:translateY(-50%);border:0;border-radius:7px;background:transparent;color:#687a94;font-size:17px;cursor:pointer}
+.auth-panel .form-stack .password-toggle:hover{background:#eef4fc;color:#0752b8}
+.auth-panel .form-stack .password-toggle:focus-visible{outline:2px solid #4389dc;outline-offset:1px}
 .auth-panel .form-stack input:focus{outline:0;border-color:#4389dc;box-shadow:0 0 0 3px #1773d322}
 .auth-panel .btn-primary{background:#0752b8;box-shadow:0 7px 18px #0752b82a}
 .auth-panel .btn-primary:hover{background:#063f91}

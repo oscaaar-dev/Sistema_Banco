@@ -36,7 +36,7 @@
       <form method="post" class="form-stack">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label>DNI o correo electrónico<input name="username" autocomplete="username" placeholder="DNI o correo" required autofocus></label>
-        <label>Contraseña<input type="password" name="password" autocomplete="current-password" placeholder="Ingresa tu contraseña" required></label>
+        <label>Contraseña<span class="password-field"><input id="loginPassword" type="password" name="password" autocomplete="current-password" placeholder="Ingresa tu contraseña" required><button class="password-toggle" type="button" data-password-toggle="loginPassword" aria-label="Mostrar contraseña" aria-controls="loginPassword" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button></span></label>
         <button class="btn btn-primary btn-full">Continuar <i class="bi bi-arrow-right"></i></button>
       </form>
       <a class="btn btn-outline btn-full" href="{{ url_for('main.register') }}">Crear cuenta de cliente</a>

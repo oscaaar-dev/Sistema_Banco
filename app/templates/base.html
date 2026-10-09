@@ -21,7 +21,7 @@
   <link rel="stylesheet" href="{{ url_for('static',filename='css/intranet.css',v='shell-5') }}">
   {% endif %}
   {% if request.endpoint in ('main.login','main.register','main.verify_login') %}
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/auth.css',v='auth-shell-3') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/auth.css',v='auth-password-toggle-1') }}">
   {% endif %}
 </head>
 <body class="{% if current_user.is_authenticated and request.endpoint!='main.index' %}intranet-body{% elif request.endpoint in ('main.login','main.register','main.verify_login') %}auth-body{% endif %}">
@@ -85,7 +85,7 @@
   <script src="{{ url_for('static',filename='js/home.js',v='home-22') }}"></script>
   {% endif %}
   {% if request.endpoint in ('main.login','main.register','main.verify_login') %}
-  <script src="{{ url_for('static',filename='js/auth.js',v='auth-parallax-2') }}"></script>
+  <script src="{{ url_for('static',filename='js/auth.js',v='auth-password-toggle-1') }}"></script>
   {% endif %}
   <script src="{{ url_for('static',filename='js/app.js',v='camera-privacy-5') }}"></script>
   {% if request.endpoint=='main.operation' and request.view_args.kind=='transfer' %}

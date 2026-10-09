@@ -60,6 +60,27 @@ test('el parallax del inicio de sesión responde al puntero', async ({ page }) =
   )).not.toBe('');
 });
 
+test('los campos de contraseña pueden mostrarse y ocultarse con el ojito', async ({ page }) => {
+  await page.goto('/register');
+  for (const id of ['registerPassword', 'registerPasswordConfirmation']) {
+    const input = page.locator(`#${id}`);
+    const toggle = page.locator(`[data-password-toggle="${id}"]`);
+    await input.fill('NorteSeguro9!');
+    await toggle.click();
+    await expect(input).toHaveAttribute('type', 'text');
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await toggle.click();
+    await expect(input).toHaveAttribute('type', 'password');
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  }
+
+  await page.goto('/login');
+  const loginPassword = page.locator('#loginPassword');
+  await loginPassword.fill('NorteSeguro9!');
+  await page.locator('[data-password-toggle="loginPassword"]').click();
+  await expect(loginPassword).toHaveAttribute('type', 'text');
+});
+
 test('el menú móvil de la intranet se abre y se cierra', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.context().addCookies([{

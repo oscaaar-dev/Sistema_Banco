@@ -1,4 +1,17 @@
 (()=>{
+ document.querySelectorAll('[data-password-toggle]').forEach(button=>{
+  button.addEventListener('click',()=>{
+   const input=document.getElementById(button.dataset.passwordToggle);
+   if(!input)return;
+   const visible=input.type==='password';
+   input.type=visible?'text':'password';
+   button.setAttribute('aria-pressed',String(visible));
+   button.setAttribute('aria-label',visible?'Ocultar contraseña':'Mostrar contraseña');
+   const icon=button.querySelector('i');
+   if(icon)icon.className=`bi ${visible?'bi-eye-slash':'bi-eye'}`;
+   input.focus();
+  });
+ });
  const scenes=document.querySelectorAll('.auth-hero');
  if(!scenes.length||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
  const layers=[...document.querySelectorAll('.auth-hero [data-parallax]')];
