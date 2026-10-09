@@ -441,15 +441,27 @@ def logout():
 @login_required
 def dashboard():
     _require_client()
-    account=account_for(current_user)
-    recent=Transaction.query.filter_by(account_id=account.id).order_by(desc(Transaction.created_at)).limit(5).all() if account else []
+    accounts=Account.query.filter_by(user_id=current_user.id,status='ACTIVA').order_by(Account.id).all()
+    account_ids=[item.id for item in accounts]
+    account=accounts[0] if accounts else None
+    recent=(Transaction.query.filter(Transaction.account_id.in_(account_ids))
+            .order_by(desc(Transaction.created_at),desc(Transaction.id)).limit(5).all() if account_ids else [])
     cards=BankCard.query.filter_by(user_id=current_user.id).all()
-    return render_template('dashboard.html',account=account,recent=recent,cards=cards)
+    return render_template('dashboard.html',account=account,accounts=accounts,recent=recent,cards=cards)
 @bp.route('/movements')
 @login_required
 def movements():
     _require_client()
-    account=account_for(current_user)
+    accounts=Account.query.filter_by(user_id=current_user.id,status='ACTIVA').order_by(Account.id).all()
+    selected_account_raw=request.args.get('account_id')
+    if selected_account_raw:
+        try:
+            selected_account_id=int(selected_account_raw)
+        except (TypeError,ValueError):
+            abort(400)
+        account=Account.query.filter_by(id=selected_account_id,user_id=current_user.id,status='ACTIVA').first_or_404()
+    else:
+        account=accounts[0] if accounts else None
     page_raw=request.args.get('page','1')
     try:
         page=int(page_raw)
@@ -474,7 +486,7 @@ def movements():
     if page>pages:
         page=pages
     items=query.order_by(desc(Transaction.created_at),desc(Transaction.id)).offset((page-1)*per_page).limit(per_page).all()
-    return render_template('movements.html',items=items,account=account,page=page,pages=pages,total=total,
+    return render_template('movements.html',items=items,account=account,accounts=accounts,page=page,pages=pages,total=total,
                            selected_type=operation_type,start_date=start.isoformat() if start else '',
                            end_date=end.isoformat() if end else '')
 

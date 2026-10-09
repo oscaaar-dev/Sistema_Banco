@@ -115,6 +115,34 @@ def test_movements_screen_filters_dates_and_paginates(monkeypatch):
     assert client.get('/movements?from=2026-02-20&to=2026-02-01').status_code==400
 
 
+def test_dashboard_and_movements_show_all_owned_active_accounts(monkeypatch):
+    from decimal import Decimal
+    from app.models import Transaction
+
+    app=create_app(); app.config['TESTING']=True
+    client=app.test_client()
+    _login(client,monkeypatch)
+    with app.app_context():
+        user=User.query.filter_by(username='demo').one()
+        account=Account(user_id=user.id,account_type='Cuenta secundaria',number='001234567811',
+                        balance=Decimal('123.45'),currency='PEN')
+        db.session.add(account); db.session.flush()
+        db.session.add(Transaction(account_id=account.id,operation_type='INGRESO',description='Abono cuenta secundaria',
+                                   amount=Decimal('123.45'),balance_after=Decimal('123.45'),status='COMPLETADA'))
+        db.session.commit()
+        account_id=account.id
+    dashboard=client.get('/dashboard')
+    assert dashboard.status_code==200
+    assert b'123.45' in dashboard.data
+    assert b'CUENTA SECUNDARIA' in dashboard.data
+    default_history=client.get('/movements')
+    selected_history=client.get(f'/movements?account_id={account_id}')
+    assert b'Abono cuenta secundaria' not in default_history.data
+    assert b'Abono cuenta secundaria' in selected_history.data
+    assert selected_history.data.count(b'name="account_id"')==1
+    assert client.get('/movements?account_id=999999').status_code==404
+
+
 def test_card_locking_is_csrf_protected_audited_and_owner_scoped():
     from decimal import Decimal
     from app.models import AuditLog, BankCard
