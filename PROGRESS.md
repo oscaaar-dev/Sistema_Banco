@@ -9,7 +9,7 @@
 
 ## Fase actual
 
-Fase 2 — revisión inicial migrada y verificada en PostgreSQL aislado de staging; sigue pendiente cualquier traslado de datos de MySQL y desplegar la aplicación.
+Fase 3 — endurecimiento de sesión y cabeceras HTTP; quedan controles que requieren almacenamiento persistente y validación de arquitectura.
 
 ## Hecho
 
@@ -22,10 +22,11 @@ Fase 2 — revisión inicial migrada y verificada en PostgreSQL aislado de stagi
 - Fase 6 validada después del commit `3312331`: 30 pruebas de pytest y 7 pruebas E2E aprobadas.
 - Fase 7: la muestra fue aprobada con “continua”. Generador reproducible: cinco perfiles, 12 meses, 64 registros por persona y saldos calculados por movimiento; registros seed con `is_seed=true`, tarjeta Luhn validada sin guardar el PAN, email `.test`, teléfonos ficticios y CCI de muestra no utilizables. Está protegido para aceptar únicamente SQLite en memoria con `APP_ENV=testing`; no se ejecutó en MySQL local ni en Railway.
 - Fase 2: la auditoría encontró que el arranque aplicaba `ALTER TABLE` y `create_all` fuera de pruebas. Se eliminó ese bootstrap automático; entornos persistentes ahora requieren un esquema ya migrado y compatible, o la app se detiene sin cambiar la base. Se agregaron bloqueo de fila e idempotencia por cuenta para las operaciones internas, validados solo con SQLite. Se preparó Alembic y la revisión inicial `c9f9cff56362`; subida y bajada se probaron exclusivamente en SQLite en memoria. La integración PostgreSQL y migración de datos siguen pendientes.
+- Fase 3 en curso: tras OTP, la sesión queda marcada como permanente con vencimiento de 30 minutos y sin renovación por cada petición. Se agregaron `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` y HSTS solo cuando cookies seguras y proxy HTTPS están presentes. No se incorporó limitador en memoria; los límites persistentes por intentos y la verificación adicional en operaciones requieren diseño/esquema.
 
 ## Pendiente en el orden autorizado
 
-1. Fase 2 restante (API, compatibilidad y eventual traslado de datos) y fases 3, 4, 5, 8 y 9, manteniendo el orden autorizado.
+1. Fase 2 restante (API, compatibilidad y eventual traslado de datos), completar Fase 3 y seguir con fases 4, 5, 8 y 9 en orden.
 2. Cualquier traslado de datos MySQL o cambio en variables/servicios productivos exige autorización separada.
 
 ## Registro de avance
@@ -41,6 +42,7 @@ Fase 2 — revisión inicial migrada y verificada en PostgreSQL aislado de stagi
 - 2026-10-09 — Añadido entorno Alembic explícito: exige `MIGRATION_DATABASE_URL`, solo permite SQLite con `APP_ENV=testing` y no usa automáticamente `DATABASE_URL`/`MYSQL_URL`. La revisión inicial se generó desde modelos con SQLite de prueba; DDL PostgreSQL también se generó offline sin conexión. La ejecución real en un Postgres de prueba queda pendiente.
 - 2026-10-09 — Commit `73f0092` validado: 34 pytest y 7 E2E aprobadas; seis capturas escritorio/móvil generadas. La revisión Alembic sube y baja solo en SQLite en memoria; el DDL PostgreSQL se generó offline. Ninguna base persistente fue conectada o modificada.
 - 2026-10-09 — Con autorización expresa, se creó el proyecto Railway aislado `Norte-staging`, con entorno vacío `staging` y servicio PostgreSQL `Postgres`; no se duplicó ni vinculó el proyecto productivo y no se desplegó la app. Preflight confirmó cero tablas antes de aplicar Alembic; migración PostgreSQL `c9f9cff56362` completada y verificada (15 tablas públicas incl. `alembic_version`). Conexión por túnel privado; no se leyeron/imprimieron secretos. No se migraron datos ni se cambiaron variables del servicio web productivo.
+- 2026-10-09 — Commit `f399b9c` (Fase 3 parcial) validado tras commit: 35 pytest y 7 E2E aprobadas; capturas escritorio/móvil regeneradas. Solo hubo cambios de sesión y cabeceras, sin cambios visuales ni despliegue.
 
 ## Hallazgos abiertos
 
