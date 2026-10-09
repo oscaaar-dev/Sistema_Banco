@@ -302,7 +302,7 @@ def test_public_information_topics_have_separate_pages():
     app=create_app(); app.config['TESTING']=True
     client=app.test_client()
     expected={
-        '/personas': 'Cuando quieres revisar tu saldo',
+        '/personas': 'Administrador del sistema',
         '/herramientas': 'Transferencias internas',
         '/seguridad': 'Acceso verificado por correo',
         '/acerca': 'Por qué existe',
@@ -332,9 +332,10 @@ def test_public_cards_link_to_relevant_routes_and_personas_are_not_fake_testimon
     tools=client.get('/herramientas').data
     security=client.get('/seguridad').data
 
-    assert b'no testimonios ni historias de clientes' in personas
+    assert b'perfiles por funci' in personas
+    assert b'Gerencia es una referencia informativa' in personas
     assert b'href="/register"' in personas
-    assert b'href="/#operaciones"' in personas
+    assert b'href="/acerca"' in personas
     assert b'Banca por Internet' in personas
     assert b'Abrir cuenta' in personas
     assert b'href="/login"' in tools

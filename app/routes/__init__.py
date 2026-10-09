@@ -176,16 +176,16 @@ def index():
 
 PUBLIC_INFO_PAGES = {
     'personas': {
-        'eyebrow': 'PERSONAS · SITUACIONES COTIDIANAS',
-        'title': 'Tus pendientes de cada día, en un recorrido más claro.',
-        'intro': 'Conoce cómo se verían tareas digitales comunes: consultar un saldo de ejemplo, revisar movimientos y recorrer una operación antes de confirmarla.',
+        'eyebrow': 'PERSONAS · ROLES DEL EQUIPO',
+        'title': 'Detrás de cada servicio digital hay un equipo.',
+        'intro': 'Conoce los perfiles que administran, supervisan y mantienen una plataforma como Norte, y qué funciones están disponibles en esta demostración.',
         'icon': 'bi-people',
         'highlights': [
-            {'icon': 'bi-wallet2', 'title': 'Cuando quieres revisar tu saldo', 'description': 'El resumen reúne un saldo de ejemplo y accesos a las secciones principales.', 'action': 'Crear mi perfil', 'destination': 'register'},
-            {'icon': 'bi-clock-history', 'title': 'Cuando buscas un movimiento', 'description': 'Explora cómo se presenta la actividad reciente y el detalle de cada registro.', 'action': 'Entrar a Norte', 'destination': 'login'},
-            {'icon': 'bi-arrow-left-right', 'title': 'Antes de hacer una operación', 'description': 'Recorre los pasos y revisa los datos de ejemplo antes de continuar.', 'action': 'Ver el recorrido', 'destination': '#operaciones'},
+            {'icon': 'bi-person-gear', 'title': 'Administrador del sistema', 'description': 'En Norte puede consultar indicadores del entorno, sesiones recientes y registros de auditoría.', 'action': 'Acceso de administración', 'destination': 'login'},
+            {'icon': 'bi-briefcase', 'title': 'Gerencia', 'description': 'Perfil de referencia para revisar indicadores de gestión. Esta demostración aún no tiene un rol ni un tablero gerencial independiente.', 'action': 'Conocer el proyecto', 'destination': 'acerca'},
+            {'icon': 'bi-pc-display', 'title': 'Sistemas y soporte', 'description': 'La vista de soporte muestra conteos y eventos técnicos; no permite operar cuentas ni muestra datos personales.', 'action': 'Acceso de soporte', 'destination': 'login'},
         ],
-        'note': 'Estas son situaciones ilustrativas, no testimonios ni historias de clientes. Norte es una experiencia de demostración: sus saldos y operaciones no tienen efecto financiero.',
+        'note': 'Son perfiles por función, no personas identificables ni testimonios. En el sistema están implementados Administrador y Soporte; Gerencia es una referencia informativa, sin acceso ni tablero propio. Norte es una demostración sin efectos financieros.',
         'cta_label': 'Explorar herramientas',
         'cta_endpoint': 'main.herramientas',
     },

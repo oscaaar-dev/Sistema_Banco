@@ -87,11 +87,14 @@ test('las páginas informativas muestran tarjetas interactivas y accesos claros'
   await expect(cards).toHaveCount(3);
   await expect(page.getByRole('link', { name: /Banca por Internet/ })).toHaveAttribute('href', '/login');
   await expect(page.getByRole('link', { name: /Abrir cuenta/ })).toHaveAttribute('href', '/register');
-  await expect(cards.nth(0)).toHaveAttribute('href', '/register');
+  await expect(cards.nth(0)).toHaveAttribute('href', '/login');
+  await expect(cards.nth(1)).toHaveAttribute('href', '/acerca');
   const initialTransform = await cards.nth(0).evaluate((element) => getComputedStyle(element).transform);
   await cards.nth(0).hover();
   await expect.poll(() => cards.nth(0).evaluate((element) => getComputedStyle(element).transform)).not.toBe(initialTransform);
-  await cards.nth(0).click();
+  await cards.nth(1).click();
+  await expect(page).toHaveURL(/\/acerca$/);
+  await page.getByRole('link', { name: /Abrir cuenta/ }).click();
   await expect(page).toHaveURL(/\/register$/);
 
   await page.goto('/herramientas');
