@@ -46,12 +46,13 @@
   <aside class="operation-aside operation-aside-camera">
     <section class="panel operation-camera">
       <div class="operation-camera-head"><span class="soft-icon"><i class="bi bi-camera-video"></i></span><div><b>Cámara de seguridad</b><small>Enciéndela para habilitar la operación.</small></div><span class="required-tag">REQUERIDA</span></div>
-      <div class="operation-camera-body">
+        <div class="operation-camera-body">
+        <label class="camera-consent"><input type="checkbox" id="cameraConsent" name="camera_consent" value="yes" form="operationForm" required> Acepto el análisis temporal de fotogramas para comprobar visibilidad del rostro. Se envían al servidor; no se guardarán nuevos fotogramas ni resultados faciales en la base de datos. Este cambio no elimina registros anteriores.</label>
         <div class="operation-video-wrap" id="operationVideoWrap"><video id="cameraVideo" autoplay playsinline muted hidden></video><div class="camera-placeholder" id="cameraPlaceholder"><i class="bi bi-camera-video"></i><span>Vista previa de cámara</span><small>Presiona “Activar cámara” para continuar</small></div><span class="camera-indicator" id="cameraIndicator" hidden><i></i> ACTIVA</span></div>
         <div class="camera-analysis-box" id="cameraAnalysisBox" aria-live="polite"><b id="cameraAnalysisTitle">Esperando análisis del rostro</b><small id="cameraAnalysisDetails">Activa la cámara y colócate frente a ella.</small><div class="camera-metrics"><span>Posición <b id="facePosition">--</b></span><span>Visibilidad <b id="faceVisibility">--</b></span></div><small>Esto evalúa calidad de imagen; no identifica a la persona.</small></div><div class="operation-camera-actions"><button type="button" class="btn btn-primary btn-small" id="startCamera"><i class="bi bi-camera-video"></i> Activar cámara</button><button type="button" class="btn btn-outline btn-small" id="stopCamera" disabled><i class="bi bi-camera-video-off"></i> Apagar</button></div>
         <small class="camera-status" id="cameraStatus" aria-live="polite">Permite el acceso a la cámara para habilitar el botón de confirmación.</small>
       </div>
-      <div class="operation-camera-foot"><i class="bi bi-shield-lock"></i> La imagen se procesa en memoria para validar visibilidad y posición. No se guarda el video. Si el rostro no puede verificarse correctamente, la operación queda retenida.</div>
+      <div class="operation-camera-foot"><i class="bi bi-shield-lock"></i> Cada fotograma se envía por HTTPS al servidor para su análisis temporal en memoria. No se conservan imágenes ni resultados faciales en la base de datos.</div>
     </section>
   </aside>
 </div>

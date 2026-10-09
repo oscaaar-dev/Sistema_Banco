@@ -467,6 +467,7 @@ def test_camera_verification_is_required_even_if_hidden_field_is_forged(monkeypa
     operation_token=_csrf_token(operation_page)
     response=client.post('/operation/payment',data={
         'csrf_token':operation_token,
+        'camera_consent':'yes',
         'camera_verified':'yes',
         'form_duration_seconds':'30',
         'service':'Agua',
@@ -476,8 +477,22 @@ def test_camera_verification_is_required_even_if_hidden_field_is_forged(monkeypa
     assert response.status_code==400
     assert 'cámara no está vigente'.encode() in response.data
 
+def test_camera_analysis_requires_explicit_consent(monkeypatch):
+    app=create_app(); app.config['TESTING']=True
+    client=app.test_client()
+    _login(client,monkeypatch)
+    operation_page=client.get('/operation/payment')
+    response=client.post('/camera/analyze',data={
+        'csrf_token':_csrf_token(operation_page),
+        'frame':'data:image/jpeg;base64,AA==',
+    })
+    assert response.status_code==403
+    assert 'autorizar el análisis temporal' in response.get_json()['error']
+    with client.session_transaction() as browser_session:
+        assert 'camera_state' not in browser_session
 
-def test_completed_operation_shows_camera_and_operation_risk_separately(monkeypatch):
+
+def test_completed_operation_does_not_persist_new_camera_results(monkeypatch):
     import base64
     import re
 
@@ -511,6 +526,7 @@ def test_completed_operation_shows_camera_and_operation_risk_separately(monkeypa
 
     analysis=client.post('/camera/analyze',data={
         'csrf_token':operation_token,
+        'camera_consent':'yes',
         'frame':frame,
     })
     assert analysis.status_code==200
@@ -519,6 +535,7 @@ def test_completed_operation_shows_camera_and_operation_risk_separately(monkeypa
     response=client.post('/operation/payment',data={
         'csrf_token':operation_token,
         'idempotency_key':idempotency_key,
+        'camera_consent':'yes',
         'camera_verified':'yes',
         'form_duration_seconds':'240',
         'service':'Agua',
@@ -529,6 +546,7 @@ def test_completed_operation_shows_camera_and_operation_risk_separately(monkeypa
     retry=client.post('/operation/payment',data={
         'csrf_token':operation_token,
         'idempotency_key':idempotency_key,
+        'camera_consent':'yes',
         'camera_verified':'yes',
         'form_duration_seconds':'240',
         'service':'Agua',
@@ -536,13 +554,17 @@ def test_completed_operation_shows_camera_and_operation_risk_separately(monkeypa
     })
     assert retry.status_code==302
     assert retry.headers['Location']==response.headers['Location']
-    from app.models import Transaction
+    from app.models import FacialAnalysis, InteractionFeatures, InteractionSession, Transaction
     with app.app_context():
         assert Transaction.query.filter_by(idempotency_key=idempotency_key).count()==1
+        session_record=InteractionSession.query.join(Transaction).filter(Transaction.idempotency_key==idempotency_key).one()
+        assert session_record.consent_given is True
+        assert session_record.face_detected is False
+        assert FacialAnalysis.query.count()==0
+        assert InteractionFeatures.query.filter_by(session_id=session_record.id).one().face_detection_rate==0
 
     receipt=client.get(response.headers['Location'])
     assert b'Duraci\xc3\xb3n del formulario: 240 s' in receipt.data
     assert b'Indicador de la operaci\xc3\xb3n:' in receipt.data
-    assert b'Verificaci\xc3\xb3n de c\xc3\xa1mara: APROBADA' in receipt.data
-    assert b'86.0%' in receipt.data
-    assert b'No confirma la identidad' in receipt.data
+    assert b'Verificaci\xc3\xb3n de c\xc3\xa1mara: APROBADA' not in receipt.data
+    assert b'86.0%' not in receipt.data

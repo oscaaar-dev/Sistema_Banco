@@ -37,6 +37,7 @@ if(riskPreview){
 if(video){
  let stream=null, analysisTimer=null, lastAnalysis=null;
  const start=document.getElementById('startCamera'), stop=document.getElementById('stopCamera');
+ const consent=document.getElementById('cameraConsent');
  const status=document.getElementById('cameraStatus'), placeholder=document.getElementById('cameraPlaceholder'), indicator=document.getElementById('cameraIndicator');
  const verified=document.getElementById('cameraVerified');
  const analysisField=document.getElementById('cameraAnalysis');
@@ -49,6 +50,7 @@ if(video){
  const facePosition=document.getElementById('facePosition');
  const faceVisibility=document.getElementById('faceVisibility');
  const formStartedAt=performance.now();
+ if(start)start.disabled=!consent?.checked;
  if(submitButton) submitButton.disabled=true;
  const setStatus=(text)=>{if(status) status.textContent=text};
  const setVerified=(value)=>{if(verified)verified.value=value?'yes':'no';if(submitButton)submitButton.disabled=!value};
@@ -69,6 +71,7 @@ if(video){
   const ctx=canvas.getContext('2d'); ctx.drawImage(video,0,0,canvas.width,canvas.height);
   const token=form?.querySelector('input[name="csrf_token"]')?.value || document.querySelector('#cameraCsrfForm input[name="csrf_token"]')?.value;
   const body=new URLSearchParams({frame:canvas.toDataURL('image/jpeg',0.72)});
+  if(consent?.checked)body.set('camera_consent','yes');
   if(token)body.set('csrf_token',token);
   try{
    const response=await fetch('/camera/analyze',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':token||''},body});
@@ -89,11 +92,12 @@ if(video){
   clearInterval(analysisTimer);analysisTimer=null;
   if(stream){stream.getTracks().forEach(track=>track.stop());stream=null}
   video.srcObject=null;video.hidden=true;placeholder.hidden=false;indicator.hidden=true;
-  start.disabled=false;stop.disabled=true;setVerified(false);setStatus('Cámara apagada. Actívala y verifica tu rostro para continuar.');
+  start.disabled=!consent?.checked;stop.disabled=true;setVerified(false);setStatus('Cámara apagada. Actívala y verifica tu rostro para continuar.');
   if(analysisTitle)analysisTitle.textContent='Esperando análisis del rostro';
   if(analysisDetails)analysisDetails.textContent='Activa la cámara y colócate frente a ella.';
  };
  start.addEventListener('click',async()=>{
+  if(!consent?.checked){setStatus('Lee y acepta el aviso de privacidad antes de activar la cámara.');start.disabled=true;return}
   if(!navigator.mediaDevices?.getUserMedia){setStatus('Este navegador no permite acceso a cámara. Usa localhost.');return}
   start.disabled=true;setStatus('Solicitando permiso del navegador…');
   try{
@@ -105,6 +109,10 @@ if(video){
    start.disabled=false;setVerified(false);
    setStatus(error.name==='NotAllowedError'?'Permiso denegado. Habilita la cámara.':error.name==='NotFoundError'?'No se encontró una cámara conectada.':'No se pudo iniciar la cámara.');
   }
+ });
+ if(consent)consent.addEventListener('change',()=>{
+  if(!consent.checked){stopCamera();setStatus('Acepta el aviso de privacidad para habilitar la cámara.')}
+  else if(!stream?.active){start.disabled=false;setStatus('Consentimiento registrado para esta sesión. Puedes activar la cámara.')}
  });
  stop.addEventListener('click',stopCamera);
  if(form) form.addEventListener('submit',event=>{

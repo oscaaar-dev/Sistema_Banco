@@ -457,6 +457,9 @@ def operation_risk():
 def camera_analyze():
     token = request.form.get('csrf_token')
     image_data = request.form.get('frame', '')
+    if request.form.get('camera_consent') != 'yes':
+        session.pop('camera_state', None)
+        return jsonify(error='Debes autorizar el análisis temporal antes de enviar fotogramas.'), 403
     if not image_data:
         return jsonify(error='No se recibió el fotograma de la cámara.'), 400
     try:
@@ -467,7 +470,6 @@ def camera_analyze():
             session['camera_state'] = {
                 'ready': True,
                 'checked_at': time.time(),
-                'face_confidence': result.get('face_confidence', 0),
             }
         else:
             session['camera_state'] = {'ready': False, 'checked_at': time.time()}
@@ -486,6 +488,12 @@ def operation(kind):
                      else secrets.token_urlsafe(24))
     if request.method=='POST':
         camera_state = session.get('camera_state', {})
+        camera_consent = request.form.get('camera_consent') == 'yes'
+        if not camera_consent:
+            flash('Debes aceptar el aviso de privacidad antes de usar la cámara.','error')
+            return render_template('operation.html',kind=kind,recipients=recipients,account=account,
+                                   idempotency_key=idempotency_key,
+                                   masked_email=_masked_email(current_user.email or '')), 400
         camera_ok = request.form.get('camera_verified') == 'yes' and camera_state.get('ready') and (time.time() - camera_state.get('checked_at', 0) <= 10)
         if not camera_ok:
             flash('La verificación de cámara no está vigente o el rostro no es suficientemente visible. Corrige la posición y vuelve a verificar.','error')
@@ -537,7 +545,7 @@ def operation(kind):
                 log(current_user,'TRANSFER_OTP_VERIFIED','SEGURIDAD')
             elif kind=='payment': description='Pago: '+request.form.get('service','Servicio')[:70]; op='PAGO'
             else: description='Recarga: '+request.form.get('phone','Número')[:40]; op='RECARGA'
-            tx=process_operation(current_user,op,amount,description,beneficiary_id,request.form.get('service'),True,face_detected=True,face_confidence=camera_state.get('face_confidence'),duration_seconds=duration_seconds,idempotency_key=idempotency_key)
+            tx=process_operation(current_user,op,amount,description,beneficiary_id,request.form.get('service'),camera_consent,face_detected=False,face_confidence=None,duration_seconds=duration_seconds,idempotency_key=idempotency_key)
             flash('Operación registrada. No tiene efectos financieros.','success')
             return redirect(url_for('main.receipt',transaction_id=tx.id))
         except (ValueError,InvalidOperation) as e:

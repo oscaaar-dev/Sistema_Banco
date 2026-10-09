@@ -55,6 +55,7 @@ def _submit_transfer(client, token, key, beneficiary_id, code, amount='12.34'):
         'beneficiary_id': str(beneficiary_id),
         'amount': amount,
         'otp_code': code,
+        'camera_consent': 'yes',
         'camera_verified': 'yes',
         'form_duration_seconds': '10',
     })

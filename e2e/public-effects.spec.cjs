@@ -82,6 +82,24 @@ test('el menú móvil de la intranet se abre y se cierra', async ({ page }) => {
   await expect(navigation).not.toHaveClass(/open/);
 });
 
+test('la cámara requiere consentimiento explícito antes de habilitarse', async ({ page }) => {
+  await page.context().addCookies([{
+    name: 'session',
+    value: authenticatedSessionCookie(),
+    domain: '127.0.0.1',
+    path: '/',
+  }]);
+  await page.goto('/operation/payment');
+  const consent = page.locator('#cameraConsent');
+  const start = page.locator('#startCamera');
+  await expect(consent).not.toBeChecked();
+  await expect(start).toBeDisabled();
+  await consent.check();
+  await expect(start).toBeEnabled();
+  await consent.uncheck();
+  await expect(start).toBeDisabled();
+});
+
 test('los diálogos de cookies y ayuda se abren y cierran', async ({ page }) => {
   await page.goto('/');
 
