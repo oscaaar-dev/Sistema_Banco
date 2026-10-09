@@ -2,7 +2,7 @@ from flask import Flask, flash, redirect, render_template, session, url_for
 from flask_login import LoginManager, current_user, logout_user
 from flask_wtf.csrf import CSRFProtect
 from pathlib import Path
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect
 from config import Config
 from .models import db, User
 login_manager=LoginManager()
@@ -14,9 +14,30 @@ csrf=CSRFProtect()
 @login_manager.user_loader
 def load_user(user_id): return db.session.get(User, int(user_id))
 
-def create_app():
+def _validate_existing_schema():
+    inspector=inspect(db.engine)
+    existing_tables=set(inspector.get_table_names())
+    missing_tables=[]
+    missing_columns=[]
+    for table in db.metadata.sorted_tables:
+        if table.name not in existing_tables:
+            missing_tables.append(table.name)
+            continue
+        existing_columns={column['name'] for column in inspector.get_columns(table.name)}
+        missing_columns.extend(f'{table.name}.{column.name}' for column in table.columns
+                               if column.name not in existing_columns)
+    if missing_tables or missing_columns:
+        details=[]
+        if missing_tables: details.append('tablas: '+', '.join(missing_tables))
+        if missing_columns: details.append('columnas: '+', '.join(missing_columns))
+        raise RuntimeError('El esquema de la base requiere una migración aprobada ('+'; '.join(details)+'). '
+                           'La aplicación no crea ni altera esquemas persistentes al iniciar.')
+
+def create_app(config_overrides=None):
     app=Flask(__name__)
     app.config.from_object(Config)
+    if config_overrides:
+        app.config.update(config_overrides)
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
     db.init_app(app); login_manager.init_app(app); csrf.init_app(app)
     from .routes import bp
@@ -49,20 +70,10 @@ def create_app():
             return redirect(url_for('main.login'))
 
     with app.app_context():
-        if inspect(db.engine).has_table('users'):
-            existing_columns={column['name'] for column in inspect(db.engine).get_columns('users')}
-            with db.engine.begin() as connection:
-                if 'email' not in existing_columns:
-                    connection.execute(text('ALTER TABLE users ADD COLUMN email VARCHAR(254)'))
-                if 'dni' not in existing_columns:
-                    connection.execute(text('ALTER TABLE users ADD COLUMN dni VARCHAR(8)'))
-        db.create_all()
-        existing_indexes={index['name'] for index in inspect(db.engine).get_indexes('users')}
-        with db.engine.begin() as connection:
-            if 'uq_users_email' not in existing_indexes:
-                connection.execute(text('CREATE UNIQUE INDEX uq_users_email ON users (email)'))
-            if 'uq_users_dni' not in existing_indexes:
-                connection.execute(text('CREATE UNIQUE INDEX uq_users_dni ON users (dni)'))
-        from .services.seed_service import seed_demo
-        seed_demo()
+        if app.config.get('APP_ENV')=='testing':
+            db.create_all()
+            from .services.seed_service import seed_demo
+            seed_demo()
+        else:
+            _validate_existing_schema()
     return app
