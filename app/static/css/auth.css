@@ -1,4 +1,4 @@
-body.auth-body{background:#f3f6fb;color:#17294a}
+:root{--norte-navy:#0b2a6f;--norte-orange:#f26a21;--norte-surface:#f4f6fa;--norte-ink:#17294a}body.auth-body{background:#f3f6fb;color:var(--norte-ink)}
 .auth-container{width:min(1320px,100% - 64px);margin:0 auto}
 .auth-promo{background:linear-gradient(100deg,#073b9a,#0752b8 66%,#147bd0);color:#fff;font-size:11px}
 .auth-promo>.auth-container{min-height:36px;display:flex;align-items:center;justify-content:space-between;gap:16px}
@@ -17,7 +17,7 @@ body.auth-body{background:#f3f6fb;color:#17294a}
 .auth-brand>span:last-child{line-height:1.05}
 .auth-brand-dot{color:#f28b00}
 .auth-brand small{display:block;margin-top:5px;color:#8491a7;font:700 8px 'DM Sans',sans-serif;letter-spacing:.12em}
-.auth-brand-mark{width:39px;height:39px;border-radius:13px;display:grid;place-items:center;color:#fff;background:linear-gradient(145deg,#0965cf,#073b9a);font-size:20px;box-shadow:0 5px 12px #0752b82b}
+.auth-brand-mark{width:39px;height:39px;border-radius:13px;display:grid;place-items:center;color:#fff;background:var(--norte-surface);font-size:20px;box-shadow:0 5px 12px #0752b82b;overflow:hidden}.auth-brand-mark img{display:block;width:100%;height:100%}
 .auth-navigation{display:flex;align-self:stretch;align-items:stretch;gap:4px;flex:1}
 .auth-navigation a{position:relative;display:flex;align-items:center;padding:0 14px;color:#566680;font-size:11px;font-weight:600;transition:color .2s,background .2s}
 .auth-navigation a:hover{color:#0752b8;background:#f4f8ff}

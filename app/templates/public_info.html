@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#173f35">
   <title>{{ page.eyebrow|title }} · Norte</title>
+  <link rel="icon" href="{{ url_for('static',filename='brand/norte-favicon.svg') }}" type="image/svg+xml">
+  <meta property="og:image" content="{{ url_for('static',filename='brand/norte-social.svg') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -18,8 +20,8 @@
     <header class="info-header">
       <div class="info-container info-header-inner">
         <a class="home-brand info-brand" href="{{ url_for('main.index') }}" aria-label="Norte, inicio">
-          <span class="home-brand-symbol"><i class="bi bi-compass-fill"></i></span>
-          <span>NORTE<span class="home-brand-dot">.</span><small>BANCA DIGITAL DEMO</small></span>
+          <span class="home-brand-symbol"><img src="{{ url_for('static',filename='brand/norte-favicon.svg') }}" alt=""></span>
+          <span>NORTE<span class="home-brand-dot">.</span><small>BANCA DIGITAL</small></span>
         </a>
         <nav class="info-nav" aria-label="Navegación principal">
           <a href="{{ url_for('main.personas') }}" {% if page_key=='personas' %}aria-current="page"{% endif %}>Personas</a>

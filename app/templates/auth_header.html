@@ -15,8 +15,8 @@
 <header class="auth-site-header">
   <div class="auth-container auth-header-inner">
     <a class="auth-brand" href="{{ url_for('main.index') }}" aria-label="Norte, inicio">
-      <span class="auth-brand-mark"><i class="bi bi-compass-fill"></i></span>
-      <span>NORTE<span class="auth-brand-dot">.</span><small>BANCA DIGITAL DEMO</small></span>
+      <span class="auth-brand-mark"><img src="{{ url_for('static',filename='brand/norte-favicon.svg') }}" alt=""></span>
+      <span>NORTE<span class="auth-brand-dot">.</span><small>BANCA DIGITAL</small></span>
     </a>
     <nav class="auth-navigation" aria-label="Navegación principal">
       <a href="{{ url_for('main.herramientas') }}">Productos</a>

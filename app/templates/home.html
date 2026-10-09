@@ -11,8 +11,8 @@
   <header class="home-header">
     <div class="home-container home-header-inner">
       <a class="home-brand" href="{{ url_for('main.index') }}" aria-label="Norte, inicio">
-        <span class="home-brand-symbol"><i class="bi bi-compass-fill"></i></span>
-        <span>NORTE<span class="home-brand-dot">.</span><small>BANCA DIGITAL DEMO</small></span>
+        <span class="home-brand-symbol"><img src="{{ url_for('static',filename='brand/norte-favicon.svg') }}" alt=""></span>
+        <span>NORTE<span class="home-brand-dot">.</span><small>BANCA DIGITAL</small></span>
       </a>
       <nav class="home-nav" aria-label="Navegación principal">
         <a href="{{ url_for('main.personas') }}">Personas</a>
@@ -232,7 +232,7 @@
 
   <footer class="home-footer">
     <div class="home-container home-footer-grid">
-      <div class="home-footer-about"><a class="home-brand home-footer-brand" href="{{ url_for('main.index') }}"><span class="home-brand-symbol"><i class="bi bi-compass-fill"></i></span><span>NORTE<span class="home-brand-dot">.</span><small>BANCA DIGITAL DEMO</small></span></a><p>Una experiencia académica para conocer las funciones de una banca digital.</p></div>
+      <div class="home-footer-about"><a class="home-brand home-footer-brand" href="{{ url_for('main.index') }}"><span class="home-brand-symbol"><img src="{{ url_for('static',filename='brand/norte-favicon.svg') }}" alt=""></span><span>NORTE<span class="home-brand-dot">.</span><small>BANCA DIGITAL</small></span></a><p>Una experiencia académica para conocer las funciones de una banca digital.</p></div>
       <div class="home-footer-column"><b>EXPLORA</b><a href="{{ url_for('main.personas') }}">Personas</a><a href="{{ url_for('main.herramientas') }}">Herramientas</a><a href="{{ url_for('main.seguridad') }}">Seguridad</a><a href="{{ url_for('main.acerca') }}">Acerca de Norte</a></div>
       <div class="home-footer-column"><b>ACCESO</b><a href="{{ url_for('main.login') }}">Banca por Internet</a><a href="{{ url_for('main.login') }}">Movimientos</a><a href="{{ url_for('main.login') }}">Tarjetas</a></div>
       <div class="home-footer-disclaimer"><span><i class="bi bi-info-circle"></i> IMPORTANTE</span><p>Simulación académica con datos ficticios. No es un banco, no representa al BCP, no asesora ni procesa dinero real.</p></div>
@@ -246,7 +246,7 @@
   </div>
 
   <dialog class="home-overlay home-cookie-dialog" id="cookieDialog" aria-labelledby="cookieTitle">
-    <div class="home-overlay-header"><a class="home-brand" href="{{ url_for('main.index') }}"><span class="home-brand-symbol"><i class="bi bi-compass-fill"></i></span><span>NORTE<span class="home-brand-dot">.</span><small>BANCA DIGITAL DEMO</small></span></a><button type="button" class="home-overlay-close" data-close-dialog aria-label="Cerrar política de cookies"><span>Cerrar</span><i class="bi bi-x-lg"></i></button></div>
+    <div class="home-overlay-header"><a class="home-brand" href="{{ url_for('main.index') }}"><span class="home-brand-symbol"><img src="{{ url_for('static',filename='brand/norte-favicon.svg') }}" alt=""></span><span>NORTE<span class="home-brand-dot">.</span><small>BANCA DIGITAL</small></span></a><button type="button" class="home-overlay-close" data-close-dialog aria-label="Cerrar política de cookies"><span>Cerrar</span><i class="bi bi-x-lg"></i></button></div>
     <div class="home-cookie-content">
       <span class="home-section-kicker">PRIVACIDAD Y PREFERENCIAS</span><h2 id="cookieTitle">Política de cookies</h2>
       <p>Esta demo usa almacenamiento local para recordar tus preferencias y mantener la experiencia funcionando. No utiliza cookies publicitarias ni herramientas de seguimiento.</p>
