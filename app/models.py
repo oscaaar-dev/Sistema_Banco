@@ -38,6 +38,14 @@ class LoginChallenge(db.Model):
     attempts=db.Column(db.Integer,nullable=False,default=0)
     user=db.relationship('User',backref=db.backref('login_challenge',uselist=False,cascade='all, delete-orphan'))
 
+class LoginAttemptLimit(db.Model):
+    __tablename__='login_attempt_limits'
+    id=db.Column(db.Integer,primary_key=True)
+    identifier_hash=db.Column(db.String(64),nullable=False,unique=True,index=True)
+    failure_count=db.Column(db.Integer,nullable=False,default=1)
+    window_started_at=db.Column(db.DateTime,nullable=False,default=now_utc)
+    locked_until=db.Column(db.DateTime,nullable=True)
+
 class Account(db.Model):
     __tablename__='accounts'
     id=db.Column(db.Integer,primary_key=True)

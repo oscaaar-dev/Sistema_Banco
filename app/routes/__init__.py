@@ -9,7 +9,7 @@ from flask import Blueprint, current_app, render_template, request, redirect, ur
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import desc, or_
 from sqlalchemy.exc import IntegrityError
-from ..models import db, User, LoginChallenge, Account, BankCard, Beneficiary, Transaction, InteractionSession, AuditLog, now_utc
+from ..models import db, User, LoginChallenge, LoginAttemptLimit, Account, BankCard, Beneficiary, Transaction, InteractionSession, AuditLog, now_utc
 from ..services.banking_service import account_for, process_operation, log, operation_risk_for
 from ..services.email_service import EmailDeliveryError, send_login_code
 from ..ai.camera_analysis import analyze_frame
@@ -18,6 +18,57 @@ import time
 import cv2
 import numpy as np
 bp=Blueprint('main',__name__)
+
+LOGIN_FAILURE_LIMIT=5
+LOGIN_FAILURE_WINDOW=timedelta(minutes=15)
+LOGIN_LOCK_DURATION=timedelta(minutes=15)
+
+def _login_attempt_hash(identifier):
+    key=str(current_app.config['SECRET_KEY']).encode('utf-8')
+    normalized=(identifier or '').strip().casefold()
+    return hmac.new(key,('login-attempt:'+normalized).encode('utf-8'),hashlib.sha256).hexdigest()
+
+def _login_is_blocked(identifier):
+    attempt=LoginAttemptLimit.query.filter_by(identifier_hash=_login_attempt_hash(identifier)).first()
+    if attempt is None:
+        return False
+    now=now_utc()
+    if attempt.locked_until and attempt.locked_until>now:
+        return True
+    if (attempt.locked_until and attempt.locked_until<=now) or attempt.window_started_at+LOGIN_FAILURE_WINDOW<=now:
+        db.session.delete(attempt)
+        db.session.commit()
+    return False
+
+def _record_failed_login(identifier):
+    key=_login_attempt_hash(identifier)
+    now=now_utc()
+    for _ in range(2):
+        attempt=LoginAttemptLimit.query.filter_by(identifier_hash=key).with_for_update().first()
+        if attempt is None:
+            attempt=LoginAttemptLimit(identifier_hash=key,failure_count=1,window_started_at=now)
+            db.session.add(attempt)
+        elif attempt.window_started_at+LOGIN_FAILURE_WINDOW<=now:
+            attempt.failure_count=1
+            attempt.window_started_at=now
+            attempt.locked_until=None
+        else:
+            attempt.failure_count+=1
+        if attempt.failure_count>=LOGIN_FAILURE_LIMIT:
+            attempt.locked_until=now+LOGIN_LOCK_DURATION
+        log(None,'LOGIN_FAILURE','SEGURIDAD',result='RECHAZADA')
+        try:
+            db.session.commit()
+            return
+        except IntegrityError:
+            db.session.rollback()
+    raise RuntimeError('No se pudo actualizar el control de intentos de acceso.')
+
+def _clear_login_failures(identifier):
+    attempt=LoginAttemptLimit.query.filter_by(identifier_hash=_login_attempt_hash(identifier)).first()
+    if attempt is not None:
+        db.session.delete(attempt)
+        db.session.commit()
 
 def _login_code_hash(user_id, code):
     key=str(current_app.config['SECRET_KEY']).encode('utf-8')
@@ -180,6 +231,9 @@ def login():
         return redirect(url_for('main.verify_login'))
     if request.method=='POST':
         identifier=request.form.get('username','').strip()
+        if _login_is_blocked(identifier):
+            flash('Usuario o clave incorrectos.','error')
+            return render_template('login.html'),429
         # El acceso acepta el usuario heredado, el DNI registrado o el correo.
         # Consultar el DNI de forma explícita evita que el texto de la interfaz
         # prometa una alternativa que no funcione para cuentas migradas.
@@ -189,6 +243,7 @@ def login():
             User.email==identifier.lower(),
         )).first()
         if user and user.check_password(request.form.get('password','')):
+            _clear_login_failures(identifier)
             if not user.email:
                 flash('Esta cuenta no tiene un correo de seguridad configurado. Contacta a la administración.','error')
                 return redirect(url_for('main.login'))
@@ -201,6 +256,7 @@ def login():
             else:
                 flash('Enviamos un código de seguridad al correo registrado.','success')
             return redirect(url_for('main.verify_login'))
+        _record_failed_login(identifier)
         flash('Usuario o clave incorrectos.','error')
     return render_template('login.html')
 

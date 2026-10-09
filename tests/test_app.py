@@ -234,6 +234,36 @@ def test_customer_can_start_login_using_dni(monkeypatch):
     assert sent_codes[0][0]==email
 
 
+def test_password_login_is_temporarily_blocked_after_five_failures():
+    app=create_app(); app.config['TESTING']=True
+    client=app.test_client()
+    login_page=client.get('/login')
+    token=_csrf_token(login_page)
+
+    for _ in range(5):
+        response=client.post('/login',data={
+            'username':'demo',
+            'password':'WrongPassword9!',
+            'csrf_token':token,
+        })
+        assert response.status_code==200
+    blocked=client.post('/login',data={
+        'username':'demo',
+        'password':'Demo123!',
+        'csrf_token':token,
+    })
+
+    assert blocked.status_code==429
+    assert 'Usuario o clave incorrectos'.encode() in blocked.data
+    from app.models import LoginAttemptLimit
+    with app.app_context():
+        attempt=LoginAttemptLimit.query.one()
+        assert len(attempt.identifier_hash)==64
+        assert attempt.failure_count==5
+        assert attempt.locked_until is not None
+        assert 'demo' not in attempt.identifier_hash
+
+
 def test_registration_rejects_passwords_outside_policy():
     import secrets
 
