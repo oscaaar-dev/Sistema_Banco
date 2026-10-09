@@ -9,7 +9,7 @@
 
 ## Fase actual
 
-Fase 7 — preparar muestra sintética y contenido para aprobación antes de generar el conjunto completo.
+Fase 7 — muestra sintética y propuesta institucional preparadas; esperando aprobación antes de generar el conjunto completo.
 
 ## Hecho
 
@@ -19,15 +19,17 @@ Fase 7 — preparar muestra sintética y contenido para aprobación antes de gen
 - Fase 1 cerrada: recursos SVG propios de NORTE., favicon, imagen social, tokens de color, textos legales centralizados, rutas `/terminos` y `/privacidad`, enlaces en los pies, páginas de error de marca, transparencia sobre la cámara y credenciales eliminadas de la pantalla de login.
 - Fase 6 cerrada: lenguaje público de portada, acceso, registro, espacio personal, tarjetas, operaciones, movimientos, comprobantes, cámara, administración y textos informativos revisado; el aviso legal y las aclaraciones de alcance permanecen visibles. Se actualizaron pruebas de copy sin cambiar efectos.
 - Captura comparativa agregada para portada, login y dashboard en escritorio y móvil. La vista local vigente es `http://127.0.0.1:5001`; la instancia anterior en el puerto 5000 quedó detenida.
+- Fase 6 validada después del commit `3312331`: 30 pruebas de pytest y 7 pruebas E2E aprobadas.
+- Fase 7: muestra de cinco perfiles sintéticos, 30 movimientos con saldos conciliados y tres textos institucionales preparada en `docs/phase7-seed-sample.md`. No se ejecutó el seed ni se modificó ningún esquema; se espera aprobación.
 
 ## Pendiente en el orden autorizado
 
-1. Fase 7 — preparar muestra de cinco clientes sintéticos, movimientos y tres secciones de texto; detener para aprobación antes de generar el conjunto completo.
+1. Aprobación de la muestra de Fase 7 antes de crear el seed completo.
 2. Fases 2, 3, 4, 5, 8 y 9, respetando las paradas obligatorias indicadas por la persona usuaria.
 
 ## Registro de avance
 
-- 2026-10-09 — Fase 6 cerrada; 30 pruebas de pytest y 7 pruebas E2E aprobadas; capturas de seis vistas generadas y comparadas. Se inicia la preparación de la muestra de Fase 7.
+- 2026-10-09 — Fase 6 cerrada; 30 pruebas de pytest y 7 pruebas E2E aprobadas; seis capturas generadas y comparadas. Muestra de Fase 7 lista; detenida para aprobación previa a generar datos.
 
 ## Hallazgos abiertos
 
