@@ -12,12 +12,12 @@ from scripts.migrate_sqlite_to_mysql import DEFAULT_SOURCE, copy_database
 
 MYSQL_BIN = Path(r"C:\Program Files\MySQL\MySQL Server 8.4\bin")
 MYSQLD = MYSQL_BIN / "mysqld.exe"
-MYSQL_ROOT = Path(os.environ["LOCALAPPDATA"]) / "NorteBcpMySQL"
-DATA_DIR = MYSQL_ROOT / "data"
-LOG_PATH = MYSQL_ROOT / "server.log"
-ERROR_LOG_PATH = MYSQL_ROOT / "server-error.log"
-PID_PATH = MYSQL_ROOT / "server.pid"
-ROOT_PASSWORD_PATH = MYSQL_ROOT / "admin-password.txt"
+NORTE_MYSQL_ROOT = Path(os.environ["LOCALAPPDATA"]) / "NorteBcpMySQL"
+DATA_DIR = NORTE_MYSQL_ROOT / "data"
+LOG_PATH = NORTE_MYSQL_ROOT / "server.log"
+ERROR_LOG_PATH = NORTE_MYSQL_ROOT / "server-error.log"
+PID_PATH = NORTE_MYSQL_ROOT / "server.pid"
+ROOT_PASSWORD_PATH = NORTE_MYSQL_ROOT / "admin-password.txt"
 HOST = "127.0.0.1"
 PORT = 3307
 DATABASE = "norte_bcp"
@@ -120,7 +120,7 @@ def _start_server() -> None:
         _wait_for_server()
         return
 
-    MYSQL_ROOT.mkdir(parents=True, exist_ok=True)
+    NORTE_MYSQL_ROOT.mkdir(parents=True, exist_ok=True)
     subprocess.run(
         _mysql_args("--initialize-insecure", "--console"),
         capture_output=True,
@@ -205,7 +205,7 @@ def main() -> None:
         source_engine.dispose()
         engine.dispose()
 
-    print(f"Dedicated MySQL instance is running on {HOST}:{PORT}.")
+    print(f"Norte MySQL instance is running on {HOST}:{PORT}.")
     print(f"Database: {DATABASE}; data directory: {DATA_DIR}")
     print("Application credentials saved in the local .env file.")
     print(f"Private MySQL administrator password stored at: {ROOT_PASSWORD_PATH}")

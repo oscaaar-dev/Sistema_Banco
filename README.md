@@ -1,6 +1,6 @@
 # Norte — Sistema Inteligente de Operaciones Bancarias (simulación académica)
 
-Aplicación web educativa construida con Flask y SQLAlchemy. Tiene autenticación con hash de contraseñas, roles, cuentas ficticias, transferencias/pagos/recargas simuladas, movimientos, tarjetas, auditoría y métricas básicas de interacción. **No es un banco y no procesa dinero real.**
+Aplicación web educativa construida con Flask y SQLAlchemy. Tiene autenticación con hash de contraseñas, roles, cuentas ficticias, transferencias/pagos/recargas simuladas, movimientos, tarjetas, auditoría y métricas básicas de interacción. **Norte es un proyecto de banca digital en desarrollo. No es una entidad del sistema financiero supervisada por la SBS.**
 
 ## Ejecutar en Windows
 
@@ -23,7 +23,9 @@ La primera ejecución local utiliza SQLite en `instance/norte_local.db` y crea t
 
 ## Base MySQL independiente del proyecto
 
-Este proyecto puede usar su propia instancia de MySQL 8.4, independiente de otros proyectos y de MySQL Workbench: escucha solo en `127.0.0.1:3307`, guarda sus archivos en `%LOCALAPPDATA%\NorteBcpMySQL\data` y usa el esquema `norte_bcp`. La instancia MySQL existente en el puerto 3306 no se modifica.
+Este proyecto puede usar su propia instancia de MySQL 8.4, independiente de otros proyectos y de MySQL Workbench: escucha solo en `127.0.0.1:3307`. La instancia MySQL existente en el puerto 3306 no se modifica.
+
+La instalación local ya creada conserva la carpeta `%LOCALAPPDATA%\NorteBcpMySQL\data`, el esquema `norte_bcp` y los usuarios `norte_bcp_app` y `norte_bcp_viewer`. Son identificadores técnicos heredados, no nombres de marca. Se mantienen para no desconectar la base existente; renombrarlos exige una migración planificada y no forma parte de esta fase.
 
 Para inicializarla y migrar los datos locales de SQLite una sola vez, abre PowerShell en esta carpeta y ejecuta:
 
@@ -60,7 +62,7 @@ El formulario `/register` crea una cuenta ficticia con nombre completo, DNI peru
 
 El inicio de sesión requiere usuario y contraseña, y luego un código de seis dígitos enviado al correo asociado, guardado en el registro del usuario en la base de datos. El código vence en 5 minutos, admite hasta 5 intentos y solo se puede volver a enviar una vez transcurrido el intervalo de espera de 60 segundos. Para desarrollo local, Brevo puede usarse por SMTP (`SMTP_HOST=smtp-relay.brevo.com`, puerto 587, STARTTLS, login y clave SMTP). Para Railway configura `EMAIL_TRANSPORT=brevo_api`, `BREVO_API_KEY` con la clave API de Brevo y `SMTP_FROM` con un remitente verificado; la app envía por HTTPS y no requiere SMTP saliente. `SMTP_FROM` es el remitente; los correos de demo/admin y clientes se conservan en la tabla `users`, no como configuración de producción. Configura también una `SECRET_KEY` aleatoria y persistente. Los secretos solo van en `.env` local o en las variables privadas del hosting, nunca en el repositorio. Sin un transporte de correo correctamente configurado, el acceso se deniega en lugar de omitir el segundo factor.
 
-Este OTP es una medida demostrativa para la aplicación académica; no equivale a los controles de seguridad de BCP ni debe tratarse como protección suficiente para banca real.
+Este OTP es una medida demostrativa para la aplicación académica; no debe tratarse como protección suficiente para operaciones financieras reales.
 
 ## Incluye
 
@@ -101,7 +103,7 @@ config.py
 
 ## Publicación en un servicio web
 
-El proceso de producción usa Gunicorn y escucha en el puerto `PORT` que proporciona el hosting (`Procfile`: `gunicorn app:app --bind 0.0.0.0:$PORT`). Antes de desplegar, configura estas variables como secretos del servicio, nunca dentro del repositorio:
+El proceso de producción usa Gunicorn y escucha en el puerto `PORT` que proporciona el hosting (`Procfile`: `gunicorn run:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120`). Antes de desplegar, configura estas variables como secretos del servicio, nunca dentro del repositorio:
 
 - `APP_ENV=production`
 - `SECRET_KEY`: valor aleatorio largo y persistente.
@@ -110,4 +112,4 @@ El proceso de producción usa Gunicorn y escucha en el puerto `PORT` que proporc
 - Los usuarios, sus contraseñas hasheadas y sus correos se migran desde la base actual; no se pasan por variables del hosting.
 - Para Railway Hobby: `EMAIL_TRANSPORT=brevo_api`, `BREVO_API_KEY` y `SMTP_FROM` verificado en Brevo. Alternativamente, para SMTP, configura `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_USE_TLS` y `SMTP_USE_SSL` (SMTP saliente requiere Railway Pro).
 
-El proyecto usa `app:app` como punto de entrada WSGI. La aplicación crea las tablas y cuentas demo al iniciar una base vacía; configura las variables antes del primer arranque, ya que cambiar las contraseñas en el hosting no reemplaza las claves de usuarios ya creados. No cargues el archivo `.env` ni la base SQLite local al hosting. `.railwayignore` excluye secretos, entornos virtuales y datos locales de la subida.
+El proyecto usa `run:app` como punto de entrada WSGI. La aplicación crea las tablas y cuentas demo al iniciar una base vacía; configura las variables antes del primer arranque, ya que cambiar las contraseñas en el hosting no reemplaza las claves de usuarios ya creados. No cargues el archivo `.env` ni la base SQLite local al hosting. `.railwayignore` excluye secretos, entornos virtuales y datos locales de la subida.

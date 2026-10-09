@@ -148,7 +148,7 @@ def main() -> None:
     if viewer_count != row[2]:
         raise RuntimeError("Workbench account verification returned an unexpected user count.")
 
-    print(f"BCP application credential rotated and verified on port {PORT}.")
+    print(f"Norte application credential rotated and verified on port {PORT}.")
     print(f"Read-only Workbench login saved locally at: {WORKBENCH_LOGIN_FILE}")
     print(f"Workbench user: {WORKBENCH_USER}; host: {HOST}; port: {PORT}; schema: {DATABASE}.")
     print("Passwords were not printed.")

@@ -1,4 +1,5 @@
 {
+  "name": "norte-banca-digital",
   "scripts": {
     "test:e2e": "playwright test"
   },

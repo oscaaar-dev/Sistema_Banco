@@ -14,7 +14,7 @@ if (-not (Test-Path $dataDir)) {
 
 $listener = Get-NetTCPConnection -LocalPort 3307 -State Listen -ErrorAction SilentlyContinue
 if ($listener) {
-    Write-Output 'Dedicated BCP MySQL is already listening on port 3307.'
+    Write-Output 'Dedicated Norte MySQL is already listening on port 3307.'
     exit 0
 }
 
@@ -28,7 +28,7 @@ for ($attempt = 0; $attempt -lt 60; $attempt++) {
     Start-Sleep -Milliseconds 500
     $listener = Get-NetTCPConnection -LocalPort 3307 -State Listen -ErrorAction SilentlyContinue
     if ($listener) {
-        Write-Output 'Dedicated BCP MySQL is ready on 127.0.0.1:3307.'
+        Write-Output 'Dedicated Norte MySQL is ready on 127.0.0.1:3307.'
         exit 0
     }
     if ($process.HasExited) {
