@@ -9,7 +9,7 @@
 
 ## Fase actual
 
-Fase 2 — preparando migraciones versionadas; ninguna migración persistente ni conexión a Railway se ha ejecutado.
+Fase 2 — revisión inicial migrada y verificada en PostgreSQL aislado de staging; sigue pendiente cualquier traslado de datos de MySQL y desplegar la aplicación.
 
 ## Hecho
 
@@ -25,8 +25,8 @@ Fase 2 — preparando migraciones versionadas; ninguna migración persistente ni
 
 ## Pendiente en el orden autorizado
 
-1. Fases 2, 3, 4, 5, 8 y 9, respetando las paradas obligatorias indicadas por la persona usuaria.
-2. Aplicar cualquier migración fuera de SQLite en memoria solo tras autorización expresa.
+1. Fase 2 restante (API, compatibilidad y eventual traslado de datos) y fases 3, 4, 5, 8 y 9, manteniendo el orden autorizado.
+2. Cualquier traslado de datos MySQL o cambio en variables/servicios productivos exige autorización separada.
 
 ## Registro de avance
 
@@ -40,12 +40,13 @@ Fase 2 — preparando migraciones versionadas; ninguna migración persistente ni
 - 2026-10-09 — Revisión de historia: no hay rutas `.env` rastreadas; el escaneo de 210 blobs solo detectó valores marcadores/test en `config.py`, `.env.example` y la cookie E2E. No se imprimieron valores. No hay remoto Git configurado.
 - 2026-10-09 — Añadido entorno Alembic explícito: exige `MIGRATION_DATABASE_URL`, solo permite SQLite con `APP_ENV=testing` y no usa automáticamente `DATABASE_URL`/`MYSQL_URL`. La revisión inicial se generó desde modelos con SQLite de prueba; DDL PostgreSQL también se generó offline sin conexión. La ejecución real en un Postgres de prueba queda pendiente.
 - 2026-10-09 — Commit `73f0092` validado: 34 pytest y 7 E2E aprobadas; seis capturas escritorio/móvil generadas. La revisión Alembic sube y baja solo en SQLite en memoria; el DDL PostgreSQL se generó offline. Ninguna base persistente fue conectada o modificada.
+- 2026-10-09 — Con autorización expresa, se creó el proyecto Railway aislado `Norte-staging`, con entorno vacío `staging` y servicio PostgreSQL `Postgres`; no se duplicó ni vinculó el proyecto productivo y no se desplegó la app. Preflight confirmó cero tablas antes de aplicar Alembic; migración PostgreSQL `c9f9cff56362` completada y verificada (15 tablas públicas incl. `alembic_version`). Conexión por túnel privado; no se leyeron/imprimieron secretos. No se migraron datos ni se cambiaron variables del servicio web productivo.
 
 ## Hallazgos abiertos
 
 - `data-home-carousel` no existe en la portada, aunque el carrusel principal sí funciona mediante `data-hero-carousel`. Es un efecto protegido: no se toca sin autorización expresa.
 - Los identificadores locales de MySQL (`norte_bcp`, `norte_bcp_app` y la carpeta `NorteBcpMySQL`) están en uso. No se renombrarán hasta contar con autorización y un plan de migración.
 - La aplicación sigue configurada para MySQL en el despliegue anterior. Existe una revisión inicial, pero aún no hay revisión de datos para mover registros de MySQL a PostgreSQL ni se ha probado contra PostgreSQL.
-- **Parada obligatoria pendiente:** antes de crear/vincular un servicio PostgreSQL en Railway, aplicar una migración fuera de SQLite de pruebas o trasladar los datos de MySQL se requiere autorización explícita. No se ha conectado, migrado, cambiado variables ni desplegado.
+- **Alcance de autorización de staging:** se autorizó crear un proyecto aislado, provisionar PostgreSQL y aplicar su esquema inicial; esas acciones ya se completaron. No se autorizó importar datos de MySQL ni configurar/desplegar la aplicación, ni tocar el proyecto/servicios productivos.
 - Aviso operativo: una instancia ya iniciada puede seguir respondiendo con el código cargado previamente, pero el código actual se negará a arrancar contra una base persistente antigua hasta que se apruebe y aplique una migración compatible. No reiniciar el servidor local con la base actual antes de resolver ese paso.
 - **Riesgo legal de privacidad:** `camera.html` ya informa que `app.js` envía fotogramas JPEG al servidor para `POST /camera/analyze` aproximadamente cada 1.2 segundos. El flujo sigue sin consentimiento específico ni política de retención aprobada; no se modificarán captura, envío ni almacenamiento hasta definir y aprobar el diseño de privacidad de la Fase 4.
