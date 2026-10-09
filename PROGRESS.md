@@ -45,6 +45,7 @@ Fase 3 — controles de sesión, cabeceras y límite de intentos implementados e
 - 2026-10-09 — Commit `f399b9c` (Fase 3 parcial) validado tras commit: 35 pytest y 7 E2E aprobadas; capturas escritorio/móvil regeneradas. Solo hubo cambios de sesión y cabeceras, sin cambios visuales ni despliegue.
 - 2026-10-09 — Commit `fa76dbc`: bloqueo temporal de acceso tras cinco claves fallidas, con hash HMAC del identificador y auditoría sin PII; migración `8d6c1a7402b1` preparada. Post-commit: 36 pytest y 7 E2E aprobadas. No se aplicó la migración fuera de SQLite porque la autorización previa cubrió solo la migración inicial.
 - 2026-10-09 — Tras autorización expresa para la revisión `8d6c1a7402b1`, preflight confirmó revisión `c9f9cff56362`, 15 tablas públicas y ausencia de la tabla destino. La migración se aplicó por túnel privado al PostgreSQL de `Norte-staging/staging`; verificación: revisión `8d6c1a7402b1`, 16 tablas públicas y `login_attempt_limits` presente. No se desplegó/configuró la aplicación ni se tocaron producción o datos de negocio.
+- 2026-10-09 — Commit `4f05f59` registra la migración de staging. Post-commit: 36 pytest y 7 E2E aprobadas. Las cuatro capturas comparables (portada/login, escritorio/móvil) son idénticas píxel a píxel a sus referencias; se regeneraron también las dos capturas de dashboard.
 
 ## Hallazgos abiertos
 
