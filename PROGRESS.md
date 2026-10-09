@@ -30,6 +30,7 @@ Fase 2 — preparando migraciones versionadas; ninguna migración persistente ni
 
 ## Registro de avance
 
+- 2026-10-09 — Se observó un fallo E2E aislado del carrusel principal (no avanzó dentro del timeout; las tres pasadas posteriores aprobaron 7/7) y un error SQLite `InterfaceError` en solicitudes concurrentes durante dos ejecuciones. Se serializó el servidor de desarrollo solo bajo `APP_ENV=testing`; sin tocar el código del carrusel. Commit `9fc0dcc`: 34 pytest y 7 E2E aprobadas; sin nuevos errores SQLite y las capturas E2E volvieron a generarse.
 - 2026-10-09 — Fase 6 cerrada; 30 pruebas de pytest y 7 pruebas E2E aprobadas; seis capturas generadas y comparadas. Muestra de Fase 7 lista; detenida para aprobación previa a generar datos.
 - 2026-10-09 — Aprobada la muestra de Fase 7 (“continua”). Se añadió el generador restringido a SQLite de pruebas en memoria y pruebas de idempotencia/conciliación. Pendiente ejecutar las suites antes del commit.
 - 2026-10-09 — Fase 7 validada tras commits `36c21c3` y `016c4e2`: 32 pruebas pytest y 7 E2E aprobadas; incluye capturas E2E de referencia sin modificaciones visuales esperadas. Se inicia auditoría de Fase 2; no se migrará una BD persistente sin aprobación.
