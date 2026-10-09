@@ -27,6 +27,13 @@ def _send_security_code(recipient, code, subject, purpose):
           'Vence en 5 minutos. Si no solicitaste este código, ignora este mensaje.\n'
           + current_app.config['LEGAL_NOTICE'])
     if current_app.config.get('EMAIL_TRANSPORT')=='brevo_api':
+        if (current_app.config.get('RAILWAY_ENVIRONMENT_NAME')=='staging'
+                and not current_app.config.get('BREVO_SANDBOX')):
+            allowed=current_app.config.get('BREVO_TEST_RECIPIENT','').strip().lower()
+            if not allowed:
+                raise EmailDeliveryError('El envío real en staging requiere un destinatario de prueba autorizado.')
+            if recipient.strip().lower()!=allowed:
+                raise EmailDeliveryError('El correo de prueba de staging solo puede enviarse al destinatario autorizado.')
         _send_with_brevo_api(recipient, subject, body)
         return
 
