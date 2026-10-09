@@ -466,6 +466,20 @@ def movements():
 @bp.route('/cards')
 @login_required
 def cards(): return render_template('cards.html',cards=BankCard.query.filter_by(user_id=current_user.id).all())
+
+@bp.route('/cards/<int:card_id>/status',methods=['POST'])
+@login_required
+def update_card_status(card_id):
+    card=BankCard.query.filter_by(id=card_id,user_id=current_user.id).first_or_404()
+    target=request.form.get('status','')
+    if target not in ('Activa','Bloqueada') or target==card.status:
+        abort(400)
+    card.status=target
+    log(current_user,'CARD_'+('LOCKED' if target=='Bloqueada' else 'UNLOCKED'),'TARJETAS')
+    db.session.commit()
+    flash('Tarjeta bloqueada.' if target=='Bloqueada' else 'Tarjeta desbloqueada.','success')
+    return redirect(url_for('main.cards'))
+
 @bp.route('/operation-risk')
 @login_required
 def operation_risk():

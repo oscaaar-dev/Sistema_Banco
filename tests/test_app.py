@@ -115,6 +115,47 @@ def test_movements_screen_filters_dates_and_paginates(monkeypatch):
     assert client.get('/movements?from=2026-02-20&to=2026-02-01').status_code==400
 
 
+def test_card_locking_is_csrf_protected_audited_and_owner_scoped():
+    from decimal import Decimal
+    from app.models import AuditLog, BankCard
+
+    app=create_app(); app.config['TESTING']=True
+    with app.app_context():
+        user=User.query.filter_by(username='demo').one()
+        user_id=user.id
+        card=BankCard.query.filter_by(user_id=user_id).first()
+        card_id=card.id
+        card.status='Activa'
+        other=User(username='card-owner-other',full_name='Titular de prueba',role='CLIENTE')
+        other.set_password('TestOnlyPass123!')
+        db.session.add(other)
+        db.session.flush()
+        account=Account(user_id=other.id,account_type='Ahorros',number='900000000000000099',balance=Decimal('10.00'))
+        db.session.add(account)
+        db.session.flush()
+        foreign_card=BankCard(user_id=other.id,account_id=account.id,last4='0000',status='Bloqueada')
+        db.session.add(foreign_card)
+        db.session.commit()
+        foreign_card_id=foreign_card.id
+    client=app.test_client()
+    with client.session_transaction() as browser_session:
+        browser_session['_user_id']=str(user_id)
+        browser_session['_fresh']=True
+        browser_session['login_2fa_verified']=True
+    page=client.get('/cards')
+    response=client.post(f'/cards/{card_id}/status',data={
+        'csrf_token':_csrf_token(page),'status':'Bloqueada',
+    })
+    assert response.status_code==302
+    with app.app_context():
+        assert BankCard.query.filter_by(id=card_id).one().status=='Bloqueada'
+        assert AuditLog.query.filter_by(user_id=user_id,action='CARD_LOCKED').count()==1
+    other_update=client.post(f'/cards/{foreign_card_id}/status',data={
+        'csrf_token':_csrf_token(client.get('/cards')),'status':'Activa',
+    })
+    assert other_update.status_code==404
+
+
 def test_public_information_topics_have_separate_pages():
     app=create_app(); app.config['TESTING']=True
     client=app.test_client()
