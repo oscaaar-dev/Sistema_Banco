@@ -60,7 +60,7 @@ Cambia estas claves antes de una demostración compartida. Las claves demo solo 
 
 ## Registro de clientes demo
 
-El formulario `/register` crea una cuenta ficticia con nombre completo, DNI peruano de 8 dígitos, correo único y contraseña. El DNI y el correo también pueden usarse para iniciar sesión; el acceso sigue requiriendo el código OTP por correo configurado arriba. Cada cuenta nueva recibe una cuenta de ahorros demo con saldo inicial S/ 0.00. No se valida el DNI con RENIEC ni se crea una cuenta bancaria real. La contraseña debe tener 8-10 caracteres ASCII, al menos una mayúscula, una minúscula y un número; solo se permiten letras, números y puntos (`.`).
+El formulario `/register` crea una cuenta ficticia con nombre completo, DNI peruano de 8 dígitos, correo único y contraseña. El DNI y el correo también pueden usarse para iniciar sesión; el acceso sigue requiriendo el código OTP por correo configurado arriba. Cada cuenta nueva recibe una cuenta de ahorros demo con saldo inicial S/ 0.00. No se valida el DNI con RENIEC ni se crea una cuenta bancaria real. La contraseña debe tener entre 8 y 10 caracteres, al menos una mayúscula, una minúscula y un número. Se aceptan letras (incluida ñ y vocales con tilde), números y puntos (`.`), sin espacios.
 
 ## Segundo factor por correo (OTP)
 

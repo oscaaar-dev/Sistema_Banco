@@ -345,13 +345,12 @@ def register():
         allowed_password_characters="."
         if (
             not 8<=len(password)<=10
-            or not password.isascii()
             or not any(character.isupper() for character in password)
             or not any(character.islower() for character in password)
-            or not any(character.isdigit() for character in password)
-            or any(not (character.isalnum() or character in allowed_password_characters) for character in password)
+            or not any(character.isdecimal() for character in password)
+            or any(not (character.isalpha() or character.isdecimal() or character in allowed_password_characters) for character in password)
         ):
-            errors.append('La contraseña debe tener 8-10 caracteres ASCII, incluir mayúscula, minúscula y número, y solo puede usar letras, números y puntos (.).')
+            errors.append('La contraseña debe tener entre 8 y 10 caracteres, con al menos una mayúscula, una minúscula y un número. Puedes usar letras, números y puntos (.), sin espacios.')
         if password!=password_confirmation:
             errors.append('Las contraseñas no coinciden.')
         if errors:

@@ -557,9 +557,19 @@ def test_registration_rejects_passwords_outside_policy():
         response=_register(client,'Cliente Prueba',dni,f'policy{suffix}@example.test',password)
 
         assert response.status_code==400
-        assert 'La contraseña debe tener 8-10 caracteres'.encode() in response.data
+        assert 'La contraseña debe tener entre 8 y 10 caracteres'.encode() in response.data
         with app.app_context():
             assert User.query.filter_by(dni=dni).first() is None
+
+
+def test_registration_accepts_spanish_letters_in_password():
+    import secrets
+
+    app=create_app(); app.config['TESTING']=True
+    client=app.test_client()
+    password='Ñandú9.aB'
+    response=_register(client,'Cliente Prueba','87654321',f'accent{secrets.token_hex(4)}@example.test',password)
+    assert response.status_code==302
 
 
 def test_registration_rejects_invalid_dni_email_and_mismatched_passwords():
