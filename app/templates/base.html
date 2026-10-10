@@ -1,32 +1,37 @@
+{% set is_intranet = current_user.is_authenticated and request.endpoint!='main.index' %}
+{% set is_auth = request.endpoint in ('main.login','main.register','main.verify_login') %}
+{% set is_public = not is_intranet and not is_auth %}
 <!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#f4f4f4">
+  <meta name="theme-color" content="#07050d">
   <title>{% block title %}Norte · Banca digital{% endblock %}</title>
   <link rel="icon" href="{{ url_for('static',filename='brand/norte-favicon.svg') }}" type="image/svg+xml">
   <meta property="og:image" content="{{ url_for('static',filename='brand/norte-social.svg') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-ds.css',v='ds-1') }}">
+  {% if is_public %}
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-public.css',v='public-1') }}">
+  {% else %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/app.css',v='camera-layout-4') }}">
-  {% if request.endpoint in ('main.index','main.terms','main.privacy') %}
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/home.css',v='home-24') }}">
-  {% endif %}
   {% if request.endpoint=='main.operation' %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/operation.css',v='consent-2') }}">
   {% endif %}
-  {% if current_user.is_authenticated and request.endpoint!='main.index' %}
+  {% if is_intranet %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/intranet.css',v='shell-5') }}">
   {% endif %}
-  {% if request.endpoint in ('main.login','main.register','main.verify_login') %}
+  {% if is_auth %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/auth.css',v='auth-password-toggle-1') }}">
   {% endif %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/readability.css',v='readability-1') }}">
   <link rel="stylesheet" href="{{ url_for('static',filename='css/nubank.css',v='nubank-1') }}">
+  {% endif %}
 </head>
-<body class="{% if current_user.is_authenticated and request.endpoint!='main.index' %}intranet-body{% elif request.endpoint in ('main.login','main.register','main.verify_login') %}auth-body{% endif %}">
+<body class="{% if is_intranet %}intranet-body{% elif is_auth %}auth-body{% else %}nh-body{% endif %}">
   {% if current_user.is_authenticated and request.endpoint!='main.index' %}<a class="skip-link" href="#contenido">Ir al contenido principal</a>{% endif %}
   {% if current_user.is_authenticated and request.endpoint!='main.index' %}
   <div class="intranet-shell">
@@ -83,12 +88,12 @@
     {% block auth_content %}{% endblock %}
   {% endif %}
   {% if request.endpoint=='main.index' %}
-  <script src="{{ url_for('static',filename='js/reveal.js',v='reveal-3') }}"></script>
   <script src="{{ url_for('static',filename='js/home.js',v='home-22') }}"></script>
   {% endif %}
   {% if request.endpoint in ('main.login','main.register','main.verify_login') %}
   <script src="{{ url_for('static',filename='js/auth.js',v='auth-password-toggle-1') }}"></script>
   {% endif %}
+  <script src="{{ url_for('static',filename='js/motion.js',v='motion-1') }}" defer></script>
   <script src="{{ url_for('static',filename='js/app.js',v='camera-privacy-5') }}"></script>
   {% if request.endpoint=='main.operation' and request.view_args.kind=='transfer' %}
   <script src="{{ url_for('static',filename='js/transfer-auth.js',v='transfer-auth-1') }}"></script>

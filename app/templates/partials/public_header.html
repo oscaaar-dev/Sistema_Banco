@@ -1,0 +1,25 @@
+{# Cabecera pública compartida (portada, páginas informativas y legales). Variable opcional: nav_current. #}
+<div class="nh-utility">
+  <div class="nds-container nh-utility__in">
+    <span><i class="bi bi-stars"></i> Un espacio para conocer la banca digital, paso a paso</span>
+    <a href="{{ url_for('main.acerca') }}">Conoce el proyecto <i class="bi bi-arrow-up-right"></i></a>
+  </div>
+</div>
+<header class="nh-header nds-dark">
+  <div class="nds-container nh-header__in">
+    <a class="nh-brand" href="{{ url_for('main.index') }}" aria-label="Norte, inicio">
+      <span class="nh-brand__mark"><img src="{{ url_for('static',filename='brand/norte-favicon.svg') }}" alt="" width="38" height="38"></span>
+      <span>NORTE<i>.</i><small>BANCA DIGITAL</small></span>
+    </a>
+    <nav class="nh-nav" aria-label="Navegación principal">
+      <a href="{{ url_for('main.personas') }}" {% if nav_current=='personas' %}aria-current="page"{% endif %}>Personas</a>
+      <a href="{{ url_for('main.herramientas') }}" {% if nav_current=='herramientas' %}aria-current="page"{% endif %}>Herramientas</a>
+      <a href="{{ url_for('main.seguridad') }}" {% if nav_current=='seguridad' %}aria-current="page"{% endif %}>Seguridad</a>
+      <a href="{{ url_for('main.acerca') }}" {% if nav_current=='acerca' %}aria-current="page"{% endif %}>Acerca de Norte</a>
+    </nav>
+    <div class="nh-actions">
+      <a class="nds-btn nds-btn--ghost home-login-link info-login" href="{{ url_for('main.login') }}"><i class="bi bi-lock-fill"></i> Banca por Internet</a>
+      <a class="nds-btn nds-btn--primary home-signup-link info-register" href="{{ url_for('main.register') }}">Abrir cuenta <i class="bi bi-arrow-up-right"></i></a>
+    </div>
+  </div>
+</header>
