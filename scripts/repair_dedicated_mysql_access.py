@@ -1,15 +1,17 @@
-import os
 import secrets
 import subprocess
+import sys
 from pathlib import Path
 
 import pymysql
-from dotenv import dotenv_values
 from sqlalchemy import URL, create_engine
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-INSTANCE_ROOT = Path(os.environ["LOCALAPPDATA"]) / "NorteBcpMySQL"
+if str(PROJECT_ROOT) not in sys.path:  # permite `python scripts/repair_dedicated_mysql_access.py`
+    sys.path.insert(0, str(PROJECT_ROOT))
+from scripts.local_mysql import instance_root  # noqa: E402
+
+INSTANCE_ROOT = instance_root()
 ADMIN_PASSWORD_FILE = INSTANCE_ROOT / "admin-password.txt"
 WORKBENCH_LOGIN_FILE = INSTANCE_ROOT / "workbench-login.txt"
 ENV_FILE = PROJECT_ROOT / ".env"

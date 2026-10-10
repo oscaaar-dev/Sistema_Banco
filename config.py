@@ -24,16 +24,18 @@ if APP_ENV=='production':
 class Config:
     APP_ENV=APP_ENV
     SECRET_KEY=SECRET_KEY or secrets.token_hex(32)
-    SQLALCHEMY_DATABASE_URI=DATABASE_URL or 'postgresql+psycopg://banco_app:CAMBIA_ESTA_CLAVE@127.0.0.1:5432/banco_ia'
     SQLALCHEMY_TRACK_MODIFICATIONS=False
+    # Sin DATABASE_URL se usa SQLite local dentro de instance/; con URL se normaliza el driver.
     if not DATABASE_URL:
         SQLALCHEMY_DATABASE_URI=f"sqlite:///{(BASE_DIR / 'instance' / 'norte_local.db').as_posix()}"
-    elif SQLALCHEMY_DATABASE_URI.startswith('postgres://'):
-        SQLALCHEMY_DATABASE_URI=SQLALCHEMY_DATABASE_URI.replace('postgres://','postgresql+psycopg://',1)
-    elif SQLALCHEMY_DATABASE_URI.startswith('postgresql://'):
-        SQLALCHEMY_DATABASE_URI=SQLALCHEMY_DATABASE_URI.replace('postgresql://','postgresql+psycopg://',1)
-    elif SQLALCHEMY_DATABASE_URI.startswith('mysql://'):
-        SQLALCHEMY_DATABASE_URI=SQLALCHEMY_DATABASE_URI.replace('mysql://','mysql+pymysql://',1)
+    elif DATABASE_URL.startswith('postgres://'):
+        SQLALCHEMY_DATABASE_URI=DATABASE_URL.replace('postgres://','postgresql+psycopg://',1)
+    elif DATABASE_URL.startswith('postgresql://'):
+        SQLALCHEMY_DATABASE_URI=DATABASE_URL.replace('postgresql://','postgresql+psycopg://',1)
+    elif DATABASE_URL.startswith('mysql://'):
+        SQLALCHEMY_DATABASE_URI=DATABASE_URL.replace('mysql://','mysql+pymysql://',1)
+    else:
+        SQLALCHEMY_DATABASE_URI=DATABASE_URL
     SQLALCHEMY_ENGINE_OPTIONS={'pool_pre_ping':True,'pool_recycle':300}
     SESSION_COOKIE_HTTPONLY=True
     SESSION_COOKIE_SAMESITE='Lax'

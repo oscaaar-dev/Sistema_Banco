@@ -23,5 +23,5 @@ def cluster_interactions(sessions):
     scores=frame['errors']*3+frame['back_actions']*2+frame['steps']*.25+frame['duration_seconds']/60
     means={int(c):float(scores[clusters==c].mean()) for c in set(clusters)}
     ordered=sorted(means,key=means.get)
-    mapped={cluster:('Interacción estable' if i==0 else 'Interacción con algunas dificultades' if i==1 else 'Interacción más compleja') for i,cluster in enumerate(ordered)}
+    mapped={cluster:LABELS[min(i,2)] for i,cluster in enumerate(ordered)}
     return [{'cluster_id':int(c),'label':mapped[int(c)]} for c in clusters]

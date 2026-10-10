@@ -90,16 +90,37 @@ La cámara solo muestra una vista previa local opcional en el navegador. La inte
 ## Estructura
 
 ```text
+run.py                      punto de entrada (python run.py · gunicorn run:app)
+config.py                   configuración leída de variables de entorno
 app/
-  ai/interaction_model.py
-  routes/__init__.py
-  services/ (lógica y datos demo)
-  static/css/ static/js/
-  templates/
-  models.py
-config.py
- database/schema.sql
+  __init__.py               create_app y validación del esquema
+  models.py                 modelos SQLAlchemy
+  routes/__init__.py        blueprint principal (sitio público, acceso y dashboard)
+  api.py                    API de solo lectura bajo /api/v1
+  ai/                       clustering exploratorio e indicador de riesgo por reglas
+  services/                 banca, correo, estado de cuenta y datos de muestra
+  static/                   css/, js/, brand/, images/, team/
+  templates/                páginas, partials/ y components/
+migrations/                 esquema versionado con Alembic (fuente de verdad)
+scripts/                    herramientas de la MySQL local dedicada
+tests/ · e2e/               pytest y Playwright
+database/create_database.sql  alta manual de rol y base en PostgreSQL (sin clave real)
+docs/                       auditorías y registros de avance
 ```
+
+El esquema vive en las migraciones de Alembic; no hay un `schema.sql` paralelo que mantener.
+
+### Rutas y variables opcionales de herramientas
+
+Ninguna ruta del código depende de un usuario o equipo concretos. Si tu instalación es distinta, puedes sustituir estos valores sin editar archivos:
+
+| Variable | Para qué sirve | Valor por defecto |
+|---|---|---|
+| `MYSQL_BIN` | Carpeta `bin` de MySQL Server (scripts de `scripts/`) | `mysqld` del `PATH` o la carpeta estándar del instalador de Windows |
+| `NORTE_MYSQL_ROOT` | Datos, logs y archivos privados de la MySQL local dedicada | `%LOCALAPPDATA%\NorteBcpMySQL` (o `~/.local/share/NorteBcpMySQL`) |
+| `CHROME_EXECUTABLE_PATH` | Chrome concreto para las pruebas E2E | Chrome instalado (Playwright `channel: 'chrome'`) |
+| `PYTHON` | Intérprete que usan las pruebas E2E | `python` |
+| `VISUAL_CAPTURE_DIR` | Carpeta de las capturas de `e2e/visual-captures.spec.cjs` | `test-results/visual-captures` |
 
 ## Notas
 

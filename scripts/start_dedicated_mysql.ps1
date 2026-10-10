@@ -1,6 +1,7 @@
 $ErrorActionPreference = 'Stop'
-$mysqlBin = 'C:\Program Files\MySQL\MySQL Server 8.4\bin'
-$instanceRoot = Join-Path $env:LOCALAPPDATA 'NorteBcpMySQL'
+# Valores por defecto del instalador de Windows; se pueden sustituir con MYSQL_BIN y NORTE_MYSQL_ROOT.
+$mysqlBin = if ($env:MYSQL_BIN) { $env:MYSQL_BIN } else { 'C:\Program Files\MySQL\MySQL Server 8.4\bin' }
+$instanceRoot = if ($env:NORTE_MYSQL_ROOT) { $env:NORTE_MYSQL_ROOT } else { Join-Path $env:LOCALAPPDATA 'NorteBcpMySQL' }
 $dataDir = Join-Path $instanceRoot 'data'
 $pidFile = Join-Path $instanceRoot 'server.pid'
 $errorLog = Join-Path $instanceRoot 'server-error.log'

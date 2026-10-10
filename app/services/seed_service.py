@@ -2,7 +2,7 @@ import os
 from datetime import date, datetime, time
 from decimal import Decimal
 from flask import current_app
-from ..models import db, User, Account, Beneficiary, BankCard, Transaction, AuditLog
+from ..models import db, User, Account, Beneficiary, BankCard, Transaction
 
 _SYNTHETIC_CLIENTS=(
     {'name':'Lucía Torres Rojas','opening':'6234.70','income':'4725.35','expenses':('212.68','286.43','89.90','640.25')},

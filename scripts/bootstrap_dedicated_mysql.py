@@ -7,12 +7,13 @@ from pathlib import Path
 import pymysql
 from sqlalchemy import URL, create_engine
 
+from scripts.local_mysql import instance_root, mysql_bin_dir, mysqld_path
 from scripts.migrate_sqlite_to_mysql import DEFAULT_SOURCE, copy_database
 
 
-MYSQL_BIN = Path(r"C:\Program Files\MySQL\MySQL Server 8.4\bin")
-MYSQLD = MYSQL_BIN / "mysqld.exe"
-NORTE_MYSQL_ROOT = Path(os.environ["LOCALAPPDATA"]) / "NorteBcpMySQL"
+MYSQL_BIN = mysql_bin_dir()
+MYSQLD = mysqld_path()
+NORTE_MYSQL_ROOT = instance_root()
 DATA_DIR = NORTE_MYSQL_ROOT / "data"
 LOG_PATH = NORTE_MYSQL_ROOT / "server.log"
 ERROR_LOG_PATH = NORTE_MYSQL_ROOT / "server-error.log"

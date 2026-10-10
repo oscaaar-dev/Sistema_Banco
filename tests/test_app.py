@@ -915,7 +915,7 @@ def test_payment_can_be_confirmed_by_email_otp_without_camera(monkeypatch):
     import re
     from decimal import Decimal
     import app.routes as routes_module
-    from app.models import Account, FacialAnalysis, InteractionSession, OperationChallenge, Transaction, User
+    from app.models import FacialAnalysis, InteractionSession, OperationChallenge, Transaction, User
 
     sent=[]
     monkeypatch.setattr(routes_module,'send_operation_code',lambda email,code,details:sent.append((email,code,details)))

@@ -1,8 +1,12 @@
 const { test, expect } = require('@playwright/test');
 const { execFileSync } = require('child_process');
 const fs = require('fs');
+const path = require('path');
 
-const captureDir = 'C:\\Users\\hola\\.codex\\visualizations\\2026\\10\\07\\01a1179a-7f9a-71d1-8cca-48632c2f9aaa\\norte-audit\\current';
+// Las capturas se guardan dentro del proyecto (test-results/ está ignorado por Git).
+// VISUAL_CAPTURE_DIR permite elegir otra carpeta sin tocar el código.
+const captureDir = process.env.VISUAL_CAPTURE_DIR || path.join(__dirname, '..', 'test-results', 'visual-captures');
+const shotPath = (name) => path.join(captureDir, name);
 
 function authenticatedSessionCookie() {
   const script = [
@@ -38,20 +42,20 @@ test('captura portada, login y dashboard en escritorio y móvil', async ({ page 
   await resetScroll(page);
   await pauseHero(page);
   await resetScroll(page);
-  await page.screenshot({ path: `${captureDir}\\home-desktop.png` });
+  await page.screenshot({ path: shotPath(`home-desktop.png`) });
 
   for (const section of ['personas', 'herramientas', 'seguridad', 'acerca']) {
     await page.goto(`/${section}`);
     await expect(page.locator('.info-card').first()).toBeVisible();
     await page.waitForTimeout(500);
     await resetScroll(page);
-    await page.screenshot({ path: `${captureDir}\\info-${section}-desktop.png` });
+    await page.screenshot({ path: shotPath(`info-${section}-desktop.png`) });
   }
 
   await page.goto('/login');
   await expect(page.locator('.auth-panel')).toBeVisible();
   await resetScroll(page);
-  await page.screenshot({ path: `${captureDir}\\login-desktop.png` });
+  await page.screenshot({ path: shotPath(`login-desktop.png`) });
 
   await page.context().addCookies([{
     name: 'session',
@@ -62,7 +66,7 @@ test('captura portada, login y dashboard en escritorio y móvil', async ({ page 
   await page.goto('/dashboard');
   await expect(page.locator('.welcome-row')).toBeVisible();
   await resetScroll(page);
-  await page.screenshot({ path: `${captureDir}\\dashboard-desktop.png` });
+  await page.screenshot({ path: shotPath(`dashboard-desktop.png`) });
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
@@ -70,21 +74,21 @@ test('captura portada, login y dashboard en escritorio y móvil', async ({ page 
   await resetScroll(page);
   await pauseHero(page);
   await resetScroll(page);
-  await page.screenshot({ path: `${captureDir}\\home-mobile.png` });
+  await page.screenshot({ path: shotPath(`home-mobile.png`) });
 
   for (const section of ['personas', 'herramientas', 'seguridad', 'acerca']) {
     await page.goto(`/${section}`);
     await expect(page.locator('.info-card').first()).toBeVisible();
     await page.waitForTimeout(500);
     await resetScroll(page);
-    await page.screenshot({ path: `${captureDir}\\info-${section}-mobile.png` });
+    await page.screenshot({ path: shotPath(`info-${section}-mobile.png`) });
   }
 
   await page.context().clearCookies();
   await page.goto('/login');
   await expect(page.locator('.auth-panel')).toBeVisible();
   await resetScroll(page);
-  await page.screenshot({ path: `${captureDir}\\login-mobile.png` });
+  await page.screenshot({ path: shotPath(`login-mobile.png`) });
 
   await page.context().addCookies([{
     name: 'session',
@@ -95,5 +99,5 @@ test('captura portada, login y dashboard en escritorio y móvil', async ({ page 
   await page.goto('/dashboard');
   await expect(page.locator('.welcome-row')).toBeVisible();
   await resetScroll(page);
-  await page.screenshot({ path: `${captureDir}\\dashboard-mobile.png` });
+  await page.screenshot({ path: shotPath(`dashboard-mobile.png`) });
 });
