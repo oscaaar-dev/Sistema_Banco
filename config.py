@@ -47,6 +47,14 @@ def _contact_channels():
                          'text':os.getenv('NORTE_FACEBOOK_NAME','').strip() or 'Facebook'})
     return channels
 
+def _public_base_url():
+    value=os.getenv('PUBLIC_BASE_URL','').strip().rstrip('/')
+    parsed=urlparse(value)
+    local=parsed.hostname in ('localhost','127.0.0.1','::1')
+    if parsed.scheme=='https' and parsed.netloc or (parsed.scheme=='http' and local):
+        return value
+    return ''
+
 def _contact_email():
     value=os.getenv('NORTE_CONTACT_EMAIL','').strip()
     return value if re.fullmatch(r'[^@\s<>"]+@[^@\s<>"]+\.[^@\s<>"]+',value) else ''
@@ -94,5 +102,12 @@ class Config:
     LOGIN_CODE_RATE_LIMIT_IP=5
     LOGIN_CODE_RATE_LIMIT_USER=3
     LOGIN_CODE_RATE_LIMIT_WINDOW_SECONDS=900
+    PASSWORD_RESET_TTL_SECONDS=1800
+    PASSWORD_RESET_RATE_LIMIT_IP=5
+    PASSWORD_RESET_RATE_LIMIT_USER=3
+    PASSWORD_RESET_RATE_LIMIT_WINDOW_SECONDS=3600
+    # Base pública (https://dominio) para construir el enlace del correo. Evita que un encabezado Host manipulado
+    # envenene el enlace. En producción es obligatoria para enviar correos de recuperación.
+    PUBLIC_BASE_URL=_public_base_url()
     REGISTRATION_RATE_LIMIT_IP=5
     REGISTRATION_RATE_LIMIT_WINDOW_SECONDS=3600

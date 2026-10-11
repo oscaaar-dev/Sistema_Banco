@@ -19,6 +19,10 @@ def test_initial_migration_up_and_down_only_on_test_sqlite(monkeypatch):
         tables=set(inspect(connection).get_table_names())
         assert {'users','accounts','transactions','cards','beneficiaries','login_challenges','transfers','operation_challenges'}<=tables
         assert 'alembic_version' in tables
+        assert 'password_reset_tokens' in tables
+        assert 'password_changed_at' in {column['name'] for column in inspect(connection).get_columns('users')}
+        token_columns={column['name'] for column in inspect(connection).get_columns('password_reset_tokens')}
+        assert {'user_id','token_hash','expires_at','used_at'}<=token_columns
         command.downgrade(migration_config,'base')
         remaining=set(inspect(connection).get_table_names())
         assert not {'users','accounts','transactions','cards','beneficiaries','login_challenges','transfers','operation_challenges'}&remaining

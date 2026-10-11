@@ -301,3 +301,16 @@ html:not(.mm-js) .sh .mm-item:hover>.mm-panel,html:not(.mm-js) .sh .mm-item:focu
 .nm-window__list{display:flex;flex-direction:column;gap:7px}
 .nm-window .nm-row{padding:8px 12px;border-radius:12px;gap:10px}.nm-window .nm-row>i{width:26px;height:26px;font-size:12px}.nm-window .nm-skel{height:8px}.nm-window .nm-row em{width:52px;height:9px}
 
+/* ═════════════════════════ REQUISITOS DE CONTRASEÑA ═════════════════════════ */
+.pw-rules{display:grid;gap:6px;margin:2px 0 14px;padding:12px 14px;list-style:none;border-radius:var(--r-md,16px);background:var(--n-mist,#f5f4f8);font-size:13px;line-height:1.35}
+.pw-rules li{display:flex;align-items:center;gap:8px;color:var(--n-text-2,#5b5868);transition:color .2s}
+.pw-rules li i{flex:none;font-size:14px;transition:transform .25s var(--ease-spring,ease)}
+.pw-rules li.is-ok{color:var(--n-violet,#820ad1)}
+.pw-rules li.is-ok i{transform:scale(1.12)}
+.pw-rules li.is-bad{color:var(--n-danger,#b3261e)}
+.pw-match{margin:-6px 0 12px;font-size:13px;line-height:1.35}
+.pw-match.is-ok{color:var(--n-violet,#820ad1)}
+.pw-match.is-bad{color:var(--n-danger,#b3261e)}
+.auth-aux-link{display:inline-block;margin:-4px 0 14px;font-size:14px;font-weight:500;color:var(--n-violet,#820ad1)}
+.auth-aux-link:hover{text-decoration:underline;text-underline-offset:3px}
+

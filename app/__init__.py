@@ -56,6 +56,9 @@ def create_app(config_overrides=None):
         flash(login_manager.login_message,'info')
         return redirect(url_for(login_manager.login_view, next=request.url))
 
+    from .services.password_policy import MAX_LENGTH, MIN_LENGTH, RULES
+    app.jinja_env.globals.update(password_rules=RULES,password_min_length=MIN_LENGTH,password_max_length=MAX_LENGTH)
+
     @app.context_processor
     def inject_brand_context():
         return {
@@ -91,6 +94,11 @@ def create_app(config_overrides=None):
 
     @app.before_request
     def require_email_second_factor():
+        if current_user.is_authenticated and session.get('pwd_stamp','0')!=current_user.session_stamp():
+            logout_user()
+            session.clear()
+            flash('Tu contraseña cambió. Inicia sesión de nuevo con las credenciales actuales.','info')
+            return redirect(url_for('main.login'))
         if current_user.is_authenticated and not session.get('login_2fa_verified'):
             logout_user()
             session.clear()

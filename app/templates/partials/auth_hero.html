@@ -1,0 +1,22 @@
+{# Panel visual de las pantallas de acceso (mismo marcado que login/registro: lo usa el parallax de auth.js). #}
+{% macro auth_hero(kicker, title, copy, footer='Entorno académico seguro') %}
+<section class="login-art auth-hero">
+  <div class="auth-orbit auth-orbit-one" data-parallax="0.08"></div>
+  <div class="auth-orbit auth-orbit-two" data-parallax="0.15"></div>
+  <div class="auth-orbit auth-orbit-three" data-parallax="0.23"></div>
+  <div class="auth-visual" aria-hidden="true">
+    <div class="auth-float-card auth-float-card-main" data-parallax="0.3">
+      <span class="auth-visual-kicker"><i class="bi bi-shield-lock"></i> {{ kicker }}</span>
+      <span class="auth-visual-title">Tu acceso,<br>bajo tu control.</span>
+      <span class="auth-visual-rule"></span>
+      <span class="auth-visual-bottom"><i class="bi bi-envelope-check"></i> Enlace de un solo uso</span>
+    </div>
+    <div class="auth-float-card auth-float-card-small" data-parallax="0.48">
+      <span class="auth-small-icon"><i class="bi bi-key"></i></span>
+      <span><b>Contraseña nueva</b><small>8 a 10 caracteres</small></span>
+    </div>
+  </div>
+  <div class="art-copy"><span class="eyebrow">{{ kicker }}</span><h1>{{ title|safe }}</h1><p>{{ copy }}</p></div>
+  <div class="art-bottom"><span><i class="bi bi-shield-check"></i> {{ footer }}</span><span></span></div>
+</section>
+{% endmacro %}

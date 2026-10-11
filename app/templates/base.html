@@ -1,5 +1,6 @@
 {% set is_intranet = current_user.is_authenticated and request.endpoint!='main.index' %}
-{% set is_auth = request.endpoint in ('main.login','main.register','main.verify_login') %}
+{% set auth_endpoints = ('main.login','main.register','main.verify_login','main.forgot_password','main.reset_password') %}
+{% set is_auth = request.endpoint in auth_endpoints %}
 {% set is_public = not is_intranet and not is_auth %}
 <!doctype html>
 <html lang="es">
@@ -91,8 +92,11 @@
   {% if request.endpoint=='main.index' %}
   <script src="{{ url_for('static',filename='js/home.js',v='home-22') }}"></script>
   {% endif %}
-  {% if request.endpoint in ('main.login','main.register','main.verify_login') %}
+  {% if is_auth %}
   <script src="{{ url_for('static',filename='js/auth.js',v='auth-password-toggle-1') }}"></script>
+  {% endif %}
+  {% if request.endpoint in ('main.register','main.reset_password') %}
+  <script src="{{ url_for('static',filename='js/password-policy.js',v='pwpolicy-1') }}" defer></script>
   {% endif %}
   <script src="{{ url_for('static',filename='js/motion.js',v='motion-1') }}" defer></script>
   <script src="{{ url_for('static',filename='js/site-menu.js',v='menu-1') }}" defer></script>

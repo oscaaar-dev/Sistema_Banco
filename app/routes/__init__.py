@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import importlib
 import secrets
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
@@ -12,6 +13,7 @@ from ..models import db, User, LoginChallenge, LoginAttemptLimit, OperationChall
 from ..services.banking_service import account_for, process_operation, process_internal_transfer, log, operation_risk_for
 from ..services.statement_service import account_statement_pdf
 from ..services.email_service import EmailDeliveryError, send_login_code, send_operation_code
+from ..services.password_policy import validate_new_password
 bp=Blueprint('main',__name__)
 
 LOGIN_FAILURE_LIMIT=5
@@ -350,21 +352,12 @@ def register():
         email_pattern=r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$"
         if len(email)>254 or not re.fullmatch(email_pattern,email):
             errors.append('Ingresa una dirección de correo electrónico válida.')
-        allowed_password_characters="."
-        if (
-            not 8<=len(password)<=10
-            or not any(character.isupper() for character in password)
-            or not any(character.islower() for character in password)
-            or not any(character.isdecimal() for character in password)
-            or any(not (character.isalpha() or character.isdecimal() or character in allowed_password_characters) for character in password)
-        ):
-            errors.append('La contraseña debe tener entre 8 y 10 caracteres, con al menos una mayúscula, una minúscula y un número. Puedes usar letras, números y puntos (.), sin espacios.')
-        if password!=password_confirmation:
-            errors.append('Las contraseñas no coinciden.')
+        password_errors,password_failed=validate_new_password(password,password_confirmation)
+        errors.extend(password_errors)
         if errors:
             for error in errors:
                 flash(error,'error')
-            return render_template('register.html'),400
+            return render_template('register.html',password_failed=password_failed),400
 
         duplicate=User.query.filter(or_(
             User.username==dni,
@@ -445,6 +438,7 @@ def verify_login():
             login_user(user)
             session.permanent=True
             session['login_2fa_verified']=True
+            session['pwd_stamp']=user.session_stamp()
             log(user,'LOGIN','SEGURIDAD')
             db.session.commit()
             return redirect(_home_for_role(user))
@@ -926,3 +920,5 @@ def support():
         abort(403)
     events=AuditLog.query.order_by(desc(AuditLog.created_at)).limit(10).all()
     return render_template('support.html',accounts=Account.query.count(),operations=Transaction.query.count(),events=events)
+
+importlib.import_module('.recovery',__package__)  # registra /recuperar sobre este blueprint

@@ -122,6 +122,10 @@ Ninguna ruta del código depende de un usuario o equipo concretos. Si tu instala
 | `PYTHON` | Intérprete que usan las pruebas E2E | `python` |
 | `VISUAL_CAPTURE_DIR` | Carpeta de las capturas de `e2e/visual-captures.spec.cjs` | `test-results/visual-captures` |
 
+### Contraseñas y recuperación (clientes)
+
+Las contraseñas nuevas deben tener **8 a 10 caracteres con mayúscula, minúscula, número y punto (.)**; la regla vive en `app/services/password_policy.py` y se aplica igual al registrarse y al recuperar. La recuperación (`/recuperar`) es exclusiva para clientes, usa tokens de un solo uso y requiere correo configurado y, en producción, `PUBLIC_BASE_URL`. Hace falta aplicar la migración `d3a91c5e7f20` (`alembic upgrade head`). Detalles y pasos de prueba en [`docs/seguridad-arquitectura.md`](docs/seguridad-arquitectura.md).
+
 ### Datos de contacto y redes (cabecera y pie)
 
 Se leen **solo** de variables de entorno (ver `.env.example`); las plantillas no repiten ningún dato. Los canales que no se configuren, o que no sean válidos, simplemente no se muestran.
