@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block crumb %}Administración{% endblock %}
+{% block content %}
+<div class="eyebrow dark">VISTA GENERAL</div>
+<h1>Administración</h1>
+<p class="muted">Indicadores agregados del entorno académico.</p>
+<section class="stats-grid">
+  <article class="panel stat-card"><span class="soft-icon"><i class="bi bi-people"></i></span><small>USUARIOS</small><strong>{{ users }}</strong></article>
+  <article class="panel stat-card"><span class="soft-icon"><i class="bi bi-arrow-left-right"></i></span><small>OPERACIONES</small><strong>{{ operations }}</strong></article>
+  <article class="panel stat-card"><span class="soft-icon"><i class="bi bi-clock-history"></i></span><small>SESIONES</small><strong>{{ sessions|length }}</strong></article>
+</section>
+<article class="panel movements-panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">TRAZABILIDAD</div><h3>Sesiones recientes</h3></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Usuario</th><th>Operación</th><th>Fecha</th><th>Duración</th><th>Interacción</th><th>Indicador</th></tr></thead>
+    <tbody>{% for s in sessions %}
+      <tr><td>{{ s.user.username }}</td><td>{{ s.operation_type }}</td><td>{{ s.started_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ s.duration_seconds }} s</td><td>{{ s.ml_result.label if s.ml_result else 'Pendiente' }}</td><td>{% if s.risk_assessment %}{{ s.risk_assessment.level }} · {{ s.risk_assessment.score }}%{% else %}Pendiente{% endif %}</td></tr>
+    {% else %}<tr><td colspan="6" class="empty-state">Aún no hay sesiones registradas.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <small>El porcentaje es un puntaje de alerta basado en reglas; no es una probabilidad ni bloquea operaciones.</small>
+</article>
+<article class="panel movements-panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">SEGURIDAD</div><h3>Auditoría reciente</h3></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Usuario</th><th>Acción</th><th>Módulo</th><th>Resultado</th><th>Fecha</th></tr></thead>
+    <tbody>{% for l in logs %}
+      <tr><td>{{ l.user.username if l.user else 'Sistema' }}</td><td>{{ l.action }}</td><td>{{ l.module }}</td><td>{{ l.result }}</td><td>{{ l.created_at.strftime('%d/%m/%Y %H:%M') }}</td></tr>
+    {% else %}<tr><td colspan="5" class="empty-state">No hay registros todavía.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</article>
+{% endblock %}

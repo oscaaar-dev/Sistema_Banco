@@ -1,0 +1,9 @@
+{
+  "name": "norte-banca-digital",
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0"
+  }
+}

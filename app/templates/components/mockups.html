@@ -1,0 +1,100 @@
+{#
+  Mockups de la interfaz de Norte, construidos con HTML/CSS para que sigan los componentes reales.
+  Cada mockup está completo: marco del dispositivo, isla, barra de estado y pantalla con el contenido
+  real del sistema (resumen, transferencia, tarjetas, código, movimientos, ingresos y egresos).
+  Los importes van enmascarados y rotulados como ejemplo: son ilustraciones, no información financiera.
+  Estilos: static/css/norte-site.css (prefijo nm-).
+#}
+
+{% macro phone(screen='home', size='md', alt='Ilustración de una pantalla de Norte con datos de ejemplo', extra='') %}
+<div class="nm-phone nm-phone--{{ size }} {{ extra }}" role="img" aria-label="{{ alt }}">
+  <div class="nm-phone__body">
+    <i class="nm-phone__island"></i>
+    <div class="nm-screen nm-screen--{{ screen }}" aria-hidden="true">
+      <div class="nm-status"><b>9:41</b><span><i class="bi bi-reception-4"></i><i class="bi bi-wifi"></i><i class="bi bi-battery-full"></i></span></div>
+      {% if screen == 'home' %}
+      <div class="nm-greet"><span class="nm-avatar">N</span><div><small>Hola</small><b>Tu espacio Norte</b></div><i class="bi bi-bell"></i></div>
+      <div class="nm-balance">
+        <small>Saldo disponible</small>
+        <strong><span class="nm-mask">S/ ••••••</span><i class="bi bi-eye-slash"></i></strong>
+        <span class="nm-balance__foot">Cuenta de ahorros · ···· ····</span>
+        <svg class="nm-spark" viewBox="0 0 120 32" preserveAspectRatio="none"><path d="M0 24C14 22 18 10 32 14S52 28 66 18 88 4 102 10 116 12 120 6" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="2" stroke-linecap="round"/><path d="M0 24C14 22 18 10 32 14S52 28 66 18 88 4 102 10 116 12 120 6V32H0Z" fill="rgba(255,255,255,.14)"/></svg>
+      </div>
+      <div class="nm-actions"><span><i class="bi bi-arrow-left-right"></i>Transferir</span><span><i class="bi bi-receipt"></i>Pagar</span><span><i class="bi bi-phone"></i>Recargar</span><span><i class="bi bi-credit-card-2-front"></i>Tarjetas</span></div>
+      <div class="nm-list-title">Actividad reciente</div>
+      <div class="nm-row"><i class="bi bi-arrow-down-left"></i><div><b>Transferencia recibida</b><small>Hoy · Abono</small></div><em>S/ ••,••</em></div>
+      <div class="nm-row"><i class="bi bi-arrow-up-right"></i><div><b>Pago de servicios</b><small>Ayer · Servicios</small></div><em class="is-negative">− S/ ••,••</em></div>
+      <div class="nm-row"><i class="bi bi-arrow-up-right"></i><div><b>Recarga de celular</b><small>12 oct · Recargas</small></div><em class="is-negative">− S/ ••,••</em></div>
+      {% elif screen == 'transfer' %}
+      <div class="nm-title"><i class="bi bi-chevron-left"></i><b>Nueva transferencia</b></div>
+      <div class="nm-steps"><span class="is-done"><i class="bi bi-check2"></i></span><i></i><span class="is-active">2</span><i></i><span>3</span></div>
+      <div class="nm-field"><small>Destinatario</small><div>Beneficiario registrado <i class="bi bi-chevron-down"></i></div></div>
+      <div class="nm-field"><small>Monto a transferir</small><div><em>S/</em> ••,••</div></div>
+      <div class="nm-note"><i class="bi bi-envelope-check"></i><span><b>Verificación por correo</b><small>Recibirás un código para confirmar.</small></span></div>
+      <div class="nm-cta">Continuar <i class="bi bi-arrow-right"></i></div>
+      {% elif screen == 'cards' %}
+      <div class="nm-title"><i class="bi bi-chevron-left"></i><b>Mis tarjetas</b></div>
+      <div class="nm-mini-card"><span>norte<i>.</i></span><em></em><b>•••• •••• •••• ••••</b><small>TARJETA DE MUESTRA</small></div>
+      <div class="nm-line"><span>Estado</span><b class="nm-pill">Activa</b></div>
+      <div class="nm-line"><span>Bloquear tarjeta</span><b class="nm-switch"><i></i></b></div>
+      <div class="nm-line"><span>Límite referencial</span><b>S/ ••,•••</b></div>
+      <div class="nm-note"><i class="bi bi-info-circle"></i><span><b>Producto de muestra</b><small>No sirve para compras ni retiros.</small></span></div>
+      {% elif screen == 'code' %}
+      <div class="nm-code-hero"><span><i class="bi bi-shield-lock"></i></span><b>Código de seguridad</b><small>Enviamos un código de 6 dígitos a tu correo. Vence en 5 minutos.</small></div>
+      <div class="nm-otp"><i class="is-focus"></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="nm-cta">Verificar <i class="bi bi-arrow-right"></i></div>
+      <div class="nm-resend">¿No llegó? <b>Reenviar código</b></div>
+      {% elif screen == 'movements' %}
+      <div class="nm-title"><i class="bi bi-chevron-left"></i><b>Movimientos</b></div>
+      <div class="nm-chips"><span class="is-on">Todos</span><span>Ingresos</span><span>Pagos</span><span>Recargas</span></div>
+      <div class="nm-row"><i class="bi bi-arrow-down-left"></i><div><b>Transferencia recibida</b><small>Hoy · Abono</small></div><em>S/ ••,••</em></div>
+      <div class="nm-row"><i class="bi bi-arrow-up-right"></i><div><b>Pago de servicios</b><small>Ayer · Servicios</small></div><em class="is-negative">− S/ ••,••</em></div>
+      <div class="nm-row"><i class="bi bi-arrow-up-right"></i><div><b>Recarga de celular</b><small>12 oct · Recargas</small></div><em class="is-negative">− S/ ••,••</em></div>
+      <div class="nm-row"><i class="bi bi-arrow-up-right"></i><div><b>Transferencia enviada</b><small>10 oct · Envío</small></div><em class="is-negative">− S/ ••,••</em></div>
+      <div class="nm-row"><i class="bi bi-arrow-down-left"></i><div><b>Depósito de muestra</b><small>8 oct · Abono</small></div><em>S/ ••,••</em></div>
+      <div class="nm-cta nm-cta--ghost"><i class="bi bi-file-earmark-pdf"></i> Descargar PDF</div>
+      {% elif screen == 'insights' %}
+      <div class="nm-title"><i class="bi bi-chevron-left"></i><b>Ingresos y egresos</b></div>
+      <div class="nm-chips"><span>7 días</span><span class="is-on">30 días</span><span>90 días</span></div>
+      <div class="nm-bars">{% for a, b in ((38, 22), (62, 30), (28, 48), (74, 36), (50, 20), (88, 42), (58, 28)) %}<span><i style="height:{{ a }}%"></i><i style="height:{{ b }}%"></i></span>{% endfor %}</div>
+      <div class="nm-legend"><span><i></i>Ingresos</span><span><i></i>Egresos</span></div>
+      <div class="nm-two"><div><small>Ingresos</small><b>S/ ••,•••</b></div><div><small>Egresos</small><b>S/ ••,•••</b></div></div>
+      {% endif %}
+      <div class="nm-tag">Ilustración · datos de ejemplo</div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+
+{% macro concept_card(kind='dark', label='Tarjeta conceptual de Norte, ilustración sin valor financiero', caption='Concepto') %}
+<div class="nm-card nm-card--{{ kind }}" role="img" aria-label="{{ label }}">
+  <span class="nm-card__shine"></span>
+  <div class="nm-card__top"><b>norte<i>.</i></b><span>{{ caption }}</span></div>
+  <div class="nm-card__mid"><span class="nm-card__chip"></span><i class="bi bi-wifi"></i></div>
+  <div class="nm-card__num">•••• •••• •••• ••••</div>
+  <div class="nm-card__bottom"><span>TITULAR</span><span>{{ 'DÉBITO' if kind in ('violet','dark') else 'AHORRO' if kind == 'ink' else 'VIRTUAL' }}</span></div>
+</div>
+{% endmacro %}
+
+
+{% macro dash_window(alt='Ilustración del panel de escritorio de Norte con datos de ejemplo') %}
+<div class="nm-window" role="img" aria-label="{{ alt }}">
+  <div class="nm-window__bar"><i></i><i></i><i></i><span><i class="bi bi-lock-fill"></i> norte · resumen</span></div>
+  <div class="nm-window__body" aria-hidden="true">
+    <aside><b>norte<i>.</i></b><span class="is-on"><i class="bi bi-grid-1x2"></i></span><span><i class="bi bi-wallet2"></i></span><span><i class="bi bi-arrow-left-right"></i></span><span><i class="bi bi-credit-card-2-front"></i></span><span><i class="bi bi-clock-history"></i></span></aside>
+    <main>
+      <div class="nm-window__head"><b>Resumen de tu cuenta</b><span class="nm-pill">Datos de ejemplo</span></div>
+      <div class="nm-window__grid">
+        <div class="nm-window__balance"><small>Saldo disponible</small><strong>S/ ••••••</strong><svg viewBox="0 0 120 32" preserveAspectRatio="none"><path d="M0 24C14 22 18 10 32 14S52 28 66 18 88 4 102 10 116 12 120 6" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+        <div class="nm-window__chart"><small>Ingresos y egresos</small><div class="nm-bars nm-bars--sm">{% for a, b in ((38, 22), (62, 30), (28, 48), (74, 36), (50, 20), (88, 42), (58, 28), (66, 34)) %}<span><i style="height:{{ a }}%"></i><i style="height:{{ b }}%"></i></span>{% endfor %}</div></div>
+      </div>
+      <div class="nm-window__list">
+        <div class="nm-row"><i class="bi bi-arrow-down-left"></i><div><b>Transferencia recibida</b><small>Hoy · Abono</small></div><em>S/ ••,••</em></div>
+        <div class="nm-row"><i class="bi bi-arrow-up-right"></i><div><b>Pago de servicios</b><small>Ayer · Servicios</small></div><em class="is-negative">− S/ ••,••</em></div>
+        <div class="nm-row"><i class="bi bi-arrow-up-right"></i><div><b>Recarga de celular</b><small>12 oct · Recargas</small></div><em class="is-negative">− S/ ••,••</em></div>
+      </div>
+    </main>
+  </div>
+</div>
+{% endmacro %}

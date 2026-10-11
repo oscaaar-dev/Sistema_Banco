@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}{% if page_key=='terminos' %}Términos y condiciones{% else %}Privacidad y datos personales{% endif %} · Norte{% endblock %}
+{% block auth_content %}
+<div class="public-home legal-page">
+  {% include 'partials/site_header.html' %}
+  <main class="legal-main">
+    <section class="legal-hero nds-ambient" data-ambient="lines"><div class="nds-container"><span class="home-section-kicker">INFORMACIÓN LEGAL</span><h1>{% if page_key=='terminos' %}Términos y condiciones de uso{% else %}Privacidad y tratamiento de datos personales{% endif %}</h1><p>{{ norte_legal_notice }}</p></div></section>
+    <section class="legal-content nds-container">
+      {% if page_key=='terminos' %}
+      <article><h2>1. Alcance del proyecto</h2><p>Norte ofrece una experiencia digital en desarrollo. Sus pantallas, saldos, movimientos, comprobantes y operaciones no representan productos financieros, depósitos, créditos ni transferencias reales. No se mueve dinero real mediante esta aplicación.</p></article>
+      <article><h2>2. Uso responsable</h2><p>Utiliza únicamente datos de prueba o información que estés autorizado a proporcionar. No ingreses claves bancarias reales, números completos de tarjetas, credenciales de terceros ni información financiera sensible que no sea necesaria para las funciones disponibles.</p></article>
+      <article><h2>3. Acceso y seguridad</h2><p>La cuenta usa una contraseña y un código enviado al correo registrado. Estas medidas pertenecen al estado actual del proyecto y no sustituyen los controles exigibles a una entidad financiera. No compartas tus credenciales ni códigos de acceso.</p></article>
+      <article><h2>4. Cambios y disponibilidad</h2><p>Las funcionalidades pueden cambiar, pausarse o retirarse durante el desarrollo. Los comprobantes generados son informativos y no tienen validez financiera, tributaria ni contractual.</p></article>
+      {% else %}
+      <article><h2>1. Datos tratados</h2><p>Las funcionalidades actuales pueden tratar nombre, DNI, correo electrónico, credenciales protegidas mediante hash, datos de navegación y los datos ingresados para operar dentro del entorno. No ingreses datos personales de terceras personas sin autorización.</p></article>
+      <article><h2>2. Finalidad y consentimiento</h2><p>Los datos se usan para crear y administrar el acceso, enviar códigos de seguridad, mostrar el contenido de la cuenta y registrar actividad técnica dentro del proyecto. Al enviar el formulario correspondiente confirmas que conoces esta finalidad. Puedes dejar de usar el servicio si no deseas proporcionar esos datos.</p></article>
+      <article><h2>3. Cámara y datos sensibles</h2><p>Antes de usar la cámara en una operación se muestra un aviso con opciones para aceptar, rechazar y continuar con el código de correo, o cancelar. Si aceptas, la cámara solo muestra una vista previa local en tu navegador: Norte no recibe, analiza ni almacena fotogramas o datos faciales. Se registra en la base de datos que la cuenta aceptó, junto con la versión del aviso y la fecha. El código enviado al correo sigue siendo obligatorio para confirmar la operación. Los posibles registros faciales históricos no se han inspeccionado ni se eliminan automáticamente.</p></article>
+      <article><h2>4. Conservación, seguridad y terceros</h2><p>La información se conserva mientras la cuenta y el entorno de desarrollo estén activos, salvo que una obligación aplicable exija otra cosa. Los servicios de alojamiento y envío de correo que se configuren para la aplicación pueden tratar datos estrictamente necesarios para prestar sus servicios. No se venden datos ni se usan para publicidad.</p></article>
+      <article><h2>5. Derechos ARCO</h2><p>Conforme a la Ley N.º 29733 y su reglamento, puedes solicitar acceso, rectificación, cancelación u oposición respecto de tus datos personales. Mientras Norte se encuentre en desarrollo, el responsable del proyecto debe habilitar un canal de atención antes de abrir el uso con datos personales reales. No uses el sistema con datos reales hasta que ese canal esté publicado.</p></article>
+      {% endif %}
+      <aside class="legal-notice"><i class="bi bi-info-circle"></i><p>{{ norte_legal_notice }}</p></aside>
+    </section>
+  </main>
+  {% include 'partials/site_footer.html' %}
+</div>
+{% endblock %}

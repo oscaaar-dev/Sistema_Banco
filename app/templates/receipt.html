@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block crumb %}Comprobante{% endblock %}
+{% block content %}
+<section class="receipt-wrap">
+  <div class="receipt-icon"><i class="bi bi-check2"></i></div>
+  <div class="eyebrow dark">OPERACIÓN REGISTRADA</div>
+  <h1>¡Listo!</h1>
+  <p class="muted">La operación se registró dentro de Norte y no tiene efectos financieros.</p>
+  <article class="panel receipt-card">
+    <div class="receipt-brand">norte<span class="brand-dot">.</span><span>COMPROBANTE NORTE</span></div>
+    <div class="receipt-amount">{% if tx.amount|float < 0 %}−{% else %}+{% endif %} S/ {{ '{:,.2f}'.format(tx.amount|float|abs) }}</div>
+    <div class="receipt-description">{{ tx.description }}</div>
+    <div class="receipt-line"><span>Estado</span><b class="pill-success">{{ tx.status }}</b></div>
+    <div class="receipt-line"><span>Fecha</span><b>{{ tx.created_at.strftime('%d/%m/%Y %H:%M') }}</b></div>
+    <div class="receipt-line"><span>Número de operación</span><b>NORTE-{{ '%06d'|format(tx.id) }}</b></div>
+    <div class="receipt-line"><span>Saldo registrado</span><b>S/ {{ '{:,.2f}'.format(tx.balance_after|float) }}</b></div>
+    <div class="receipt-disclaimer"><i class="bi bi-info-circle"></i> Comprobante generado dentro de Norte, sin validez financiera.</div>
+  </article>
+  {% if tx.session and tx.session.risk_assessment %}
+  <div class="panel insight-card">
+    <span class="soft-icon"><i class="bi bi-shield-exclamation"></i></span>
+    <div>
+      <b>Indicador de la operación: {{ tx.session.risk_assessment.level }} · {{ tx.session.risk_assessment.score }}%</b>
+      <p>Resultado orientativo basado en monto, saldo, historial y duración. Duración del formulario: {{ tx.session.duration_seconds }} s.</p>
+      {% for reason in tx.session.risk_assessment.reasons %}<small>{{ reason }}{% if not loop.last %}<br>{% endif %}</small>{% endfor %}
+      <small>Este indicador no es una probabilidad estadística de fraude ni una decisión automática.</small>
+    </div>
+  </div>
+  {% endif %}
+  <div class="receipt-actions">
+    <a class="btn btn-primary" href="{{ url_for('main.dashboard') }}">Volver al inicio <i class="bi bi-arrow-right"></i></a>
+    <a class="btn btn-outline" href="{{ url_for('main.movements') }}">Ver movimientos</a>
+  </div>
+</section>
+{% endblock %}

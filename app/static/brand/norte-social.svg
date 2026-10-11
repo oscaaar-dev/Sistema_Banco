@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="Norte, banca digital en desarrollo">
+  <rect width="1200" height="630" fill="#F4F4F4"/><circle cx="1080" cy="505" r="350" fill="#000000"/><circle cx="1004" cy="146" r="150" fill="#FFFFFF"/>
+  <path d="M819 340c130-70 236-73 356-9" fill="none" stroke="#820AD1" stroke-width="15" stroke-linecap="round"/>
+  <circle cx="172" cy="186" r="84" fill="#FFFFFF"/><circle cx="172" cy="186" r="56" fill="#820AD1"/>
+  <path d="m194 153-13 33-31 14 13-33 31-14Z" fill="#FFFFFF"/><circle cx="172" cy="186" r="8" fill="#820AD1"/>
+  <text x="120" y="352" fill="#000000" font-family="Arial, sans-serif" font-size="92" font-weight="500" letter-spacing="0">NORTE.</text>
+  <text x="126" y="410" fill="#777777" font-family="Arial, sans-serif" font-size="28" font-weight="500" letter-spacing="4">BANCA DIGITAL</text>
+  <text x="126" y="490" fill="#666666" font-family="Arial, sans-serif" font-size="27">Proyecto de banca digital en desarrollo</text>
+</svg>

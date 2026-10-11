@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 284 64" role="img" aria-label="NORTE. Banca digital">
+  <circle cx="32" cy="32" r="30" fill="#F4F4F4"/><circle cx="32" cy="32" r="20" fill="#820AD1"/>
+  <path d="M39.8 20.2 35 32.3l-10.8 5 4.8-12.1 10.8-5Z" fill="#FFFFFF"/><circle cx="32" cy="32" r="3.3" fill="#820AD1"/>
+  <text x="76" y="33" fill="#000000" font-family="Arial, sans-serif" font-size="25" font-weight="500" letter-spacing="0">NORTE.</text>
+  <text x="77" y="49" fill="#777777" font-family="Arial, sans-serif" font-size="8" font-weight="500" letter-spacing="1">BANCA DIGITAL</text>
+</svg>

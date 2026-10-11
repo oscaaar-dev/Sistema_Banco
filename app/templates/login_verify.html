@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Código de seguridad · Norte{% endblock %}
+{% block auth_content %}
+{% include 'auth_header.html' %}
+<main class="login-screen auth-login-screen">
+  <section class="login-art auth-hero">
+    <div class="auth-orbit auth-orbit-one" data-parallax="0.08"></div>
+    <div class="auth-orbit auth-orbit-two" data-parallax="0.15"></div>
+    <div class="auth-orbit auth-orbit-three" data-parallax="0.23"></div>
+    <div class="auth-visual" aria-hidden="true">
+      <div class="auth-float-card auth-float-card-main" data-parallax="0.3">
+        <span class="auth-visual-kicker"><i class="bi bi-shield-lock"></i> PROTECCIÓN PARA TU CUENTA</span>
+        <span class="auth-visual-title">Un paso breve,<br>más tranquilidad.</span>
+        <span class="auth-visual-rule"></span>
+        <span class="auth-visual-bottom"><i class="bi bi-envelope-check"></i> Verificación por correo</span>
+      </div>
+      <div class="auth-float-card auth-float-card-small" data-parallax="0.48">
+        <span class="auth-small-icon"><i class="bi bi-key"></i></span>
+        <span><b>Código personal</b><small>No lo compartas</small></span>
+      </div>
+      <div class="auth-spark auth-spark-one" data-parallax="0.58"><i class="bi bi-plus-lg"></i></div>
+      <div class="auth-spark auth-spark-two" data-parallax="0.38"><i class="bi bi-stars"></i></div>
+    </div>
+    <div class="art-copy"><span class="eyebrow">SEGUNDO PASO DE ACCESO</span><h1>Una capa más<br>de protección.</h1><p>Confirma el código que enviamos a tu correo registrado.</p></div>
+    <div class="art-bottom"><span><i class="bi bi-shield-check"></i> Entorno académico seguro</span><span>02 — 03</span></div>
+  </section>
+  <section class="login-panel auth-panel">
+    <div class="login-box">
+      <div class="login-mobile-brand"><span class="brand-mark">n</span> norte.</div>
+      <div class="auth-form-heading"><span class="eyebrow dark">VERIFICACIÓN DE CORREO</span><h2>Ingresa tu código</h2><p class="muted">Enviamos un código de seis dígitos a <b>{{ masked_email }}</b>. Vence en cinco minutos.</p></div>
+      {% with messages=get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+      <form method="post" action="{{ url_for('main.verify_login') }}" class="form-stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Código de seguridad<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" placeholder="000000" required autofocus></label>
+        <button class="btn btn-primary btn-full">Verificar y entrar <i class="bi bi-arrow-right"></i></button>
+      </form>
+      <form method="post" action="{{ url_for('main.resend_login_code') }}" class="form-stack auth-secondary-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-outline btn-full" type="submit">Enviar un código nuevo</button>
+      </form>
+      <form method="post" action="{{ url_for('main.cancel_login') }}" class="form-stack auth-cancel-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="text-link" type="submit">Cancelar y volver al inicio de sesión</button>
+      </form>
+      <div class="login-legal">No compartas este código. {{ norte_legal_notice }} <a class="text-link" href="{{ url_for('main.privacy') }}">Privacidad</a></div>
+    </div>
+  </section>
+</main>
+{% include 'partials/site_footer.html' %}
+{% endblock %}

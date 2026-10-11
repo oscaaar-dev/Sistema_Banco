@@ -1,0 +1,81 @@
+{#
+  Pie negro compartido por todas las páginas (públicas, acceso, errores e intranet).
+  Los datos de contacto salen de la configuración central (config.py / variables NORTE_*): aquí no se repiten.
+  Evita los textos «Banca por Internet», «Abrir cuenta», «Leer privacidad» y «Leer términos», que los tests esperan una sola vez.
+  No inventa dirección, RUC, licencias ni registros de supervisión.
+#}
+{% from 'components/icons.html' import social_icon %}
+<footer class="sf" id="siteFooter">
+  <div class="sf__wrap">
+    <div class="sf__grid">
+      <div class="sf__brand">
+        <a class="sh-brand" href="{{ url_for('main.index') }}" aria-label="Norte, inicio">
+          <span class="sh-brand__mark"><img src="{{ url_for('static',filename='brand/norte-favicon.svg') }}" alt="" width="38" height="38" loading="lazy"></span>
+          <span>NORTE<i>.</i><small>BANCA DIGITAL</small></span>
+        </a>
+        <p>Una experiencia académica de banca digital: pantallas y recorridos de demostración para entender cómo se organiza un sistema financiero moderno.</p>
+        <span class="sf__tag"><i class="bi bi-compass" aria-hidden="true"></i> Tu banca, más clara.</span>
+      </div>
+
+      <nav class="sf__col" aria-labelledby="sf-explora">
+        <h2 id="sf-explora">Explora</h2>
+        <ul class="sf__list">
+          <li><a class="sf__link" href="{{ url_for('main.personas') }}">Personas</a></li>
+          <li><span class="sf__soon">PyMES <em>Próximamente</em></span></li>
+          <li><span class="sf__soon">Empresas <em>Próximamente</em></span></li>
+          <li><a class="sf__link" href="{{ url_for('main.herramientas') }}">Herramientas</a></li>
+          <li><a class="sf__link" href="{{ url_for('main.seguridad') }}">Seguridad</a></li>
+          <li><a class="sf__link" href="{{ url_for('main.acerca') }}">Acerca de Norte</a></li>
+        </ul>
+      </nav>
+
+      <nav class="sf__col" aria-labelledby="sf-ayuda">
+        <h2 id="sf-ayuda">Ayuda y educación</h2>
+        <ul class="sf__list">
+          <li><a class="sf__link" href="{{ url_for('main.herramientas') }}">Guía de las herramientas</a></li>
+          <li><a class="sf__link" href="{{ url_for('main.seguridad') }}">Consejos de seguridad</a></li>
+          <li><a class="sf__link" href="{{ url_for('main.privacy') }}">Privacidad y datos</a></li>
+          <li><a class="sf__link" href="{{ url_for('main.terms') }}">Términos de uso</a></li>
+          <li><span class="sf__soon">Educación financiera <em>Próximamente</em></span></li>
+        </ul>
+      </nav>
+
+      <section class="sf__col" aria-labelledby="sf-contacto">
+        <h2 id="sf-contacto">Contáctanos</h2>
+        {% if norte_contact.channels or norte_contact.email %}
+        <ul class="sf__channels">
+          {% for ch in norte_contact.channels %}
+          <li><a class="sf__channel" href="{{ ch.url }}" target="_blank" rel="noopener noreferrer" aria-label="{{ ch.aria }}: {{ ch.text }} (se abre en una pestaña nueva)"><span class="sf__ico">{{ social_icon(ch.key, 18) }}</span><span><b>{{ ch.label }}</b><small>{{ ch.text }}</small></span></a></li>
+          {% endfor %}
+          {% if norte_contact.email %}
+          <li><a class="sf__channel" href="mailto:{{ norte_contact.email }}" aria-label="Escribir a {{ norte_contact.email }}"><span class="sf__ico">{{ social_icon('envelope', 18) }}</span><span><b>Correo</b><small>{{ norte_contact.email }}</small></span></a></li>
+          {% endif %}
+        </ul>
+        {% endif %}
+        <p class="sf__hours">{{ social_icon('clock', 16) }}<span><b>Horario de atención</b>{{ norte_contact.hours }}</span></p>
+      </section>
+    </div>
+
+    <div class="sf__about">
+      <div><small>Lema</small><b>Tu banca, más clara.</b></div>
+      <div><small>Modelo</small><b>Banca digital 100% online</b></div>
+      <div><small>Proyecto</small><b>Norte · Proyecto académico · {{ norte_year }}</b></div>
+    </div>
+
+    <aside class="sf__notice" aria-label="Aviso importante">
+      <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+      <p>{{ norte_legal_notice }}</p>
+    </aside>
+  </div>
+
+  <div class="sf__bar">
+    <div class="sf__wrap sf__bar-in">
+      <span>© {{ norte_year }} NORTE</span>
+      <nav aria-label="Enlaces legales">
+        <a href="{{ url_for('main.terms') }}">Términos</a>
+        <a href="{{ url_for('main.privacy') }}">Privacidad</a>
+        <a href="{{ url_for('main.index') }}">Volver al inicio <i class="bi bi-arrow-up" aria-hidden="true"></i></a>
+      </nav>
+    </div>
+  </div>
+</footer>

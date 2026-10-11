@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Soporte · Norte{% endblock %}
+{% block crumb %}Soporte{% endblock %}
+{% block content %}
+<div class="eyebrow dark">VISTA OPERATIVA</div>
+<h1>Centro de soporte</h1>
+<p class="muted">Resumen de uso del sistema. Esta vista no muestra datos personales ni permite operar cuentas.</p>
+<section class="stats-grid">
+  <article class="panel stat-card"><span class="soft-icon"><i class="bi bi-wallet2"></i></span><small>CUENTAS REGISTRADAS</small><strong>{{ accounts }}</strong></article>
+  <article class="panel stat-card"><span class="soft-icon"><i class="bi bi-arrow-left-right"></i></span><small>MOVIMIENTOS REGISTRADOS</small><strong>{{ operations }}</strong></article>
+</section>
+<article class="panel movements-panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">ACTIVIDAD TÉCNICA</div><h3>Eventos recientes</h3></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Módulo</th><th>Evento</th><th>Resultado</th><th>Fecha</th></tr></thead>
+    <tbody>{% for event in events %}
+      <tr><td>{{ event.module }}</td><td>{{ event.action }}</td><td>{{ event.result }}</td><td>{{ event.created_at.strftime('%d/%m/%Y %H:%M') }}</td></tr>
+    {% else %}<tr><td colspan="4" class="empty-state">Aún no hay eventos registrados.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <small>Los datos agregados describen esta instalación; no representan métricas de un servicio financiero.</small>
+</article>
+{% endblock %}
