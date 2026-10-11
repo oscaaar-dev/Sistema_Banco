@@ -1,4 +1,4 @@
-"""Cabecera, mega-menú, pie y datos de contacto compartidos por todas las páginas."""
+"""Cabecera, navegación, pie y datos de contacto compartidos por todas las páginas."""
 import re
 
 import pytest
@@ -69,7 +69,7 @@ def test_social_links_open_in_new_tab_safely():
         assert f'href="{channel["url"]}"' in html
         assert channel['aria'] in html
     external = re.findall(r'<a [^>]*href="https://(?:instagram|wa\.me|facebook)[^>]*>', html)
-    assert len(external) >= 6, 'cabecera y pie enlazan las tres redes'
+    assert len(external) >= 3, 'el pie enlaza las tres redes'
     assert all('target="_blank"' in tag and 'rel="noopener noreferrer"' in tag for tag in external)
     assert 'href="mailto:contacto@example.com"' in html
 
@@ -92,11 +92,25 @@ def test_header_and_footer_internal_links_resolve():
         assert client.get(href).status_code == 200, f'enlace roto en cabecera o pie: {href}'
 
 
-def test_mega_menu_is_accessible_and_hides_missing_sections():
+def test_navigation_is_minimal_accessible_and_has_no_empty_sections():
+    client = _client()
+    html = client.get('/').get_data(as_text=True)
+    header = re.search(r'<header class="sh".*?</header>', html, re.S).group(0)
+    nav = re.search(r'<nav class="sh__nav".*?</nav>', header, re.S).group(0)
+    links = re.findall(r'<a class="sh__link" href="([^"]+)"', nav)
+    assert links == ['/personas', '/herramientas', '/seguridad', '/acerca'], 'cuatro enlaces simples, todos a páginas reales'
+    assert 'aria-controls="siteNav"' in header and 'aria-expanded="false"' in header
+    assert 'mm-trigger' not in html and 'mm-panel' not in html, 'ya no hay menús desplegables'
+    for removed in ('PyMES', 'Empresas', 'Ahorro', 'Préstamos', 'Educación financiera', 'Próximamente', 'Concepto'):
+        assert removed not in html, f'sección retirada que sigue visible: {removed}'
+    current = client.get('/seguridad').get_data(as_text=True)
+    assert re.search(r'<a class="sh__link" href="/seguridad" aria-current="page">', current)
+    assert current.count('aria-current="page"') == 1
+
+
+def test_footer_keeps_only_essential_navigation_and_legal_links():
     html = _client().get('/').get_data(as_text=True)
-    assert html.count('aria-expanded="false"') >= 9
-    assert 'aria-controls="mm-p-productos"' in html
-    for pending in ('PyMES', 'Empresas', 'Ahorro', 'Préstamos', 'Educación financiera'):
-        assert pending in html
-    assert html.count('Próximamente') >= 3 and 'Concepto' in html
-    assert 'href="/pymes"' not in html and 'href="/empresas"' not in html
+    footer = re.search(r'<footer class="sf".*?</footer>', html, re.S).group(0)
+    for href in ('/personas', '/herramientas', '/seguridad', '/acerca', '/privacidad', '/terminos'):
+        assert f'href="{href}"' in footer
+    assert 'Ayuda y educación' not in footer and 'Próximamente' not in footer
