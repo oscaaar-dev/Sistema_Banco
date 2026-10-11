@@ -1,7 +1,7 @@
 /*
  * NORTE · movimiento y microinteracciones compartidas.
- * Sustituye a reveal.js. Todo es mejora progresiva: sin JS el contenido sigue visible,
- * y con prefers-reduced-motion no se anima nada.
+ * Sustituye a reveal.js. Todo es mejora progresiva: sin JS el contenido sigue visible.
+ * Con prefers-reduced-motion se quitan los desplazamientos, pero la aparición se conserva como fundido de opacidad.
  */
 (()=>{
  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -11,7 +11,7 @@
  /* 1. Aparición progresiva. Las clases home-motion-ready / home-is-visible se mantienen por compatibilidad. */
  const revealables=Array.from(document.querySelectorAll('[data-reveal]'));
  if(revealables.length){
-  if(!('IntersectionObserver' in window)||reduced){
+  if(!('IntersectionObserver' in window)){
    revealables.forEach(el=>el.classList.add('home-is-visible'));
   }else{
    const groups=new Map();

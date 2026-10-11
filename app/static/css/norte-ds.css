@@ -204,9 +204,11 @@ dialog::backdrop{background:rgba(7,5,13,.66);backdrop-filter:blur(6px);animation
 /* Interruptores y casillas */
 input[type=checkbox],input[type=radio]{accent-color:var(--n-violet)}
 
+/* «Reducir movimiento»: se quitan desplazamientos, giros y bucles, pero la aparición progresiva se conserva
+   como un fundido suave solo con opacidad (sin traslación), que no provoca mareo ni distrae. */
 @media(prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
-  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
-  .nds-motion [data-reveal]{opacity:1;transform:none}
+  *:not([data-reveal]),*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+  .nds-motion [data-reveal],.nds-motion [data-reveal=left],.nds-motion [data-reveal=right],.nds-motion [data-reveal=scale],.nds-motion [data-reveal=fade]{transform:none;transition:opacity .6s var(--reveal-delay,0ms) ease}
   ::view-transition-old(root),::view-transition-new(root){animation:none}
 }

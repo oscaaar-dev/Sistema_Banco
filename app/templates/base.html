@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-ds.css',v='ds-1') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-ds.css',v='ds-2') }}">
   <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-site.css',v='site-1') }}">
   {% if is_public %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-public.css',v='public-1') }}">
@@ -98,7 +98,7 @@
   {% if request.endpoint in ('main.register','main.reset_password') %}
   <script src="{{ url_for('static',filename='js/password-policy.js',v='pwpolicy-1') }}" defer></script>
   {% endif %}
-  <script src="{{ url_for('static',filename='js/motion.js',v='motion-1') }}" defer></script>
+  <script src="{{ url_for('static',filename='js/motion.js',v='motion-2') }}" defer></script>
   <script src="{{ url_for('static',filename='js/site-menu.js',v='menu-1') }}" defer></script>
   <script src="{{ url_for('static',filename='js/app.js',v='camera-privacy-5') }}"></script>
   {% if request.endpoint=='main.operation' and request.view_args.kind=='transfer' %}
