@@ -64,7 +64,7 @@ def _deliver_reset_email(user):
 def forgot_password():
     if current_user.is_authenticated:
         return redirect(_home_for_role(current_user))
-    if request.method == 'GET':
+    if request.method != 'POST':
         return render_template('forgot_password.html', sent=False)
 
     email = request.form.get('email', '').strip().lower()
@@ -97,7 +97,7 @@ def reset_password(token):
         return redirect(_home_for_role(current_user))
     if resets.find_valid_token(token) is None:
         return _private_page(make_response(render_template('reset_password.html', invalid=True), 400))
-    if request.method == 'GET':
+    if request.method != 'POST':
         return _private_page(make_response(render_template('reset_password.html', invalid=False)))
 
     password = request.form.get('password', '')

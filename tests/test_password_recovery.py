@@ -287,3 +287,14 @@ def _user_id(app, username):
     with app.app_context():
         return User.query.filter_by(username=username).one().id
 
+
+def test_head_requests_do_not_run_the_submission_logic(env):
+    app, client, sent = env
+    assert client.head('/recuperar').status_code == 200
+    _request(client, 'cliente@example.test')
+    token = _token_from(sent)
+    assert client.head(f'/recuperar/{token}').status_code == 200
+    with app.app_context():
+        assert PasswordResetToken.query.one().used_at is None
+        assert AuditLog.query.filter_by(action='PASSWORD_RESET_ATTEMPT').count() == 1
+
