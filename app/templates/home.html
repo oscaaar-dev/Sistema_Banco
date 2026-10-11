@@ -25,7 +25,7 @@
               <div class="nh-halo home-parallax" data-parallax="0.04"></div>
               <div class="nh-ring nh-ring--1"></div><div class="nh-ring nh-ring--2"></div>
               <div class="nh-art nh-art--phone home-parallax" data-parallax="0.03">{{ phone('home', 'md', 'Ilustración de la pantalla de resumen de Norte con datos de ejemplo') }}</div>
-              <div class="nh-art nh-art--card home-parallax" data-parallax="0.07">{{ concept_card('violet') }}</div>
+              <div class="nh-art nh-art--card home-parallax" data-parallax="0.07">{{ concept_card('dark') }}</div>
               <div class="nh-art nh-art--chip nh-art--chip-a"><span class="nh-chip nds-float"><i class="bi bi-envelope-check"></i><span>Acceso con código<small>Enviado a tu correo</small></span></span></div>
               <div class="nh-art nh-art--chip nh-art--chip-b"><span class="nh-chip nds-float nds-float--delay"><i class="bi bi-clock-history"></i><span>Movimientos<small>Historial y comprobantes</small></span></span></div>
             </div>
@@ -101,24 +101,24 @@
         </div>
         <div class="home-promo-layout">
           <div class="home-promo-grid">
-            <article class="home-promo-card promo-card-orange" data-parallax-card data-spotlight>
+            <article class="home-promo-card promo-card-orange" data-parallax-card>
               <span class="home-promo-label">TU PRIMER PASO</span>
               <div class="home-promo-art" aria-hidden="true"><div class="pv"><div class="pv-balance"><small>Saldo disponible</small><b>S/ ••••••</b></div></div></div>
               <div class="home-promo-copy"><h3>Revisa tu cuenta</h3><p>Conoce el resumen y la actividad de tu cuenta.</p><a href="{{ url_for('main.register') }}">Crear cuenta <i class="bi bi-arrow-up-right"></i></a></div>
             </article>
-            <article class="home-promo-card promo-card-blue" data-parallax-card data-spotlight>
+            <article class="home-promo-card promo-card-blue" data-parallax-card>
               <span class="home-promo-label">AVANZA A TU RITMO</span>
               <div class="home-promo-art" aria-hidden="true"><div class="pv"><span class="pv-av"><i class="bi bi-person"></i></span><span class="pv-flow"></span><span class="pv-av"><i class="bi bi-person-check"></i></span></div></div>
               <div class="home-promo-copy"><h3>Conoce una transferencia</h3><p>Revisa los pasos y los datos del beneficiario.</p><a href="{{ url_for('main.login') }}">Ver operaciones <i class="bi bi-arrow-up-right"></i></a></div>
             </article>
-            <article class="home-promo-card promo-card-indigo" data-parallax-card data-spotlight>
+            <article class="home-promo-card promo-card-indigo" data-parallax-card>
               <span class="home-promo-label">PAGOS Y RECARGAS</span>
-              <div class="home-promo-art" aria-hidden="true"><div class="pv"><div class="pv-receipt"><span><i class="bi bi-check-circle-fill"></i> Registrado</span><em></em><em></em></div></div></div>
+              <div class="home-promo-art" aria-hidden="true"><div class="pv"><div class="pv-receipt"><span><i class="bi bi-check-circle-fill"></i> Pago registrado</span><small>S/ ••,•• · Servicios</small></div></div></div>
               <div class="home-promo-copy"><h3>Conoce el flujo de pagos</h3><p>Revisa pagos y recargas desde una misma experiencia.</p><a href="{{ url_for('main.login') }}">Descubrir pagos <i class="bi bi-arrow-up-right"></i></a></div>
             </article>
-            <article class="home-promo-card promo-card-mint" data-parallax-card data-spotlight>
+            <article class="home-promo-card promo-card-mint" data-parallax-card>
               <span class="home-promo-label">SIEMPRE A LA VISTA</span>
-              <div class="home-promo-art" aria-hidden="true"><div class="pv"><div class="pv-list"><div><i class="bi bi-arrow-down-left"></i><b></b><em></em></div><div><i class="bi bi-arrow-up-right"></i><b></b><em></em></div><div><i class="bi bi-arrow-up-right"></i><b></b><em></em></div></div></div></div>
+              <div class="home-promo-art" aria-hidden="true"><div class="pv"><div class="pv-list"><div><i class="bi bi-arrow-down-left"></i><b>Transferencia recibida</b><em>S/ ••,••</em></div><div><i class="bi bi-arrow-up-right"></i><b>Pago de servicios</b><em>− S/ ••,••</em></div><div><i class="bi bi-arrow-up-right"></i><b>Recarga de celular</b><em>− S/ ••,••</em></div></div></div></div>
               <div class="home-promo-copy"><h3>Revisa tu actividad</h3><p>Consulta movimientos y comprobantes registrados.</p><a href="{{ url_for('main.login') }}">Ver movimientos <i class="bi bi-arrow-up-right"></i></a></div>
             </article>
           </div>
@@ -155,9 +155,9 @@
       <div class="nds-container">
         <div class="nh-head nh-head--center" data-reveal><span class="home-section-kicker">EMPIEZA EN TRES PASOS</span><h2 class="nds-h2">Tu recorrido por Norte es así de simple</h2><p class="nds-lead">Un espacio pensado para que explores sin perderte.</p></div>
         <div class="home-how-grid" data-reveal="fade">
-          <article class="home-how-card" data-reveal data-spotlight><span class="home-how-number">01</span><span class="home-how-icon"><i class="bi bi-person-plus"></i></span><h3>Crea tu perfil</h3><p>Regístrate para preparar tu espacio en Norte.</p></article>
-          <article class="home-how-card" data-reveal data-spotlight><span class="home-how-number">02</span><span class="home-how-icon"><i class="bi bi-grid-1x2"></i></span><h3>Explora tu resumen</h3><p>Conoce cuentas, tarjetas y movimientos desde una vista clara.</p></article>
-          <article class="home-how-card" data-reveal data-spotlight><span class="home-how-number">03</span><span class="home-how-icon"><i class="bi bi-arrow-left-right"></i></span><h3>Conoce las operaciones</h3><p>Revisa cada paso antes de continuar.</p></article>
+          <article class="home-how-card" data-reveal><span class="home-how-number">01</span><span class="home-how-icon"><i class="bi bi-person-plus"></i></span><h3>Crea tu perfil</h3><p>Regístrate para preparar tu espacio en Norte.</p></article>
+          <article class="home-how-card" data-reveal><span class="home-how-number">02</span><span class="home-how-icon"><i class="bi bi-grid-1x2"></i></span><h3>Explora tu resumen</h3><p>Conoce cuentas, tarjetas y movimientos desde una vista clara.</p></article>
+          <article class="home-how-card" data-reveal><span class="home-how-number">03</span><span class="home-how-icon"><i class="bi bi-arrow-left-right"></i></span><h3>Conoce las operaciones</h3><p>Revisa cada paso antes de continuar.</p></article>
         </div>
       </div>
     </section>

@@ -7,17 +7,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#07050d">
+  <meta name="theme-color" content="#0c0818">
   <title>{% block title %}Norte · Banca digital{% endblock %}</title>
   <link rel="icon" href="{{ url_for('static',filename='brand/norte-favicon.svg') }}" type="image/svg+xml">
   <meta property="og:image" content="{{ url_for('static',filename='brand/norte-social.svg') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-ds.css',v='ds-2') }}">
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-site.css',v='site-1') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-ds.css',v='ds-4') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-site.css',v='site-3') }}">
   {% if is_public %}
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-public.css',v='public-1') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-public.css',v='public-2') }}">
   {% else %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/app.css',v='camera-layout-4') }}">
   {% if request.endpoint=='main.operation' %}
@@ -30,7 +30,7 @@
   <link rel="stylesheet" href="{{ url_for('static',filename='css/auth.css',v='auth-password-toggle-1') }}">
   {% endif %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/readability.css',v='readability-1') }}">
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/nubank.css',v='nubank-1') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-theme.css',v='theme-2') }}">
   {% endif %}
 </head>
 <body class="{% if is_intranet %}intranet-body{% elif is_auth %}auth-body{% else %}nh-body{% endif %}">
@@ -98,7 +98,7 @@
   {% if request.endpoint in ('main.register','main.reset_password') %}
   <script src="{{ url_for('static',filename='js/password-policy.js',v='pwpolicy-1') }}" defer></script>
   {% endif %}
-  <script src="{{ url_for('static',filename='js/motion.js',v='motion-2') }}" defer></script>
+  <script src="{{ url_for('static',filename='js/motion.js',v='motion-3') }}" defer></script>
   <script src="{{ url_for('static',filename='js/site-menu.js',v='menu-1') }}" defer></script>
   <script src="{{ url_for('static',filename='js/app.js',v='camera-privacy-5') }}"></script>
   {% if request.endpoint=='main.operation' and request.view_args.kind=='transfer' %}

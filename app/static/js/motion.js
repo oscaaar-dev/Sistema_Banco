@@ -49,24 +49,7 @@
   });
  }
 
- /* 3. Resplandor que sigue al cursor en tarjetas con data-spotlight. */
- if(!reduced&&finePointer){
-  let frame=0,target=null,x=0,y=0;
-  document.addEventListener('pointermove',event=>{
-   const card=event.target.closest?.('[data-spotlight]');
-   if(!card)return;
-   target=card;x=event.clientX;y=event.clientY;
-   if(frame)return;
-   frame=requestAnimationFrame(()=>{
-    frame=0;
-    const box=target.getBoundingClientRect();
-    target.style.setProperty('--mx',`${x-box.left}px`);
-    target.style.setProperty('--my',`${y-box.top}px`);
-   });
-  },{passive:true});
- }
-
- /* 4. Pestañas accesibles: [data-tabs] con role=tablist, role=tab y role=tabpanel. */
+ /* 3. Pestañas accesibles: [data-tabs] con role=tablist, role=tab y role=tabpanel. */
  document.querySelectorAll('[data-tabs]').forEach(group=>{
   const tabs=Array.from(group.querySelectorAll('[role=tab]'));
   const panels=tabs.map(tab=>document.getElementById(tab.getAttribute('aria-controls')));
@@ -91,7 +74,7 @@
   select(Math.max(0,tabs.findIndex(tab=>tab.getAttribute('aria-selected')==='true')),false);
  });
 
- /* 5. Estado de carga al enviar formularios: solo marca el botón, nunca lo desactiva ni retrasa el envío. */
+ /* 4. Estado de carga al enviar formularios: solo marca el botón, nunca lo desactiva ni retrasa el envío. */
  document.addEventListener('submit',event=>{
   const form=event.target;
   if(!(form instanceof HTMLFormElement)||form.method==='dialog'||event.defaultPrevented)return;
@@ -100,7 +83,7 @@
  });
  window.addEventListener('pageshow',()=>document.querySelectorAll('[aria-busy=true]').forEach(el=>el.removeAttribute('aria-busy')));
 
- /* 6. Avisos: se pueden cerrar; los de éxito se retiran solos, los errores permanecen. */
+ /* 5. Avisos: se pueden cerrar; los de éxito se retiran solos, los errores permanecen. */
  document.querySelectorAll('.flash').forEach(flash=>{
   flash.setAttribute('role',flash.classList.contains('error')?'alert':'status');
   const close=document.createElement('button');
