@@ -1,12 +1,50 @@
+﻿# Python
 __pycache__/
 *.py[cod]
+*.pyd
+*$py.class
+*.so
+
+# Entornos virtuales
 .venv/
 .venv-*/
 venv/
 env/
-node_modules/
+
+# Variables privadas
 .env
+.env.*
+!.env.example
+
+# Bases de datos locales
 instance/*.db
+instance/*.sqlite
+instance/*.sqlite3
+
+# Dependencias de JavaScript
+node_modules/
+
+# Distribución de Python
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Pruebas
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -14,5 +52,8 @@ instance/*.db
 htmlcov/
 playwright-report/
 test-results/
+
+# Registros y sistema
 *.log
 .DS_Store
+Thumbs.db
