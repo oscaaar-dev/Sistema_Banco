@@ -3,7 +3,7 @@
 {% block auth_content %}
 {% from 'components/mockups.html' import phone, concept_card, dash_window with context %}
 <div class="public-home">
-  {% include 'partials/public_header.html' %}
+  {% include 'partials/site_header.html' %}
 
   <main>
     <section class="home-hero nds-ambient" id="experiencia" data-ambient="hero">
@@ -208,7 +208,7 @@
     </section>
   </main>
 
-  {% include 'partials/public_footer.html' %}
+  {% include 'partials/site_footer.html' %}
 
   <div class="home-floating-actions" aria-label="Opciones de ayuda y privacidad">
     <button class="home-floating-button home-cookies-button" type="button" data-open-cookies aria-label="Abrir política de cookies"><i class="bi bi-gear-fill"></i><span>Privacidad</span></button>

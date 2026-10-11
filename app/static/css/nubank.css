@@ -35,8 +35,8 @@
 }
 
 /* ───────── Base: tipografía, sin sombras, foco ───────── */
-*,*::before,*::after{box-shadow:none!important;text-shadow:none!important}
-:where(*){font-family:var(--font-graphik)!important;font-weight:400!important;letter-spacing:-.01em!important;font-kerning:normal}
+:where(:not(.sh,.sh *,.sf,.sf *)),:where(:not(.sh,.sh *,.sf,.sf *))::before,:where(:not(.sh,.sh *,.sf,.sf *))::after{box-shadow:none!important;text-shadow:none!important}
+:where(:not(.sh,.sh *,.sf,.sf *)){font-family:var(--font-graphik)!important;font-weight:400!important;letter-spacing:-.01em!important;font-kerning:normal}
 body{background:var(--nu-mist);color:var(--nu-ink);font-size:16px;line-height:1.5}
 h1,h2,h3,h4,h5,h6,b,strong,th,summary,button,label,.btn,.eyebrow,.amount,.text-link,.crumb,
 .home-brand,.intranet-brand,.auth-brand,.info-brand,.home-nav a,.info-nav a,.auth-navigation a,.intranet-nav a,

@@ -8,32 +8,18 @@
   <link rel="icon" href="{{ url_for('static',filename='brand/norte-favicon.svg') }}" type="image/svg+xml">
   <meta property="og:image" content="{{ url_for('static',filename='brand/norte-social.svg') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-ds.css',v='ds-1') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-site.css',v='site-1') }}">
   <link rel="stylesheet" href="{{ url_for('static',filename='css/home.css',v='home-22') }}">
   <link rel="stylesheet" href="{{ url_for('static',filename='css/readability.css',v='readability-1') }}">
   <link rel="stylesheet" href="{{ url_for('static',filename='css/nubank.css',v='nubank-1') }}">
 </head>
 <body class="public-info-body">
   <div class="info-page">
-    <div class="info-utility">
-      <div class="info-container"><span>Una experiencia digital creada para conocer tus finanzas</span><span>Proyecto en desarrollo · Datos de ejemplo</span></div>
-    </div>
-    <header class="info-header">
-      <div class="info-container info-header-inner">
-        <a class="home-brand info-brand" href="{{ url_for('main.index') }}" aria-label="Norte, inicio">
-          <span class="home-brand-symbol"><img src="{{ url_for('static',filename='brand/norte-favicon.svg') }}" alt=""></span>
-          <span>NORTE<span class="home-brand-dot">.</span><small>BANCA DIGITAL</small></span>
-        </a>
-        <nav class="info-nav" aria-label="Navegación principal">
-          <a href="{{ url_for('main.personas') }}" {% if page_key=='personas' %}aria-current="page"{% endif %}>Personas</a>
-          <a href="{{ url_for('main.herramientas') }}" {% if page_key=='herramientas' %}aria-current="page"{% endif %}>Herramientas</a>
-          <a href="{{ url_for('main.seguridad') }}" {% if page_key=='seguridad' %}aria-current="page"{% endif %}>Seguridad</a>
-          <a href="{{ url_for('main.acerca') }}" {% if page_key=='acerca' %}aria-current="page"{% endif %}>Acerca de Norte</a>
-        </nav>
-        <div class="info-actions"><a class="info-login" href="{{ url_for('main.login') }}"><i class="bi bi-lock-fill"></i> Banca por Internet</a><a class="info-register" href="{{ url_for('main.register') }}">Abrir cuenta <i class="bi bi-arrow-up-right"></i></a></div>
-      </div>
-    </header>
+    {% set nav_current = page_key %}
+    {% include 'partials/site_header.html' %}
 
     <main class="info-main">
       <section class="info-hero">
@@ -90,10 +76,9 @@
       </section>
     </main>
 
-    <footer class="info-footer">
-      <div class="info-container"><a class="home-brand info-brand" href="{{ url_for('main.index') }}"><span class="home-brand-symbol"><img src="{{ url_for('static',filename='brand/norte-favicon.svg') }}" alt=""></span><span>NORTE<span class="home-brand-dot">.</span><small>BANCA DIGITAL</small></span></a><p>{{ norte_legal_notice }}</p><span class="info-legal-links"><a href="{{ url_for('main.terms') }}">Términos</a><a href="{{ url_for('main.privacy') }}">Privacidad</a><a href="{{ url_for('main.index') }}">Volver al inicio <i class="bi bi-arrow-up-right"></i></a></span></div>
-    </footer>
+    {% include 'partials/site_footer.html' %}
   </div>
     <script src="{{ url_for('static',filename='js/reveal.js',v='reveal-3') }}"></script>
+    <script src="{{ url_for('static',filename='js/site-menu.js',v='menu-1') }}" defer></script>
 </body>
 </html>

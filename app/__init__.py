@@ -1,6 +1,7 @@
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_login import LoginManager, current_user, logout_user
 from flask_wtf.csrf import CSRFProtect
+from datetime import datetime
 from pathlib import Path
 from sqlalchemy import inspect
 from config import Config
@@ -57,7 +58,11 @@ def create_app(config_overrides=None):
 
     @app.context_processor
     def inject_brand_context():
-        return {'norte_legal_notice':app.config['LEGAL_NOTICE']}
+        return {
+            'norte_legal_notice':app.config['LEGAL_NOTICE'],
+            'norte_year':datetime.now().year,
+            'norte_contact':{'channels':app.config['CONTACT_CHANNELS'],'email':app.config['CONTACT_EMAIL'],'hours':app.config['CONTACT_HOURS']},
+        }
 
     @app.after_request
     def add_security_headers(response):

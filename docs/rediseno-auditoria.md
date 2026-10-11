@@ -59,4 +59,6 @@ cambiar nada y se actualiza al cerrar cada fase.
 
 ## 6. Registro de avance
 
-_(se completa al cierre de cada fase)_
+- **Fundamentos y portada.** `norte-ds.css` (tokens, botones, tarjetas, fondos ambientales, movimiento), `norte-public.css` (portada y páginas públicas) y `components/mockups.html`. La portada ya usa mockups de teléfono, tarjeta y ventana; los 64 tests y las E2E siguen pasando.
+- **Cabecera, mega-menú y pie compartidos.** `partials/site_header.html`, `partials/site_footer.html`, `partials/social_links.html`, `norte-site.css` y `site-menu.js`. Aparecen en portada, informativas, legales, acceso, errores e intranet (pie y redes). Contacto configurable por variables `NORTE_*`. 17 pruebas nuevas en `tests/test_site_chrome.py`.
+- **Pendiente del rediseño:** contenido propio de Personas, Herramientas, Seguridad y Acerca de (hoy conservan su hero anterior bajo la cabecera nueva), pantallas de acceso y dashboard (gráficos con la API de movimientos).

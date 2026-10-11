@@ -14,6 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-ds.css',v='ds-1') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-site.css',v='site-1') }}">
   {% if is_public %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-public.css',v='public-1') }}">
   {% else %}
@@ -36,7 +37,7 @@
   {% if current_user.is_authenticated and request.endpoint!='main.index' %}
   <div class="intranet-shell">
     <div class="intranet-promo"><div class="intranet-container"><span><i class="bi bi-stars"></i> Estás en Norte: conoce sus funciones con datos de ejemplo.</span><a href="{{ url_for('main.index') }}">Conoce la experiencia <i class="bi bi-arrow-up-right"></i></a></div></div>
-    <div class="intranet-audience"><div class="intranet-container"><span>Personas</span><span>Espacio personal</span><span class="intranet-audience-right"><i class="bi bi-shield-check"></i> Proyecto en desarrollo</span></div></div>
+    <div class="intranet-audience"><div class="intranet-container"><span>Personas</span><span>Espacio personal</span><span class="intranet-audience-right">{% include 'partials/social_links.html' %}<span><i class="bi bi-shield-check"></i> Proyecto en desarrollo</span></span></div></div>
     <header class="intranet-header">
       <div class="intranet-container intranet-header-main">
         <a class="intranet-brand" href="{% if current_user.role=='SOPORTE' %}{{ url_for('main.support') }}{% elif current_user.role=='ADMINISTRADOR' %}{{ url_for('main.admin') }}{% else %}{{ url_for('main.dashboard') }}{% endif %}" aria-label="Norte, resumen">
@@ -80,9 +81,9 @@
         {% endfor %}
       {% endwith %}
       {% block content %}{% endblock %}
-      <footer class="footer">© 2026 Norte · {{ norte_legal_notice }} · <a href="{{ url_for('main.terms') }}">Términos</a> · <a href="{{ url_for('main.privacy') }}">Privacidad</a></footer>
     </div>
   </main>
+  {% include 'partials/site_footer.html' %}
   </div>
   {% else %}
     {% block auth_content %}{% endblock %}
@@ -94,6 +95,7 @@
   <script src="{{ url_for('static',filename='js/auth.js',v='auth-password-toggle-1') }}"></script>
   {% endif %}
   <script src="{{ url_for('static',filename='js/motion.js',v='motion-1') }}" defer></script>
+  <script src="{{ url_for('static',filename='js/site-menu.js',v='menu-1') }}" defer></script>
   <script src="{{ url_for('static',filename='js/app.js',v='camera-privacy-5') }}"></script>
   {% if request.endpoint=='main.operation' and request.view_args.kind=='transfer' %}
   <script src="{{ url_for('static',filename='js/transfer-auth.js',v='transfer-auth-1') }}"></script>

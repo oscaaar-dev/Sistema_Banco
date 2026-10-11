@@ -122,6 +122,18 @@ Ninguna ruta del código depende de un usuario o equipo concretos. Si tu instala
 | `PYTHON` | Intérprete que usan las pruebas E2E | `python` |
 | `VISUAL_CAPTURE_DIR` | Carpeta de las capturas de `e2e/visual-captures.spec.cjs` | `test-results/visual-captures` |
 
+### Datos de contacto y redes (cabecera y pie)
+
+Se leen **solo** de variables de entorno (ver `.env.example`); las plantillas no repiten ningún dato. Los canales que no se configuren, o que no sean válidos, simplemente no se muestran.
+
+| Variable | Ejemplo | Notas |
+|---|---|---|
+| `NORTE_INSTAGRAM_URL` · `NORTE_INSTAGRAM_HANDLE` | `https://instagram.com/tu_usuario` · `@tu_usuario` | Solo enlaces `https` |
+| `NORTE_WHATSAPP_NUMBER` · `NORTE_WHATSAPP_DISPLAY` | `51900000000` · `+51 900 000 000` | Solo dígitos con código de país; genera `https://wa.me/<número>` |
+| `NORTE_FACEBOOK_URL` · `NORTE_FACEBOOK_NAME` | `https://facebook.com/tu_pagina` · `Norte` | Solo enlaces `https` |
+| `NORTE_CONTACT_EMAIL` | `contacto@example.com` | Opcional |
+| `NORTE_CONTACT_HOURS` | `Lunes a viernes · 9:00 a 18:00` | Por defecto, un horario de demostración |
+
 ## Notas
 
 - Toda la actividad bancaria es ficticia y solo actualiza la base local de la demo.

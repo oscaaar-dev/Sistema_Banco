@@ -1,0 +1,9 @@
+{# Iconos de redes sociales leídos de la configuración central (config.py / NORTE_*). Variable opcional: soc_class. #}
+{% from 'components/icons.html' import social_icon %}
+{% if norte_contact.channels %}
+<ul class="soc {{ soc_class|default('') }}" aria-label="Redes sociales de Norte">
+  {% for ch in norte_contact.channels %}
+  <li><a class="soc__link" href="{{ ch.url }}" target="_blank" rel="noopener noreferrer" aria-label="{{ ch.aria }} (se abre en una pestaña nueva)" title="{{ ch.label }}">{{ social_icon(ch.key, 16) }}</a></li>
+  {% endfor %}
+</ul>
+{% endif %}

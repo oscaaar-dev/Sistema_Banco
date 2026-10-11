@@ -1,6 +1,8 @@
 import os
+import re
 import secrets
 from pathlib import Path
+from urllib.parse import urlparse
 from datetime import timedelta
 from dotenv import load_dotenv
 BASE_DIR=Path(__file__).resolve().parent
@@ -21,6 +23,33 @@ if APP_ENV=='production':
     missing_production_settings=[name for name in required_production_settings if not os.getenv(name)]
     if missing_production_settings:
         raise RuntimeError('Faltan variables obligatorias de producción: '+', '.join(missing_production_settings))
+
+def _https_url(value):
+    """Acepta solo enlaces https con dominio; evita esquemas como javascript: en enlaces públicos."""
+    value=(value or '').strip()
+    parsed=urlparse(value)
+    return value if parsed.scheme=='https' and parsed.netloc else ''
+
+def _contact_channels():
+    """Canales públicos de contacto (cabecera y pie). Los que no estén configurados o sean inválidos no se muestran."""
+    channels=[]
+    instagram=_https_url(os.getenv('NORTE_INSTAGRAM_URL'))
+    if instagram:
+        channels.append({'key':'instagram','label':'Instagram','aria':'Instagram de Norte','url':instagram,
+                         'text':os.getenv('NORTE_INSTAGRAM_HANDLE','').strip() or 'Instagram'})
+    whatsapp=re.sub(r'\D','',os.getenv('NORTE_WHATSAPP_NUMBER',''))
+    if 8<=len(whatsapp)<=15:
+        channels.append({'key':'whatsapp','label':'WhatsApp','aria':'WhatsApp de Norte','url':f'https://wa.me/{whatsapp}',
+                         'text':os.getenv('NORTE_WHATSAPP_DISPLAY','').strip() or '+'+whatsapp})
+    facebook=_https_url(os.getenv('NORTE_FACEBOOK_URL'))
+    if facebook:
+        channels.append({'key':'facebook','label':'Facebook','aria':'Facebook de Norte','url':facebook,
+                         'text':os.getenv('NORTE_FACEBOOK_NAME','').strip() or 'Facebook'})
+    return channels
+
+def _contact_email():
+    value=os.getenv('NORTE_CONTACT_EMAIL','').strip()
+    return value if re.fullmatch(r'[^@\s<>"]+@[^@\s<>"]+\.[^@\s<>"]+',value) else ''
 class Config:
     APP_ENV=APP_ENV
     SECRET_KEY=SECRET_KEY or secrets.token_hex(32)
@@ -55,6 +84,9 @@ class Config:
     BREVO_SANDBOX=BREVO_SANDBOX
     RAILWAY_ENVIRONMENT_NAME=RAILWAY_ENVIRONMENT_NAME
     LEGAL_NOTICE=LEGAL_NOTICE
+    CONTACT_CHANNELS=_contact_channels()
+    CONTACT_EMAIL=_contact_email()
+    CONTACT_HOURS=os.getenv('NORTE_CONTACT_HOURS','').strip() or 'Lunes a viernes · 9:00 a 18:00 (horario de demostración)'
     BREVO_API_KEY=os.getenv('BREVO_API_KEY')
     LOGIN_CODE_TTL_SECONDS=300
     LOGIN_CODE_RESEND_SECONDS=60
