@@ -1,56 +1,13 @@
 {#
-  Cabecera compartida (fondo blanco) con barra de segmentos, redes y mega-menú.
+  Cabecera compartida (fondo blanco) con navegación mínima.
   Se usa en portada, páginas informativas, legales, acceso y errores. La intranet conserva su propia barra de aplicación.
-  Variable opcional: nav_current ('personas' | 'herramientas' | 'seguridad' | 'acerca').
-  Enlaza solo rutas existentes. Lo que aún no existe (PyMES, Empresas, ahorro, préstamos, educación financiera)
-  se muestra como contenido sin enlace y con la etiqueta «Próximamente» o «Concepto».
+  Solo enlaza páginas que existen: Personas, Herramientas, Seguridad y Acerca de Norte.
+  Lo que antes eran siete menús desplegables apuntaba a estas mismas cuatro páginas; las secciones sin contenido
+  (PyMES, Empresas, Ahorro, Préstamos, Educación financiera) se retiraron en lugar de mostrarse como «Próximamente».
+  El estado de la página actual se toma de `page_key` (lo envía la ruta de cada página informativa).
 #}
-{% from 'components/menu_art.html' import thumb %}
-{% from 'components/mockups.html' import phone, concept_card, dash_window with context %}
-
+{% set nav_items = [('personas','Personas',url_for('main.personas')),('herramientas','Herramientas',url_for('main.herramientas')),('seguridad','Seguridad',url_for('main.seguridad')),('acerca','Acerca de Norte',url_for('main.acerca'))] %}
 <header class="sh" id="siteHeader">
-  <div class="sh__top">
-    <div class="sh__wrap sh__top-in">
-      <nav class="sh__aud" aria-label="Segmentos de Norte">
-        <div class="mm-item mm-item--sm">
-          <button class="mm-trigger mm-trigger--sm" type="button" id="mm-b-personas" aria-expanded="false" aria-controls="mm-p-personas">Personas <i class="bi bi-chevron-down" aria-hidden="true"></i></button>
-          <div class="mm-panel mm-panel--sm" id="mm-p-personas" role="region" aria-labelledby="mm-b-personas">
-            <div class="mm-seg">
-              <div class="mm-seg__head"><span class="mm-thumb">{{ thumb('personas') }}</span><b>Personas</b></div>
-              <p>Banca personal de demostración: una cuenta, una tarjeta de muestra y movimientos para explorar a tu ritmo.</p>
-              <a class="nds-btn nds-btn--primary" href="{{ url_for('main.personas') }}">Ver perfiles y roles <i class="bi bi-arrow-right"></i></a>
-            </div>
-          </div>
-        </div>
-        <div class="mm-item mm-item--sm">
-          <button class="mm-trigger mm-trigger--sm" type="button" id="mm-b-pymes" aria-expanded="false" aria-controls="mm-p-pymes">PyMES <i class="bi bi-chevron-down" aria-hidden="true"></i></button>
-          <div class="mm-panel mm-panel--sm" id="mm-p-pymes" role="region" aria-labelledby="mm-b-pymes">
-            <div class="mm-seg">
-              <div class="mm-seg__head"><span class="mm-thumb">{{ thumb('pymes') }}</span><b>PyMES</b><em class="mm-badge">Próximamente</em></div>
-              <p>Norte todavía no tiene una experiencia para pequeñas y medianas empresas; hoy el proyecto se centra en banca personal.</p>
-              <a class="nds-btn nds-btn--ghost" href="{{ url_for('main.acerca') }}">Conocer el alcance <i class="bi bi-arrow-right"></i></a>
-            </div>
-          </div>
-        </div>
-        <div class="mm-item mm-item--sm">
-          <button class="mm-trigger mm-trigger--sm" type="button" id="mm-b-empresas" aria-expanded="false" aria-controls="mm-p-empresas">Empresas <i class="bi bi-chevron-down" aria-hidden="true"></i></button>
-          <div class="mm-panel mm-panel--sm" id="mm-p-empresas" role="region" aria-labelledby="mm-b-empresas">
-            <div class="mm-seg">
-              <div class="mm-seg__head"><span class="mm-thumb">{{ thumb('empresas') }}</span><b>Empresas</b><em class="mm-badge">Próximamente</em></div>
-              <p>La banca para empresas aún no forma parte de Norte. Esta sección se completará cuando exista esa experiencia.</p>
-              <a class="nds-btn nds-btn--ghost" href="{{ url_for('main.acerca') }}">Conocer el alcance <i class="bi bi-arrow-right"></i></a>
-            </div>
-          </div>
-        </div>
-      </nav>
-      <div class="sh__top-right">
-        {% include 'partials/social_links.html' %}
-        <span class="sh__status"><i class="bi bi-shield-check" aria-hidden="true"></i><span>Experiencia en desarrollo</span></span>
-        <a class="sh__login" href="{{ url_for('main.login') }}"><i class="bi bi-lock-fill" aria-hidden="true"></i> Banca por Internet</a>
-      </div>
-    </div>
-  </div>
-
   <div class="sh__main">
     <div class="sh__wrap sh__main-in">
       <a class="sh-brand" href="{{ url_for('main.index') }}" aria-label="Norte, inicio">
@@ -59,178 +16,16 @@
       </a>
 
       <nav class="sh__nav" id="siteNav" aria-label="Navegación principal">
-
-        <div class="mm-item">
-          <button class="mm-trigger" type="button" id="mm-b-productos" aria-expanded="false" aria-controls="mm-p-productos">Productos <i class="bi bi-chevron-down" aria-hidden="true"></i></button>
-          <div class="mm-panel mm-panel--mega" id="mm-p-productos" role="region" aria-labelledby="mm-b-productos">
-            <div class="mm-panel__in">
-              <div>
-                <p class="mm-eyebrow">Productos de muestra y conceptuales</p>
-                <ul class="mm-list">
-                  <li><a class="mm-card" href="{{ url_for('main.herramientas') }}"><span class="mm-thumb">{{ thumb('account') }}</span><span class="mm-card__t"><b>Cuentas</b><small>Cuenta de ahorros de demostración con saldo ficticio.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.herramientas') }}"><span class="mm-thumb">{{ thumb('card') }}</span><span class="mm-card__t"><b>Tarjetas</b><small>Tarjeta de débito de muestra que puedes bloquear y desbloquear.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><div class="mm-card is-static"><span class="mm-thumb">{{ thumb('savings') }}</span><span class="mm-card__t"><b>Ahorro</b><small>Idea de producto: metas de ahorro. Aún no existe en Norte.</small><em class="mm-badge">Concepto</em></span></div></li>
-                  <li><div class="mm-card is-static"><span class="mm-thumb">{{ thumb('loan') }}</span><span class="mm-card__t"><b>Préstamos</b><small>Idea de producto: simulación de crédito. Aún no existe en Norte.</small><em class="mm-badge">Concepto</em></span></div></li>
-                </ul>
-                <p class="mm-note"><i class="bi bi-info-circle" aria-hidden="true"></i>Ningún producto se puede contratar: todo es ficticio y sin efectos financieros.</p>
-              </div>
-              <aside class="mm-feature">
-                <div class="mm-visual">{{ concept_card('dark', 'Tarjeta conceptual de Norte, ilustración sin valor financiero') }}</div>
-                <p>Mira qué cuentas y tarjetas de muestra puedes explorar dentro de Norte.</p>
-                <a class="nds-btn nds-btn--primary" href="{{ url_for('main.herramientas') }}">Ver las herramientas disponibles <i class="bi bi-arrow-right"></i></a>
-              </aside>
-            </div>
-          </div>
-        </div>
-
-        <div class="mm-item">
-          <button class="mm-trigger" type="button" id="mm-b-soluciones" aria-expanded="false" aria-controls="mm-p-soluciones">Soluciones digitales <i class="bi bi-chevron-down" aria-hidden="true"></i></button>
-          <div class="mm-panel mm-panel--mega" id="mm-p-soluciones" role="region" aria-labelledby="mm-b-soluciones">
-            <div class="mm-panel__in">
-              <div>
-                <p class="mm-eyebrow">Cómo usas Norte</p>
-                <ul class="mm-list">
-                  <li><a class="mm-card" href="{{ url_for('main.herramientas') }}"><span class="mm-thumb">{{ thumb('app') }}</span><span class="mm-card__t"><b>App y web adaptable</b><small>Usa Norte desde el celular o la computadora, sin instalar nada.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.login') }}"><span class="mm-thumb">{{ thumb('payments') }}</span><span class="mm-card__t"><b>Pagos</b><small>Registra pagos de servicios y recargas de demostración.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.login') }}"><span class="mm-thumb">{{ thumb('transfer') }}</span><span class="mm-card__t"><b>Transferencias</b><small>Transferencias dentro de Norte confirmadas con un código por correo.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.login') }}"><span class="mm-thumb">{{ thumb('online') }}</span><span class="mm-card__t"><b>Banca en línea</b><small>Resumen, movimientos y tarjetas en un solo lugar.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                </ul>
-                <p class="mm-note"><i class="bi bi-lock" aria-hidden="true"></i>Pagos y transferencias requieren iniciar sesión. No se envía dinero fuera de Norte.</p>
-              </div>
-              <aside class="mm-feature">
-                <div class="mm-visual">{{ phone('home', 'xs', 'Ilustración de la pantalla de resumen de Norte con datos de ejemplo') }}</div>
-                <p>Así se ve el resumen de tu cuenta en el celular.</p>
-                <a class="nds-btn nds-btn--primary" href="{{ url_for('main.herramientas') }}">Explorar el recorrido <i class="bi bi-arrow-right"></i></a>
-              </aside>
-            </div>
-          </div>
-        </div>
-
-        <div class="mm-item">
-          <button class="mm-trigger" type="button" id="mm-b-beneficios" aria-expanded="false" aria-controls="mm-p-beneficios">Beneficios <i class="bi bi-chevron-down" aria-hidden="true"></i></button>
-          <div class="mm-panel mm-panel--mega" id="mm-p-beneficios" role="region" aria-labelledby="mm-b-beneficios">
-            <div class="mm-panel__in">
-              <div>
-                <p class="mm-eyebrow">Ventajas de explorar Norte</p>
-                <ul class="mm-list">
-                  <li><a class="mm-card" href="{{ url_for('main.acerca') }}"><span class="mm-thumb"><i class="bi bi-signpost-split" aria-hidden="true"></i></span><span class="mm-card__t"><b>Pasos fáciles de seguir</b><small>Cada operación muestra su detalle antes de continuar.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.acerca') }}"><span class="mm-thumb"><i class="bi bi-window-desktop" aria-hidden="true"></i></span><span class="mm-card__t"><b>Desde tu navegador</b><small>Una experiencia adaptable a pantallas grandes y pequeñas.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.acerca') }}"><span class="mm-thumb"><i class="bi bi-eye" aria-hidden="true"></i></span><span class="mm-card__t"><b>Información transparente</b><small>El alcance y los límites del proyecto están a la vista.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.seguridad') }}"><span class="mm-thumb"><i class="bi bi-envelope-check" aria-hidden="true"></i></span><span class="mm-card__t"><b>Código por correo</b><small>El acceso se verifica con un código de un solo uso.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                </ul>
-              </div>
-              <aside class="mm-feature">
-                <div class="mm-visual"><img src="{{ url_for('static',filename='images/illustrations/step-prototype.svg') }}" alt="Tres pantallas superpuestas que representan el prototipo de Norte" width="240" height="180" loading="lazy" decoding="async"></div>
-                <p>Un prototipo navegable para aprender cómo se conectan resumen, movimientos y operaciones.</p>
-                <a class="nds-btn nds-btn--primary" href="{{ url_for('main.acerca') }}">Conocer el proyecto <i class="bi bi-arrow-right"></i></a>
-              </aside>
-            </div>
-          </div>
-        </div>
-
-        <div class="mm-item">
-          <button class="mm-trigger" type="button" id="mm-b-herramientas" aria-expanded="false" aria-controls="mm-p-herramientas">Herramientas <i class="bi bi-chevron-down" aria-hidden="true"></i></button>
-          <div class="mm-panel mm-panel--mega" id="mm-p-herramientas" role="region" aria-labelledby="mm-b-herramientas">
-            <div class="mm-panel__in">
-              <div>
-                <p class="mm-eyebrow">Funciones que existen hoy</p>
-                <ul class="mm-list">
-                  <li><a class="mm-card" href="{{ url_for('main.herramientas') }}"><span class="mm-thumb"><i class="bi bi-wallet2" aria-hidden="true"></i></span><span class="mm-card__t"><b>Resumen y cuentas</b><small>Saldo ficticio y datos de la cuenta.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.herramientas') }}"><span class="mm-thumb"><i class="bi bi-clock-history" aria-hidden="true"></i></span><span class="mm-card__t"><b>Movimientos</b><small>Historial con filtros y comprobantes.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.herramientas') }}"><span class="mm-thumb"><i class="bi bi-arrow-left-right" aria-hidden="true"></i></span><span class="mm-card__t"><b>Transferencias internas</b><small>Entre tus cuentas y a beneficiarios de muestra.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.herramientas') }}"><span class="mm-thumb"><i class="bi bi-receipt-cutoff" aria-hidden="true"></i></span><span class="mm-card__t"><b>Pagos y recargas</b><small>Formularios de demostración sin efectos externos.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.herramientas') }}"><span class="mm-thumb"><i class="bi bi-credit-card-2-front" aria-hidden="true"></i></span><span class="mm-card__t"><b>Tarjetas de muestra</b><small>Consulta y bloqueo de una tarjeta ficticia.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.herramientas') }}"><span class="mm-thumb"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i></span><span class="mm-card__t"><b>Estado de cuenta en PDF</b><small>Descarga tus movimientos filtrados.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                </ul>
-                <p class="mm-note"><i class="bi bi-info-circle" aria-hidden="true"></i>Por ahora no hay calculadoras ni simuladores en Norte.</p>
-              </div>
-              <aside class="mm-feature">
-                <div class="mm-visual">{{ dash_window('Ilustración del panel de escritorio de Norte con datos de ejemplo') }}</div>
-                <p>Recorre cada pantalla y descubre qué hace cada función.</p>
-                <a class="nds-btn nds-btn--primary" href="{{ url_for('main.herramientas') }}">Ver todas las herramientas <i class="bi bi-arrow-right"></i></a>
-              </aside>
-            </div>
-          </div>
-        </div>
-
-        <div class="mm-item">
-          <button class="mm-trigger" type="button" id="mm-b-seguridad" aria-expanded="false" aria-controls="mm-p-seguridad">Seguridad <i class="bi bi-chevron-down" aria-hidden="true"></i></button>
-          <div class="mm-panel mm-panel--mega" id="mm-p-seguridad" role="region" aria-labelledby="mm-b-seguridad">
-            <div class="mm-panel__in">
-              <div>
-                <p class="mm-eyebrow">Consejos y estado actual</p>
-                <ul class="mm-list">
-                  <li><a class="mm-card" href="{{ url_for('main.seguridad') }}"><span class="mm-thumb"><i class="bi bi-envelope-check" aria-hidden="true"></i></span><span class="mm-card__t"><b>Acceso con código</b><small>Cada ingreso se confirma con un código enviado a tu correo.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.seguridad') }}"><span class="mm-thumb"><i class="bi bi-key" aria-hidden="true"></i></span><span class="mm-card__t"><b>Clave exclusiva</b><small>No reutilices la contraseña de tu correo o de otros servicios.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.privacy') }}"><span class="mm-thumb"><i class="bi bi-person-lock" aria-hidden="true"></i></span><span class="mm-card__t"><b>Tus datos</b><small>Qué información se solicita y para qué se usa.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.terms') }}"><span class="mm-thumb"><i class="bi bi-shield-exclamation" aria-hidden="true"></i></span><span class="mm-card__t"><b>Límites del proyecto</b><small>Norte no procesa dinero real ni pagos externos.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                </ul>
-                <ul class="mm-facts" aria-label="Estado actual de las medidas de acceso">
-                  <li>Código por correo · 5 min</li><li>Sesión · 30 min</li><li>Bloqueo · 5 intentos, 15 min</li>
-                </ul>
-                <p class="mm-note"><i class="bi bi-info-circle" aria-hidden="true"></i>Son medidas del estado actual del proyecto y no sustituyen los controles de una entidad financiera.</p>
-              </div>
-              <aside class="mm-feature">
-                <div class="mm-visual"><img src="{{ url_for('static',filename='images/illustrations/shield-3d.svg') }}" alt="Escudo 3D conceptual con un candado luminoso" width="190" height="190" loading="lazy" decoding="async"></div>
-                <p>Aprende cómo funciona el acceso y qué límites tiene Norte.</p>
-                <a class="nds-btn nds-btn--primary" href="{{ url_for('main.seguridad') }}">Conocer la seguridad <i class="bi bi-arrow-right"></i></a>
-              </aside>
-            </div>
-          </div>
-        </div>
-
-        <div class="mm-item">
-          <button class="mm-trigger" type="button" id="mm-b-ayuda" aria-expanded="false" aria-controls="mm-p-ayuda">Ayuda y educación <i class="bi bi-chevron-down" aria-hidden="true"></i></button>
-          <div class="mm-panel mm-panel--mega" id="mm-p-ayuda" role="region" aria-labelledby="mm-b-ayuda">
-            <div class="mm-panel__in">
-              <div>
-                <p class="mm-eyebrow">Guías y consejos</p>
-                <ul class="mm-list">
-                  <li><a class="mm-card" href="{{ url_for('main.herramientas') }}"><span class="mm-thumb"><i class="bi bi-map" aria-hidden="true"></i></span><span class="mm-card__t"><b>Guía de las herramientas</b><small>Qué hace cada función y cómo recorrerla.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.seguridad') }}"><span class="mm-thumb"><i class="bi bi-shield-check" aria-hidden="true"></i></span><span class="mm-card__t"><b>Consejos de seguridad</b><small>Buenas prácticas para proteger tu acceso.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.privacy') }}"><span class="mm-thumb"><i class="bi bi-person-lock" aria-hidden="true"></i></span><span class="mm-card__t"><b>Privacidad y datos</b><small>Cómo se tratan tus datos personales.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.terms') }}"><span class="mm-thumb"><i class="bi bi-file-text" aria-hidden="true"></i></span><span class="mm-card__t"><b>Términos de uso</b><small>Alcance y condiciones de la demostración.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><div class="mm-card is-static"><span class="mm-thumb"><i class="bi bi-mortarboard" aria-hidden="true"></i></span><span class="mm-card__t"><b>Educación financiera</b><small>Artículos y guías que aún no se han publicado.</small><em class="mm-badge">Próximamente</em></span></div></li>
-                </ul>
-              </div>
-              <aside class="mm-feature">
-                <div class="mm-visual"><img src="{{ url_for('static',filename='images/illustrations/step-idea.svg') }}" alt="Una bombilla luminosa que representa las ideas y la educación" width="240" height="180" loading="lazy" decoding="async"></div>
-                <p>Empieza por la guía para entender el sistema paso a paso.</p>
-                <a class="nds-btn nds-btn--primary" href="{{ url_for('main.herramientas') }}">Empezar por la guía <i class="bi bi-arrow-right"></i></a>
-              </aside>
-            </div>
-          </div>
-        </div>
-
-        <div class="mm-item">
-          <button class="mm-trigger" type="button" id="mm-b-acerca" aria-expanded="false" aria-controls="mm-p-acerca">Acerca de Norte <i class="bi bi-chevron-down" aria-hidden="true"></i></button>
-          <div class="mm-panel mm-panel--mega" id="mm-p-acerca" role="region" aria-labelledby="mm-b-acerca">
-            <div class="mm-panel__in">
-              <div>
-                <p class="mm-eyebrow">El proyecto</p>
-                <p class="mm-note" style="margin:0 0 12px"><i class="bi bi-compass" aria-hidden="true"></i>Norte es una experiencia académica de banca digital, independiente y en desarrollo.</p>
-                <ul class="mm-list mm-list--one">
-                  <li><a class="mm-card" href="{{ url_for('main.acerca') }}"><span class="mm-thumb"><i class="bi bi-lightbulb" aria-hidden="true"></i></span><span class="mm-card__t"><b>Por qué existe</b><small>Mostrar cómo se conectan resumen, movimientos y recorridos.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.acerca') }}"><span class="mm-thumb"><i class="bi bi-window" aria-hidden="true"></i></span><span class="mm-card__t"><b>Qué puedes explorar</b><small>Perfiles de demostración y operaciones con datos ficticios.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                  <li><a class="mm-card" href="{{ url_for('main.acerca') }}"><span class="mm-thumb"><i class="bi bi-info-circle" aria-hidden="true"></i></span><span class="mm-card__t"><b>Qué no es Norte</b><small>No es el BCP ni ofrece productos bancarios reales.</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></a></li>
-                </ul>
-              </div>
-              <aside class="mm-feature">
-                <div class="mm-visual"><img src="{{ url_for('static',filename='images/illustrations/compass-3d.svg') }}" alt="Brújula 3D, símbolo de Norte" width="190" height="203" loading="lazy" decoding="async"></div>
-                <p>Conoce la idea, el prototipo y la exploración detrás de Norte.</p>
-                <a class="nds-btn nds-btn--primary" href="{{ url_for('main.acerca') }}">Leer sobre el proyecto <i class="bi bi-arrow-right"></i></a>
-              </aside>
-            </div>
-          </div>
-        </div>
-
+        {% for key, label, href in nav_items %}
+        <a class="sh__link" href="{{ href }}"{% if page_key==key %} aria-current="page"{% endif %}>{{ label }}</a>
+        {% endfor %}
         <div class="sh__menu-foot">
-          <a class="nds-btn nds-btn--ghost" href="{{ url_for('main.login') }}"><i class="bi bi-lock-fill"></i> Banca por Internet</a>
-          {% with soc_class='soc--menu' %}{% include 'partials/social_links.html' %}{% endwith %}
+          <a class="nds-btn nds-btn--ghost" href="{{ url_for('main.login') }}"><i class="bi bi-lock-fill" aria-hidden="true"></i> Banca por Internet</a>
         </div>
       </nav>
 
       <div class="sh__actions">
+        <a class="sh__login" href="{{ url_for('main.login') }}"><i class="bi bi-lock-fill" aria-hidden="true"></i> Banca por Internet</a>
         <a class="nds-btn nds-btn--primary" href="{{ url_for('main.register') }}">Abrir cuenta <i class="bi bi-arrow-up-right"></i></a>
       </div>
       <button class="sh__burger" type="button" id="siteBurger" aria-expanded="false" aria-controls="siteNav" aria-label="Abrir menú principal"><i class="bi bi-list" aria-hidden="true"></i></button>

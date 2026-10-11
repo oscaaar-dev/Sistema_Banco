@@ -41,10 +41,10 @@
 }
 
 /* ───────── Base: tipografía, superficies planas, foco ───────── */
-/* El reinicio de sombras no alcanza a los mockups (nm-), los diálogos ni la cabecera/pie compartidos. */
-:where(:not(.sh,.sh *,.sf,.sf *,dialog,.nm-phone,.nm-phone *,.nm-window,.nm-window *,.nm-card,.nm-card *)),
-:where(:not(.sh,.sh *,.sf,.sf *,dialog,.nm-phone,.nm-phone *,.nm-window,.nm-window *,.nm-card,.nm-card *))::before,
-:where(:not(.sh,.sh *,.sf,.sf *,dialog,.nm-phone,.nm-phone *,.nm-window,.nm-window *,.nm-card,.nm-card *))::after{box-shadow:none!important;text-shadow:none!important}
+/* El reinicio de sombras no alcanza a los diálogos ni a la cabecera/pie compartidos. */
+:where(:not(.sh,.sh *,.sf,.sf *,dialog)),
+:where(:not(.sh,.sh *,.sf,.sf *,dialog))::before,
+:where(:not(.sh,.sh *,.sf,.sf *,dialog))::after{box-shadow:none!important;text-shadow:none!important}
 :where(:not(.sh,.sh *,.sf,.sf *)){font-family:var(--font,Inter,sans-serif)!important;font-weight:400!important;letter-spacing:-.02em!important;font-kerning:normal}
 body{background:var(--nt-mist);color:var(--nt-ink);font-size:16px;line-height:1.5}
 h1,h2,h3,h4,h5,h6,b,strong,th,summary,button,label,.btn,.eyebrow,.amount,.text-link,.crumb,
@@ -736,5 +736,35 @@ body{letter-spacing:-.02em}
 .info-card[data-variant=dark] .info-card-action{color:var(--nt-accent-soft)}
 .info-content-heading>span{color:var(--nt-accent)}
 .info-art-icon{border:0;border-radius:var(--r-xl,64px);color:var(--nt-accent)}
+.info-hero-shot{margin:0;justify-self:end;width:min(100%,440px);aspect-ratio:1/1;border-radius:var(--r-xl,64px);overflow:hidden;background:var(--nt-ink-2)}
+.info-hero-shot img{display:block;width:100%;height:100%;object-fit:cover}
 .legal-content article{border-radius:var(--r-md,32px)}
 @media(max-width:700px){.info-page .info-hero,.legal-hero{width:calc(100% - 16px);margin-top:8px;border-radius:var(--r-md,32px)}}
+
+/* ═════════ Capa Monzo × Norte: intranet ═════════ */
+/* readability.css iguala la especificidad de las tablas: se gana con el prefijo body */
+body th{font-size:12px}
+body td{font-size:14px}
+.flash{border:0;border-radius:var(--r-pill,500px);background:var(--nt-mist-2);display:flex;align-items:center;gap:12px;padding:14px 24px}
+.flash i{color:var(--nt-accent)}
+.flash button{margin-left:auto;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--nt-ink);cursor:pointer}
+.flash button:hover{background:rgba(12,8,24,.08)}
+.welcome-row .eyebrow,.panel-head .eyebrow,.card-heading .eyebrow,.aside-panel .eyebrow{color:var(--nt-accent)}
+.quick-actions a>span,.soft-icon,.transaction-icon{background:var(--nt-mist);color:var(--nt-accent)}
+.quick-actions a:hover>span{background:var(--nt-ink);color:#fff}
+.transaction-icon.income{color:var(--nt-success)}
+.soft-icon{border:0;border-radius:var(--r-pill,500px)}
+.transaction-icon,.transaction-icon.income{border:0}
+.balance-amount small,.balance-top .eyebrow{color:var(--nt-accent-soft)}
+.status-dot i{color:var(--nt-accent-soft)}
+.mini-card,.bank-card{border-radius:var(--r-md,32px)}
+.privacy-banner,.consent-box,.operation-notice,.account-summary,.camera-analysis-box,.receipt-disclaimer,.demo-credentials,.auth-panel .demo-credentials{border:0;background:var(--nt-mist-2);border-radius:var(--r-md,32px)}
+.privacy-banner{background:#fff}
+.operation-camera,.camera-note,.camera-required-note{border:0;border-radius:var(--r-md,32px)}
+.pill-success,.required-tag{border:0;background:var(--nt-mist-2)}
+.step-indicator span{border:0;background:var(--nt-mist-2)}
+.step-indicator .step-active{background:var(--nt-ink)}
+.camera-stage,.operation-video-wrap,.operation-aside-camera .operation-video-wrap{border-radius:var(--r-md,32px)}
+.intranet-header{border-bottom:0;background:var(--nt-mist)}
+.intranet-avatar{border:0;background:var(--nt-mist-2)}
+
