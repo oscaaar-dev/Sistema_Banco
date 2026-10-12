@@ -166,6 +166,32 @@ def _topic_reply(intent,reply=None):
             'suggestions':list(DEFAULT_SUGGESTIONS) if intent.get('suggest') else [],'intent':intent['name']}
 
 
+def is_menu_suggestion(message):
+    """El mensaje es una de las sugerencias del menú de Nori (sus respuestas son curadas y se conservan tal cual)."""
+    return normalize(message) in {normalize(label) for label in DEFAULT_SUGGESTIONS}
+
+
+def best_match(message):
+    """(regla, puntaje) que mejor coincide con el mensaje; ``(None, 0)`` si ninguna palabra clave aparece."""
+    normalized=normalize(message)
+    best,best_score=None,0
+    for intent in INTENTS:
+        score=_score(normalized,intent['kw'])
+        if score>best_score:
+            best,best_score=intent,score
+    return best,best_score
+
+
+def follow_up_kind(message):
+    """``'more'`` («más información»), ``'repeat'`` («repítelo») o ``None`` si el mensaje no es de seguimiento."""
+    normalized=normalize(message)
+    if _is_phrase(normalized,MORE_PHRASES):
+        return 'more'
+    if _is_phrase(normalized,REPEAT_PHRASES):
+        return 'repeat'
+    return None
+
+
 def answer(message,last_intent=None):
     """Respuesta de Nori: ``reply``, ``mood``, ``links`` y ``suggestions``.
 

@@ -32,3 +32,26 @@ def register_cli(app):
             click.echo(f'{count} registro(s) de Nori superan las 24 horas (no se borró nada).')
             return
         click.echo(f'{purge_expired_audit(force=True)} registro(s) de Nori eliminados por superar las 24 horas.')
+
+    @app.cli.command('nori-index')
+    @click.option('--check', is_flag=True, help='Termina con error si algún documento no se pudo indexar o no hay fragmentos.')
+    def nori_index(check):
+        """Reconstruye el índice documental local de Nori y muestra qué se indexó (sin enviar nada a Internet)."""
+        from collections import Counter
+        from .nori import knowledge, rag
+        rag.reset_index()
+        index = rag.get_index()
+        if index is None:
+            click.echo('No se pudo construir el índice documental (revisa los avisos anteriores).')
+            raise SystemExit(1)
+        per_source = Counter(f'{chunk.title}  [{chunk.origin}]' for chunk in index.chunks)
+        click.echo(f'{len(index.chunks)} fragmentos de {len(per_source)} fuentes, construido en {index.built_in:.2f} s.')
+        for source, count in sorted(per_source.items()):
+            click.echo(f'  {count:>3}  {source}')
+        expected = {path.stem for path in knowledge.KNOWLEDGE_DIR.glob('*.md') if path.name.lower() != 'readme.md'}
+        indexed = {chunk.id.split('#')[0] for chunk in index.chunks if chunk.origin == 'documento'}
+        skipped = sorted(expected - indexed)
+        if skipped:
+            click.echo('Documentos NO indexados (sin status: verificado, con secretos o con url inválida): ' + ', '.join(skipped))
+        if check and (skipped or not index.chunks):
+            raise SystemExit(1)

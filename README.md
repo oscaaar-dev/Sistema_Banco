@@ -82,6 +82,7 @@ Este OTP es una medida demostrativa para la aplicación académica; no debe trat
 - Clustering K-Means exploratorio sobre métricas de interacción en `app/ai/interaction_model.py`.
 - Indicador demostrativo, basado en reglas transparentes, sobre montos y frecuencia de operaciones; no decide ni bloquea operaciones.
 - Escenarios de prueba sintéticos del indicador en `tests/fixtures/operation_risk_scenarios.csv`; se usan para validar niveles, no para entrenar un detector de fraude.
+- **Nori**, asistente de las páginas públicas: responde con reglas y con recuperación documental local (TF-IDF sobre documentos autorizados), sin modelos generativos ni servicios externos. Mantenimiento, documentos y límites en `docs/nori.md`.
 
 ## Alcance honesto de IA y privacidad
 

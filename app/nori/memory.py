@@ -62,6 +62,14 @@ def clean_history(raw):
     return cleaned
 
 
+def last_user_message(history):
+    """Texto de la última pregunta del usuario en el historial ya depurado; ``None`` si no hay."""
+    for entry in reversed(history):
+        if entry['role'] == 'user':
+            return entry['text']
+    return None
+
+
 def last_bot_intent(history, reply_index):
     """Tema de la última respuesta de Nori en el historial, solo si coincide con una respuesta que Nori realmente da.
 

@@ -1,6 +1,7 @@
 """Nori, asistente de la web pública de Norte.
 
-Responde con reglas (y, en etapas siguientes, con documentación autorizada) sin servicios externos ni costo. Conserva la
+Responde con reglas predefinidas y con recuperación documental local (ver ``engine`` y ``rag``), sin modelos generativos,
+servicios externos ni costo. Conserva la
 protección CSRF de la aplicación: el navegador pide un token con ``GET /api/nori/csrf`` y lo envía en ``X-CSRFToken``.
 No guarda conversaciones: lo escrito solo se procesa para responder. La memoria de la conversación vive en el
 ``sessionStorage`` del navegador; el servidor recibe los últimos turnos, los valida y no los conserva (ver ``memory``).
@@ -11,8 +12,8 @@ from flask import Blueprint, current_app, jsonify, request
 from flask_wtf.csrf import CSRFError, generate_csrf
 
 from ..routes import _request_ip_hash
-from .memory import clean_history, last_bot_intent, session_scope
-from .rules import answer, reply_index
+from .engine import respond
+from .memory import clean_history, session_scope
 from .safety import SENSITIVE_REPLY, clean_message, contains_sensitive_data, purge_expired_audit, register_request_and_check_limit
 
 nori = Blueprint('nori', __name__, url_prefix='/api/nori')
@@ -63,7 +64,7 @@ def chat():
     if not message:
         return _json({'error': 'empty', 'mood': 'confundido', 'reply': 'Escríbeme tu consulta y te ayudo.'}, 400)
     if contains_sensitive_data(message):
-        return _json({'reply': SENSITIVE_REPLY, 'mood': 'seguridad', 'redact': True})
+        return _json({'reply': SENSITIVE_REPLY, 'mood': 'seguridad', 'redact': True, 'kind': 'seguridad'})
     # Memoria temporal: el historial llega del navegador y se trata como no confiable. Solo se acepta si pertenece a esta
     # misma sesión (scope); si no, se descarta y se avisa para que el navegador borre su copia.
     history, reset = [], False
@@ -73,8 +74,7 @@ def chat():
             history = clean_history(data.get('history'))
         else:
             reset = True
-    result = answer(message, last_bot_intent(history, reply_index()))
-    result.pop('intent', None)
+    result = respond(message, history)
     if reset:
         result['reset'] = True
     return _json(result)
