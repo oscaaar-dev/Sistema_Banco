@@ -73,7 +73,8 @@ class Config:
         SQLALCHEMY_DATABASE_URI=DATABASE_URL.replace('mysql://','mysql+pymysql://',1)
     else:
         SQLALCHEMY_DATABASE_URI=DATABASE_URL
-    SQLALCHEMY_ENGINE_OPTIONS={'pool_pre_ping':True,'pool_recycle':300}
+    # hide_parameters evita que un error de SQL imprima parámetros (por ejemplo, los bytes de una foto) en los logs.
+    SQLALCHEMY_ENGINE_OPTIONS={'pool_pre_ping':True,'pool_recycle':300,'hide_parameters':True}
     SESSION_COOKIE_HTTPONLY=True
     SESSION_COOKIE_SAMESITE='Lax'
     SESSION_COOKIE_SECURE=os.getenv('COOKIE_SECURE',str(APP_ENV=='production').lower()).lower()=='true'
@@ -81,6 +82,9 @@ class Config:
     SESSION_REFRESH_EACH_REQUEST=False
     WTF_CSRF_TIME_LIMIT=3600
     MAX_CONTENT_LENGTH=2*1024*1024
+    # Cámara obligatoria: una foto JPEG por operación, plazo de conservación y tamaño máximo.
+    CAPTURE_RETENTION_DAYS=90
+    CAPTURE_MAX_BYTES=300*1024
     SMTP_HOST=os.getenv('SMTP_HOST')
     SMTP_PORT=int(os.getenv('SMTP_PORT','587'))
     SMTP_USERNAME=os.getenv('SMTP_USERNAME')

@@ -768,3 +768,13 @@ body td{font-size:14px}
 .intranet-header{border-bottom:0;background:var(--nt-mist)}
 .intranet-avatar{border:0;background:var(--nt-mist-2)}
 
+
+/* ═════════ Cámara obligatoria: aviso, ayuda y estados ═════════ */
+.camera-notice-body{margin:0 0 8px}
+.camera-notice-body p{margin:0 0 12px;font-size:16px;color:var(--nt-graphite)}
+.camera-notice-body ul{margin:0 0 12px;padding-left:20px;display:grid;gap:8px;font-size:15px;color:var(--nt-graphite)}
+.privacy-consent-actions{align-items:center;justify-content:flex-start;gap:20px}
+.privacy-consent-actions .text-link{font-size:15px}
+.camera-help{margin-top:12px;padding:16px 20px;border-radius:var(--r-sm,16px);background:#fff1ef;color:var(--nt-ink);font-size:14px}
+.camera-help p{margin:6px 0 8px;color:var(--nt-graphite)}
+.camera-help ol{margin:0;padding-left:20px;display:grid;gap:4px;color:var(--nt-graphite)}

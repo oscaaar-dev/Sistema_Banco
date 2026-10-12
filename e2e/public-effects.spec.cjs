@@ -116,9 +116,8 @@ test('las páginas informativas muestran tarjetas interactivas y accesos claros'
   await expect(page.getByRole('link', { name: /Abrir cuenta/ })).toHaveAttribute('href', '/register');
   await expect(cards.nth(0)).toHaveAttribute('href', '/login');
   await expect(cards.nth(1)).toHaveAttribute('href', '/acerca');
-  const initialTransform = await cards.nth(0).evaluate((element) => getComputedStyle(element).transform);
   await cards.nth(0).hover();
-  await expect.poll(() => cards.nth(0).evaluate((element) => getComputedStyle(element).transform)).not.toBe(initialTransform);
+  await expect.poll(() => cards.nth(0).evaluate((element) => getComputedStyle(element).cursor)).toBe('pointer');
   await cards.nth(1).click();
   await expect(page).toHaveURL(/\/acerca$/);
   await page.getByRole('link', { name: /Abrir cuenta/ }).click();
@@ -160,58 +159,112 @@ test('el menú móvil de la intranet se abre y se cierra', async ({ page }) => {
   await expect(navigation).not.toHaveClass(/open/);
 });
 
-test('la cámara requiere consentimiento explícito antes de habilitarse', async ({ page }) => {
+async function signIn(page) {
   await page.context().addCookies([{
     name: 'session',
     value: authenticatedSessionCookie(),
     domain: '127.0.0.1',
     path: '/',
   }]);
+}
+
+test('la cámara es obligatoria: el aviso no se puede rechazar y confirmar sigue bloqueado', async ({ page }) => {
+  await signIn(page);
   await page.goto('/operation/payment');
   const dialog = page.locator('#operationConsentDialog');
   await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText('Los fotogramas no se envían ni se guardan');
-  const consent = page.locator('#cameraConsent');
-  const start = page.locator('#startCamera');
-  await expect(consent).toHaveValue('no');
-  await expect(start).toBeDisabled();
+  await expect(dialog).toContainText('Verificación con cámara obligatoria');
+  await expect(dialog).toContainText('asociada a tu usuario, a la operación y a la fecha');
+  await expect(dialog.getByRole('button', { name: 'Entendido, activar cámara' })).toBeVisible();
+  await expect(dialog.getByRole('link', { name: 'Cancelar operación' })).toHaveAttribute('href', '/dashboard');
+  await expect(page.locator('#declineCameraConsent')).toHaveCount(0);
+
+  // Esc no cierra el aviso: no hay camino para continuar sin cámara.
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeVisible();
+  await expect(page.locator('#cameraConsent')).toHaveValue('no');
+
   const submit = page.locator('#operationForm button[type="submit"]');
-  const code = page.locator('#operationForm input[name="otp_code"]');
-  await page.locator('#declineCameraConsent').click();
-  await expect(dialog).not.toBeVisible();
-  await expect(consent).toHaveValue('no');
-  await expect(start).toBeDisabled();
-  await code.fill('123456');
-  await expect(submit).toBeEnabled();
-  await code.fill('');
   await expect(submit).toBeDisabled();
+});
+
+test('"Enviar código" se habilita solo con servicio y monto y copia los datos al formulario del código', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/operation/payment');
+  // El aviso de cámara es modal: hay que aceptarlo antes de usar el formulario.
+  await page.locator('#acceptCameraConsent').click();
+  await expect(page.locator('#operationConsentDialog')).not.toBeVisible();
+  const sendCode = page.locator('#transferCodeForm button[type="submit"]');
+  await expect(sendCode).toBeDisabled();
   await page.locator('#operationForm select[name="service"]').selectOption('Agua');
+  await expect(sendCode).toBeDisabled();
   await page.locator('#operationForm input[name="amount"]').fill('55.25');
+  await expect(sendCode).toBeEnabled();
   await page.locator('#transferCodeForm').evaluate((form) =>
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
   );
   await expect(page.locator('#transferCodeForm input[name="amount"]')).toHaveValue('55.25');
   await expect(page.locator('#transferCodeForm input[name="service"]')).toHaveValue('Agua');
   await expect(page.locator('#transferCodeForm input[name="idempotency_key"]')).toHaveValue(/^[A-Za-z0-9_-]{22,64}$/);
+  await page.locator('#operationForm input[name="amount"]').fill('');
+  await expect(sendCode).toBeDisabled();
 });
 
-test('la aceptación de cámara queda registrada y no se envían fotogramas', async ({ page }) => {
-  await page.context().addCookies([{
-    name: 'session',
-    value: authenticatedSessionCookie(),
-    domain: '127.0.0.1',
-    path: '/',
-  }]);
-  let cameraFrameRequests = 0;
-  await page.route('**/camera/analyze', async (route) => {
-    cameraFrameRequests += 1;
-    await route.fulfill({ status: 410, contentType: 'application/json', body: '{"error":"disabled"}' });
+test.describe('con cámara simulada de Chromium', () => {
+  test.use({ permissions: ['camera'] });
+
+  test('aceptar el aviso activa la cámara y al confirmar se envía una sola foto JPEG', async ({ page }) => {
+    await signIn(page);
+    let cameraFrameRequests = 0;
+    await page.route('**/camera/analyze', async (route) => {
+      cameraFrameRequests += 1;
+      await route.fulfill({ status: 410, contentType: 'application/json', body: '{"error":"disabled"}' });
+    });
+    let upload = null;
+    await page.route('**/operation/payment', async (route) => {
+      if (route.request().method() === 'POST') {
+        upload = route.request().postDataBuffer();
+        await route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>ok</title><p>recibido</p>' });
+      } else {
+        await route.continue();
+      }
+    });
+    await page.goto('/operation/payment');
+    await page.locator('#acceptCameraConsent').click();
+    await expect(page.locator('#operationConsentDialog')).not.toBeVisible();
+    await expect(page.locator('#cameraConsent')).toHaveValue('yes');
+    await expect(page.locator('#cameraIndicator')).toBeVisible();
+
+    const submit = page.locator('#operationForm button[type="submit"]');
+    await expect(submit).toBeDisabled();            // falta el código por correo
+    await page.locator('#operationForm select[name="service"]').selectOption('Agua');
+    await page.locator('#operationForm input[name="amount"]').fill('5');
+    await page.locator('#operationForm input[name="otp_code"]').fill('123456');
+    await expect(submit).toBeEnabled();             // cámara activa + código
+
+    await submit.click();
+    await expect.poll(() => upload !== null).toBeTruthy();
+    const body = upload.toString('latin1');
+    expect(body).toContain('name="capture"');
+    expect(body).toContain('filename="capture.jpg"');
+    expect(upload.includes(Buffer.from([0xff, 0xd8, 0xff]))).toBeTruthy();    // firma JPEG
+    expect((body.match(/name="capture"/g) || []).length).toBe(1);              // una sola foto
+    expect(upload.length).toBeLessThan(300 * 1024 + 4096);
+    expect(cameraFrameRequests).toBe(0);
   });
-  await page.goto('/operation/payment');
-  await page.locator('#acceptCameraConsent').click();
-  await expect(page.locator('#operationConsentDialog')).not.toBeVisible();
-  await expect(page.locator('#cameraConsent')).toHaveValue('yes');
-  expect(cameraFrameRequests).toBe(0);
+
+  test('si el navegador bloquea la cámara se muestra la ayuda y no se puede confirmar', async ({ page }) => {
+    await signIn(page);
+    await page.addInitScript(() => {
+      navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('denied', 'NotAllowedError'));
+    });
+    await page.goto('/operation/payment');
+    await page.locator('#acceptCameraConsent').click();
+    await expect(page.locator('#cameraHelp')).toBeVisible();
+    await expect(page.locator('#cameraStatus')).toContainText('Sin cámara no se puede confirmar la operación');
+    await page.locator('#operationForm input[name="otp_code"]').fill('123456');
+    await expect(page.locator('#operationForm button[type="submit"]')).toBeDisabled();
+  });
 });
 
 test('los diálogos de cookies y ayuda se abren y cierran', async ({ page }) => {

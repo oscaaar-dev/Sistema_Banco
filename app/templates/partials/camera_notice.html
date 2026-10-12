@@ -1,0 +1,20 @@
+{#
+  Aviso de cámara obligatoria. Ya no ofrece rechazarla: se puede cancelar la operación, pero no continuar sin cámara.
+  Variables: kind ('transfer' | 'payment' | 'recharge' | 'internal'), idempotency_key, camera_consent_version.
+  El texto describe lo que realmente hace el sistema: una foto al confirmar, guardada con usuario, operación y fecha.
+#}
+<dialog class="privacy-consent-dialog" id="operationConsentDialog" data-version="{{ camera_consent_version }}" data-kind="{{ kind }}" data-operation-key="{{ idempotency_key }}" data-acknowledged="{{ 'yes' if camera_acknowledged(kind, idempotency_key) else 'no' }}" aria-labelledby="cameraConsentTitle" aria-describedby="cameraConsentDescription">
+  <div class="eyebrow dark">PRIVACIDAD Y CÁMARA</div>
+  <h2 id="cameraConsentTitle">Verificación con cámara obligatoria</h2>
+  <div id="cameraConsentDescription" class="camera-notice-body">
+    <p>Para confirmar esta operación, Norte toma <b>una foto</b> con tu cámara, por seguridad y prevención de fraude. La foto se toma al pulsar «Revisar y confirmar».</p>
+    <ul>
+      <li>La foto se guarda en la base de datos <b>asociada a tu usuario, a la operación y a la fecha</b>, y se conserva {{ config.CAPTURE_RETENTION_DAYS }} días.</li>
+      <li>La cámara <b>no identifica personas</b> ni reemplaza el código enviado por correo: para confirmar necesitas <b>ambos</b>.</li>
+      <li>Si no activas la cámara no podrás completar la operación; puedes cancelarla en cualquier momento.</li>
+    </ul>
+    <p class="muted">Más detalle en la <a class="text-link" href="{{ url_for('main.privacy') }}" target="_blank" rel="noopener">política de privacidad</a>.</p>
+  </div>
+  <small id="cameraConsentError" class="camera-consent-error" aria-live="polite"></small>
+  <div class="privacy-consent-actions"><button class="btn btn-primary" type="button" id="acceptCameraConsent">Entendido, activar cámara</button><a class="text-link" id="cancelCameraOperation" href="{{ url_for('main.dashboard') }}">Cancelar operación</a></div>
+</dialog>

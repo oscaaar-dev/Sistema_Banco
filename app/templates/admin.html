@@ -4,6 +4,7 @@
 <div class="eyebrow dark">VISTA GENERAL</div>
 <h1>Administración</h1>
 <p class="muted">Indicadores agregados del entorno académico.</p>
+<p><a class="text-link" href="{{ url_for('main.admin_captures') }}">Ver capturas de seguridad de las operaciones</a></p>
 <section class="stats-grid">
   <article class="panel stat-card"><span class="soft-icon"><i class="bi bi-people"></i></span><small>USUARIOS</small><strong>{{ users }}</strong></article>
   <article class="panel stat-card"><span class="soft-icon"><i class="bi bi-arrow-left-right"></i></span><small>OPERACIONES</small><strong>{{ operations }}</strong></article>

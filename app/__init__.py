@@ -45,6 +45,8 @@ def create_app(config_overrides=None):
     app.register_blueprint(bp)
     from .api import api
     app.register_blueprint(api)
+    from .cli import register_cli
+    register_cli(app)
 
     @login_manager.unauthorized_handler
     def unauthorized_api_response():

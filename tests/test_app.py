@@ -1,5 +1,6 @@
 from app import create_app
 from app.models import db, User, Account, LoginChallenge
+from camera_helpers import accept_camera_notice, capture_file
 
 
 def _csrf_token(response):
@@ -280,7 +281,8 @@ def test_internal_transfer_uses_email_otp_and_updates_both_owned_accounts(monkey
     requested=client.post('/internal-transfer',data={**base_data,'action':'send_code'})
     assert requested.status_code==200
     assert delivered and '10.00' in delivered[0][2]
-    confirmed=client.post('/internal-transfer',data={**base_data,'action':'confirm','otp_code':delivered[0][1]})
+    accept_camera_notice(client,base_data['csrf_token'],'internal',key)
+    confirmed=client.post('/internal-transfer',data={**base_data,'action':'confirm','otp_code':delivered[0][1],'capture':capture_file()})
     assert confirmed.status_code==302
     assert '/receipt/' in confirmed.headers['Location']
     with app.app_context():
@@ -292,7 +294,7 @@ def test_internal_transfer_uses_email_otp_and_updates_both_owned_accounts(monkey
         assert len(paired)==2
         assert sorted(item.operation_type for item in paired)==['INGRESO','TRANSFERENCIA']
         assert InteractionFeatures.query.count()==1
-    retry=client.post('/internal-transfer',data={**base_data,'action':'confirm','otp_code':delivered[0][1]})
+    retry=client.post('/internal-transfer',data={**base_data,'action':'confirm','otp_code':delivered[0][1],'capture':capture_file()})
     assert retry.status_code==302
     with app.app_context():
         assert Transaction.query.filter_by(idempotency_key=key).count()==2
@@ -785,10 +787,7 @@ def test_operation_requires_email_otp_even_after_camera_consent(monkeypatch):
     operation_page=client.get('/operation/payment')
     operation_token=_csrf_token(operation_page)
     idempotency_key=re.search(rb'name="idempotency_key" value="([^"]+)"',operation_page.data).group(1).decode()
-    consent=client.post('/camera/consent',json={
-        'version':'2026-10-v1','kind':'payment','idempotency_key':idempotency_key,
-    },headers={'X-CSRFToken':operation_token})
-    assert consent.status_code==200
+    accept_camera_notice(client,operation_token,'payment',idempotency_key)
     response=client.post('/operation/payment',data={
         'csrf_token':operation_token,
         'idempotency_key':idempotency_key,
@@ -796,6 +795,7 @@ def test_operation_requires_email_otp_even_after_camera_consent(monkeypatch):
         'form_duration_seconds':'30',
         'service':'Agua',
         'amount':'100',
+        'capture':capture_file(),
     })
 
     assert response.status_code==200
@@ -878,20 +878,20 @@ def test_camera_consent_records_only_user_version_and_timestamp(monkeypatch):
     token=_csrf_token(page)
     key=re.search(rb'data-operation-key="([^"]+)"',page.data).group(1).decode()
     response=client.post('/camera/consent',json={
-        'version':'2026-10-v1','kind':'payment','idempotency_key':key,
+        'version':'2026-10-v2','kind':'payment','idempotency_key':key,
     },headers={'X-CSRFToken':token})
     assert response.status_code==200
-    assert response.get_json()=={'recorded':True,'version':'2026-10-v1'}
+    assert response.get_json()=={'recorded':True,'version':'2026-10-v2'}
     with app.app_context():
         user=User.query.filter_by(username='demo').one()
         consent=AuditLog.query.filter_by(user_id=user.id,module='PRIVACIDAD').one()
-        assert consent.action=='CAMERA_CONSENT_ACCEPTED_2026_10_V1_PAYMENT'
+        assert consent.action=='CAMERA_CONSENT_ACCEPTED_2026_10_V2_PAYMENT'
         assert consent.created_at is not None
         assert consent.ip_local is None
         assert AuditLog.query.filter_by(module='PRIVACIDAD').count()==1
     with client.session_transaction() as browser_session:
         assert browser_session['camera_consent_receipt']=={
-            'version':'2026-10-v1','kind':'payment','idempotency_key':key,
+            'version':'2026-10-v2','kind':'payment','idempotency_key':key,
         }
 
 
@@ -911,11 +911,11 @@ def test_invalid_camera_consent_version_is_not_recorded(monkeypatch):
     with app.app_context():
         assert AuditLog.query.filter_by(module='PRIVACIDAD').count()==0
 
-def test_payment_can_be_confirmed_by_email_otp_without_camera(monkeypatch):
+def test_payment_is_confirmed_with_camera_photo_and_email_otp(monkeypatch):
     import re
     from decimal import Decimal
     import app.routes as routes_module
-    from app.models import FacialAnalysis, InteractionSession, OperationChallenge, Transaction, User
+    from app.models import FacialAnalysis, InteractionSession, OperationCapture, OperationChallenge, Transaction, User
 
     sent=[]
     monkeypatch.setattr(routes_module,'send_operation_code',lambda email,code,details:sent.append((email,code,details)))
@@ -937,9 +937,10 @@ def test_payment_can_be_confirmed_by_email_otp_without_camera(monkeypatch):
         assert challenge.details_hash
         assert sent[0][1] not in challenge.code_hash
 
+    accept_camera_notice(client,token,'payment',key)
     response=client.post('/operation/payment',data={
         'csrf_token':token,'idempotency_key':key,'amount':'25.50','service':'Agua',
-        'otp_code':sent[0][1],'form_duration_seconds':'12',
+        'otp_code':sent[0][1],'form_duration_seconds':'12','camera_consent':'yes','capture':capture_file(),
     })
     assert response.status_code==302
     with app.app_context():
@@ -948,10 +949,11 @@ def test_payment_can_be_confirmed_by_email_otp_without_camera(monkeypatch):
         tx=Transaction.query.filter_by(idempotency_key=key).one()
         session_record=InteractionSession.query.filter_by(id=tx.session_id).one()
         assert challenge.consumed_at is not None
-        assert session_record.consent_given is False
+        assert session_record.consent_given is True
         assert session_record.face_detected is False
         assert FacialAnalysis.query.count()==0
         assert tx.amount==Decimal('-25.50')
+        assert OperationCapture.query.filter_by(transaction_id=tx.id,user_id=user.id).count()==1
 
 def test_operation_otp_is_bound_to_service(monkeypatch):
     import re
@@ -969,9 +971,10 @@ def test_operation_otp_is_bound_to_service(monkeypatch):
     client.post('/operation/payment/send-code',data={
         'csrf_token':token,'idempotency_key':key,'amount':'25.50','service':'Agua',
     })
+    accept_camera_notice(client,token,'payment',key)
     response=client.post('/operation/payment',data={
         'csrf_token':token,'idempotency_key':key,'amount':'25.50','service':'Internet',
-        'otp_code':sent[0],'form_duration_seconds':'12',
+        'otp_code':sent[0],'form_duration_seconds':'12','camera_consent':'yes','capture':capture_file(),
     })
     assert response.status_code==200
     assert 'Los datos cambiaron'.encode() in response.data

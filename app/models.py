@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import deferred
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -163,6 +164,28 @@ class Transfer(db.Model):
     transaction=db.relationship('Transaction',backref=db.backref('transfer',uselist=False))
     account=db.relationship('Account')
     beneficiary=db.relationship('Beneficiary')
+
+class OperationCapture(db.Model):
+    """Foto tomada al confirmar una operación (cámara obligatoria).
+
+    Se guarda ligada al usuario y a la operación; la imagen es ``deferred`` para que listar capturas no cargue los bytes.
+    Solo se lee desde un endpoint autenticado de administración y se borra al vencer el plazo de conservación.
+    """
+    __tablename__='operation_captures'
+    id=db.Column(db.Integer,primary_key=True)
+    user_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='CASCADE'),nullable=False,index=True)
+    transaction_id=db.Column(db.Integer,db.ForeignKey('transactions.id',ondelete='CASCADE'),nullable=False,index=True)
+    image=deferred(db.Column(db.LargeBinary,nullable=False))
+    mime_type=db.Column(db.String(30),nullable=False,default='image/jpeg')
+    size_bytes=db.Column(db.Integer,nullable=False)
+    width=db.Column(db.Integer,nullable=True)
+    height=db.Column(db.Integer,nullable=True)
+    consent_version=db.Column(db.String(20),nullable=True)
+    ip_hash=db.Column(db.String(64),nullable=True)
+    user_agent=db.Column(db.String(255),nullable=True)
+    created_at=db.Column(db.DateTime,nullable=False,default=now_utc,index=True)
+    user=db.relationship('User',backref=db.backref('operation_captures',lazy=True,passive_deletes=True))
+    transaction=db.relationship('Transaction',backref=db.backref('capture',uselist=False,lazy=True,passive_deletes=True))
 
 class TransactionStep(db.Model):
     __tablename__='transaction_steps'

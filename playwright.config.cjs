@@ -18,7 +18,11 @@ module.exports = defineConfig({
     browserName: 'chromium',
     channel: chromeExecutable ? undefined : 'chrome',
     headless: true,
-    launchOptions: chromeExecutable ? { executablePath: chromeExecutable } : {},
+    // La cámara es obligatoria al confirmar operaciones: Chromium usa un dispositivo simulado y acepta el permiso solo.
+    launchOptions: {
+      args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
+      ...(chromeExecutable ? { executablePath: chromeExecutable } : {}),
+    },
     screenshot: 'only-on-failure',
   },
   webServer: {

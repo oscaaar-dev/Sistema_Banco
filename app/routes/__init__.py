@@ -9,12 +9,13 @@ from flask import Blueprint, Response, current_app, render_template, request, re
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import desc, or_
 from sqlalchemy.exc import IntegrityError
-from ..models import db, User, LoginChallenge, LoginAttemptLimit, OperationChallenge, Account, BankCard, Beneficiary, Transaction, InteractionSession, AuditLog, now_utc
+from ..models import db, User, LoginChallenge, LoginAttemptLimit, OperationChallenge, Account, BankCard, Beneficiary, Transaction, InteractionSession, OperationCapture, AuditLog, now_utc
 from ..services.banking_service import account_for, process_operation, process_internal_transfer, log, operation_risk_for
 from ..services.statement_service import account_statement_pdf
 from ..services.email_service import EmailDeliveryError, send_login_code, send_operation_code
 from ..services.password_policy import validate_new_password
 from ..services.validation import parse_amount, parse_duration_seconds
+from ..services.capture_service import read_capture
 bp=Blueprint('main',__name__)
 
 LOGIN_FAILURE_LIMIT=5
@@ -23,7 +24,8 @@ LOGIN_LOCK_DURATION=timedelta(minutes=15)
 OPERATION_CODE_TTL=timedelta(minutes=5)
 OPERATION_CODE_RESEND=timedelta(seconds=60)
 OPERATION_CODE_MAX_ATTEMPTS=5
-CAMERA_CONSENT_VERSION='2026-10-v1'
+CAMERA_CONSENT_VERSION='2026-10-v2'
+CAMERA_KINDS=('transfer','payment','recharge','internal')
 
 def _home_for_role(user):
     if user.role=='ADMINISTRADOR':
@@ -35,6 +37,23 @@ def _home_for_role(user):
 def _require_client():
     if current_user.role!='CLIENTE':
         abort(403)
+
+def _camera_receipt_ok(kind,operation_key):
+    """La cámara es obligatoria: hace falta haber aceptado el aviso vigente para esta operación concreta."""
+    receipt=session.get('camera_consent_receipt') or {}
+    return bool(receipt.get('version')==CAMERA_CONSENT_VERSION and receipt.get('kind')==kind
+                and operation_key and receipt.get('idempotency_key')==operation_key)
+
+def _capture_meta():
+    return {'consent_version':CAMERA_CONSENT_VERSION,'ip_hash':_request_ip_hash('operation-capture'),
+            'user_agent':request.headers.get('User-Agent','')[:255]}
+
+CAMERA_REQUIRED_MESSAGE='Para confirmar la operación debes aceptar el aviso y activar la cámara.'
+PENDING_FIELDS=('beneficiary_id','amount','service','phone')
+
+@bp.app_template_global('camera_acknowledged')
+def _camera_acknowledged(kind,operation_key):
+    return _camera_receipt_ok(kind,operation_key)
 
 def _login_attempt_hash(identifier):
     key=str(current_app.config['SECRET_KEY']).encode('utf-8')
@@ -602,9 +621,9 @@ def record_camera_consent():
     kind=data.get('kind','')
     operation_key=data.get('idempotency_key','').strip()
     if (data.get('version')!=CAMERA_CONSENT_VERSION
-            or kind not in ('transfer','payment','recharge')
+            or kind not in CAMERA_KINDS
             or not re.fullmatch(r'[A-Za-z0-9_-]{22,64}',operation_key)):
-        return jsonify(error='No se pudo validar el consentimiento para esta operación.'),400
+        return jsonify(error='No se pudo validar el aviso para esta operación. Recarga la página e inténtalo de nuevo.'),400
     action=f"CAMERA_CONSENT_ACCEPTED_{CAMERA_CONSENT_VERSION.replace('-', '_').upper()}_{kind.upper()}"
     log(current_user,action,'PRIVACIDAD')
     try:
@@ -612,7 +631,7 @@ def record_camera_consent():
     except Exception:
         db.session.rollback()
         current_app.logger.exception('No se pudo registrar el consentimiento de cámara.')
-        return jsonify(error='No se pudo guardar tu consentimiento. Puedes continuar con el código de correo.'),503
+        return jsonify(error='No se pudo registrar tu aceptación. Inténtalo de nuevo en unos segundos.'),503
     session['camera_consent_receipt']={
         'version':CAMERA_CONSENT_VERSION,
         'kind':kind,
@@ -635,22 +654,24 @@ def operation(kind):
     submitted_idempotency_key=request.form.get('idempotency_key','').strip() if request.method=='POST' else ''
     idempotency_key=(submitted_idempotency_key if re.fullmatch(r'[A-Za-z0-9_-]{22,64}',submitted_idempotency_key)
                      else secrets.token_urlsafe(24))
+    prefill={name:request.form.get(name,'') for name in PENDING_FIELDS} if request.method=='POST' else {}
     if request.method=='GET':
-        session.pop('camera_consent_receipt',None)
+        pending=session.get('pending_operation')
+        if (isinstance(pending,dict) and pending.get('kind')==kind
+                and re.fullmatch(r'[A-Za-z0-9_-]{22,64}',str(pending.get('key','')))):
+            # Volvemos de "Enviar código": se conserva la clave de la operación (el código está ligado a ella) y los datos.
+            idempotency_key=pending['key']
+            prefill={name:str(pending.get(name,'')) for name in PENDING_FIELDS}
+        else:
+            session.pop('camera_consent_receipt',None)
     if request.method=='POST':
-        receipt=session.get('camera_consent_receipt',{})
-        camera_consent=bool(
-            request.form.get('camera_consent')=='yes'
-            and receipt.get('version')==CAMERA_CONSENT_VERSION
-            and receipt.get('kind')==kind
-            and receipt.get('idempotency_key')==submitted_idempotency_key
-        )
+        camera_consent=bool(request.form.get('camera_consent')=='yes' and _camera_receipt_ok(kind,submitted_idempotency_key))
         if not re.fullmatch(r'[A-Za-z0-9_-]{22,64}',submitted_idempotency_key):
             flash('El formulario venció. Vuelve a cargarlo antes de confirmar.','error')
             return render_template('operation.html',kind=kind,recipients=recipients,account=account,
                                    idempotency_key=idempotency_key,
                                    masked_email=_masked_email(current_user.email or ''),
-                                   camera_consent_version=CAMERA_CONSENT_VERSION), 400
+                                   camera_consent_version=CAMERA_CONSENT_VERSION,prefill=prefill), 400
         try:
             amount=parse_amount(request.form.get('amount'))
             duration_seconds=parse_duration_seconds(request.form.get('form_duration_seconds'))
@@ -672,6 +693,11 @@ def operation(kind):
                 if not re.fullmatch(r'[0-9]{7,15}',phone):
                     raise ValueError('Ingresa un número de celular válido, solo con dígitos.')
                 description='Recarga: '+phone[:40]; op='RECARGA'; details='phone:'+phone
+
+            # Cámara obligatoria: se valida antes de gastar el código de un solo uso, para poder reintentar con el mismo código.
+            if not camera_consent:
+                raise ValueError(CAMERA_REQUIRED_MESSAGE)
+            capture=read_capture(request.files.get('capture'),current_app.config['CAPTURE_MAX_BYTES'])
 
             code=request.form.get('otp_code','').strip()
             must_use_otp=True
@@ -707,8 +733,9 @@ def operation(kind):
                     raise ValueError('El código de confirmación no es válido o venció.')
                 challenge.consumed_at=now
                 log(current_user,'OPERATION_OTP_VERIFIED','SEGURIDAD')
-            tx=process_operation(current_user,op,amount,description,beneficiary_id,request.form.get('service'),camera_consent,duration_seconds=duration_seconds,idempotency_key=idempotency_key)
+            tx=process_operation(current_user,op,amount,description,beneficiary_id,request.form.get('service'),camera_consent,duration_seconds=duration_seconds,idempotency_key=idempotency_key,capture=capture,capture_meta=_capture_meta())
             session.pop('camera_consent_receipt',None)
+            session.pop('pending_operation',None)
             flash('Operación registrada. No tiene efectos financieros.','success')
             return redirect(url_for('main.receipt',transaction_id=tx.id))
         except InvalidOperation:
@@ -717,9 +744,13 @@ def operation(kind):
         except ValueError as e:
             db.session.rollback()
             flash(str(e),'error')
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception('No se pudo completar la operación %s del usuario %s.',kind,current_user.id)
+            flash('No se pudo completar la operación ni guardar la foto de seguridad. No se registró ningún movimiento; inténtalo de nuevo.','error')
     return render_template('operation.html',kind=kind,recipients=recipients,account=account,
                            idempotency_key=idempotency_key,masked_email=_masked_email(current_user.email or ''),
-                           camera_consent_version=CAMERA_CONSENT_VERSION)
+                           camera_consent_version=CAMERA_CONSENT_VERSION,prefill=prefill)
 
 @bp.route('/operation/<kind>/send-code',methods=['POST'])
 @login_required
@@ -784,6 +815,10 @@ def send_transfer_code(kind):
         send_operation_code(current_user.email,code,readable)
         log(current_user,'OPERATION_OTP_SENT','SEGURIDAD')
         db.session.commit()
+        session['pending_operation']={'kind':kind,'key':idempotency_key,'amount':f'{amount:.2f}',
+                                      'beneficiary_id':str(beneficiary.id) if beneficiary else '',
+                                      'service':request.form.get('service','').strip() if kind=='payment' else '',
+                                      'phone':request.form.get('phone','').strip() if kind=='recharge' else ''}
         flash(f'Enviamos un código para confirmar {readable} al correo { _masked_email(current_user.email) }.','success')
     except EmailDeliveryError:
         db.session.rollback()
@@ -812,8 +847,10 @@ def internal_transfer():
     def render_transfer(status=200):
         return render_template('internal_transfer.html',accounts=accounts,source_id=source_id,
                                destination_id=destination_id,amount=amount_raw,idempotency_key=key,
-                               code_sent=code_sent,masked_email=_masked_email(current_user.email or '')),status
+                               code_sent=code_sent,masked_email=_masked_email(current_user.email or ''),
+                               camera_consent_version=CAMERA_CONSENT_VERSION,kind='internal'),status
     if request.method=='GET':
+        session.pop('camera_consent_receipt',None)
         return render_transfer()
     if len(accounts)<2:
         flash('Necesitas dos cuentas activas a tu nombre para hacer un traslado interno.','error')
@@ -865,6 +902,10 @@ def internal_transfer():
             previous=Transaction.query.filter_by(account_id=source.id,idempotency_key=key,operation_type='TRANSFERENCIA').first()
             if previous:
                 return redirect(url_for('main.receipt',transaction_id=previous.id))
+            if not _camera_receipt_ok('internal',key):
+                code_sent=True
+                raise ValueError(CAMERA_REQUIRED_MESSAGE)
+            capture=read_capture(request.files.get('capture'),current_app.config['CAPTURE_MAX_BYTES'])
             challenge=OperationChallenge.query.filter_by(user_id=current_user.id,operation_type='TRASLADO_PROPIO').with_for_update().first()
             now=now_utc()
             if (not challenge or challenge.consumed_at is not None or now>=challenge.expires_at
@@ -883,7 +924,8 @@ def internal_transfer():
                 raise ValueError('El código de confirmación no es válido o venció.')
             challenge.consumed_at=now
             tx=process_internal_transfer(current_user,source.id,destination.id,amount,
-                                         duration_seconds=duration_seconds,idempotency_key=key)
+                                         duration_seconds=duration_seconds,idempotency_key=key,
+                                         capture=capture,capture_meta=_capture_meta())
             session.pop('camera_consent_receipt',None)
             flash('Traslado entre tus cuentas registrado. No tiene efectos financieros externos.','success')
             return redirect(url_for('main.receipt',transaction_id=tx.id))
@@ -918,6 +960,30 @@ def admin():
     if current_user.role!='ADMINISTRADOR': abort(403)
     sessions=InteractionSession.query.order_by(desc(InteractionSession.started_at)).limit(100).all()
     return render_template('admin.html',users=User.query.count(),operations=Transaction.query.count(),sessions=sessions,logs=AuditLog.query.order_by(desc(AuditLog.created_at)).limit(20).all())
+
+@bp.route('/admin/capturas')
+@login_required
+def admin_captures():
+    if current_user.role!='ADMINISTRADOR': abort(403)
+    captures=OperationCapture.query.order_by(desc(OperationCapture.created_at)).limit(100).all()
+    log(current_user,'CAPTURE_LIST_VIEWED','PRIVACIDAD')
+    db.session.commit()
+    page=render_template('admin_captures.html',captures=captures,retention_days=current_app.config['CAPTURE_RETENTION_DAYS'])
+    return Response(page,mimetype='text/html',headers={'Cache-Control':'no-store'})
+
+@bp.route('/admin/capturas/<int:capture_id>/imagen')
+@login_required
+def admin_capture_image(capture_id):
+    # Las imágenes nunca tienen URL pública: solo se sirven a un administrador con sesión y quedan en la auditoría.
+    if current_user.role!='ADMINISTRADOR': abort(403)
+    capture=db.session.get(OperationCapture,capture_id)
+    if capture is None: abort(404)
+    log(current_user,'CAPTURE_IMAGE_VIEWED','PRIVACIDAD')
+    db.session.commit()
+    return Response(capture.image,mimetype=capture.mime_type,headers={
+        'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff',
+        'Content-Disposition':'inline','Cross-Origin-Resource-Policy':'same-origin',
+    })
 
 @bp.route('/support')
 @login_required
