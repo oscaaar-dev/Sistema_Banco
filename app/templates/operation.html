@@ -20,8 +20,8 @@
   <input type="hidden" name="idempotency_key">
   <input type="hidden" name="service">
   <input type="hidden" name="phone">
-  <div><b>Verifica la operación por correo</b><small>Si no deseas usar la cámara, solicita un código de un solo uso. Lo enviaremos a {{ masked_email }} ligado a los datos de esta operación.</small></div>
-  <button class="btn btn-outline btn-small" type="submit">Enviar código</button>
+  <div><b>Verifica la operación por correo</b><small>Si no deseas usar la cámara, solicita un código de un solo uso. Lo enviaremos a {{ masked_email }} ligado a los datos de esta operación.</small><small id="transferCodeHint" class="muted">Completa {% if kind=='transfer' %}el destinatario{% elif kind=='payment' %}el servicio{% else %}el número de celular{% endif %} y el monto para pedir el código.</small></div>
+  <button class="btn btn-outline btn-small" type="submit" disabled>Enviar código</button>
 </form>
 <div class="operation-layout operation-layout-camera">
   <form method="post" class="panel operation-form" id="operationForm">

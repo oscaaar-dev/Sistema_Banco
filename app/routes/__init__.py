@@ -14,6 +14,7 @@ from ..services.banking_service import account_for, process_operation, process_i
 from ..services.statement_service import account_statement_pdf
 from ..services.email_service import EmailDeliveryError, send_login_code, send_operation_code
 from ..services.password_policy import validate_new_password
+from ..services.validation import parse_amount, parse_duration_seconds
 bp=Blueprint('main',__name__)
 
 LOGIN_FAILURE_LIMIT=5
@@ -588,8 +589,7 @@ def operation_risk():
     kind=kinds.get(request.args.get('kind',''))
     if not kind: abort(400)
     try:
-        amount=Decimal(request.args.get('amount','0'))
-        if not (Decimal('0.01')<=amount<=Decimal('10000')): raise ValueError
+        amount=parse_amount(request.args.get('amount',''))
         return jsonify(operation_risk_for(current_user,kind,amount))
     except (ValueError,InvalidOperation):
         return jsonify(error='Ingresa un monto entre S/ 0.01 y S/ 10,000.00.'),400
@@ -652,10 +652,8 @@ def operation(kind):
                                    masked_email=_masked_email(current_user.email or ''),
                                    camera_consent_version=CAMERA_CONSENT_VERSION), 400
         try:
-            amount=Decimal(request.form.get('amount','0'))
-            duration_seconds=int(request.form.get('form_duration_seconds','0'))
-            if not 0<=duration_seconds<=86400:
-                raise ValueError('No se pudo validar la duración del formulario.')
+            amount=parse_amount(request.form.get('amount'))
+            duration_seconds=parse_duration_seconds(request.form.get('form_duration_seconds'))
             beneficiary_id=request.form.get('beneficiary_id',type=int)
             if kind=='transfer':
                 if account is None:
@@ -713,7 +711,10 @@ def operation(kind):
             session.pop('camera_consent_receipt',None)
             flash('Operación registrada. No tiene efectos financieros.','success')
             return redirect(url_for('main.receipt',transaction_id=tx.id))
-        except (ValueError,InvalidOperation) as e:
+        except InvalidOperation:
+            db.session.rollback()
+            flash('Revisa los datos ingresados e inténtalo de nuevo.','error')
+        except ValueError as e:
             db.session.rollback()
             flash(str(e),'error')
     return render_template('operation.html',kind=kind,recipients=recipients,account=account,
@@ -729,9 +730,10 @@ def send_transfer_code(kind):
         flash('Esta cuenta no tiene un correo de seguridad configurado. Contacta a la administración.','error')
         return redirect(url_for('main.operation',kind=kind))
     try:
-        amount=Decimal(request.form.get('amount','0')).quantize(Decimal('0.01'))
-        if not Decimal('0.01')<=amount<=Decimal('10000'):
-            raise ValueError('El monto debe estar entre S/ 0.01 y S/ 10,000.00.')
+        required={'transfer':('beneficiary_id','el destinatario'),'payment':('service','el servicio'),'recharge':('phone','el número de celular')}[kind]
+        if not request.form.get(required[0],'').strip() or not request.form.get('amount','').strip():
+            raise ValueError(f'Completa {required[1]} y el monto antes de enviar el código.')
+        amount=parse_amount(request.form.get('amount'))
         account=account_for(current_user)
         if account is None or account.balance<amount:
             raise ValueError('No hay saldo suficiente en la cuenta seleccionada.')
@@ -787,7 +789,10 @@ def send_transfer_code(kind):
         db.session.rollback()
         current_app.logger.exception('No se pudo enviar el código de transferencia para el usuario %s.',current_user.id)
         flash('No se pudo entregar el código de seguridad. Revisa el correo configurado o contacta a la administración.','error')
-    except (ValueError,InvalidOperation) as error:
+    except InvalidOperation:
+        db.session.rollback()
+        flash('Revisa los datos ingresados e inténtalo de nuevo.','error')
+    except ValueError as error:
         db.session.rollback()
         flash(str(error),'error')
     return redirect(url_for('main.operation',kind=kind))
@@ -820,14 +825,12 @@ def internal_transfer():
             raise ValueError('El formulario venció. Vuelve a cargarlo antes de continuar.')
         if source is None or destination is None or source.id==destination.id:
             raise ValueError('Selecciona dos cuentas activas distintas que estén a tu nombre.')
-        amount=Decimal(amount_raw).quantize(Decimal('0.01'))
-        if not Decimal('0.01')<=amount<=Decimal('10000'):
-            raise ValueError('El monto debe estar entre S/ 0.01 y S/ 10,000.00.')
+        if not amount_raw.strip():
+            raise ValueError('Completa las cuentas y el monto antes de continuar.')
+        amount=parse_amount(amount_raw)
         if source.currency!=destination.currency:
             raise ValueError('Las cuentas deben tener la misma moneda.')
-        duration_seconds=request.form.get('form_duration_seconds',type=int)
-        if duration_seconds is not None and not 0<=duration_seconds<=86400:
-            raise ValueError('No se pudo validar la duración del formulario.')
+        duration_seconds=parse_duration_seconds(request.form.get('form_duration_seconds'),default=None)
         if source.balance<amount:
             raise ValueError('Saldo insuficiente en la cuenta de origen.')
         action=request.form.get('action')
@@ -889,7 +892,10 @@ def internal_transfer():
     except EmailDeliveryError:
         db.session.rollback()
         flash('No se pudo entregar el código de seguridad. Revisa el correo configurado o contacta a administración.','error')
-    except (ValueError,InvalidOperation) as error:
+    except InvalidOperation:
+        db.session.rollback()
+        flash('Revisa los datos ingresados e inténtalo de nuevo.','error')
+    except ValueError as error:
         db.session.rollback()
         flash(str(error),'error')
     except Exception:

@@ -119,11 +119,29 @@ if(toggle){const nav=document.getElementById('intranetNav');toggle.addEventListe
 const operationForm=document.getElementById('operationForm');
 const challengeForm=document.getElementById('transferCodeForm');
 if(operationForm&&challengeForm){
- challengeForm.addEventListener('submit',()=>{
+ /* "Enviar código" solo se habilita con el destino (contacto, servicio o celular) y un monto válido. */
+ const codeButton=challengeForm.querySelector('button[type="submit"]');
+ const codeHint=document.getElementById('transferCodeHint');
+ const target=['beneficiary_id','service','phone'].map(name=>operationForm.querySelector(`[name="${name}"]`)).find(Boolean);
+ const amountField=operationForm.querySelector('[name="amount"]');
+ const codeReady=()=>{
+  const amount=(amountField?.value||'').trim().replace(',','.');
+  return Boolean(target&&target.value.trim()&&/^\d+(\.\d{1,2})?$/.test(amount)&&Number(amount)>=0.01&&Number(amount)<=10000);
+ };
+ const refreshCodeButton=()=>{
+  const ready=codeReady();
+  if(codeButton)codeButton.disabled=!ready;
+  if(codeHint)codeHint.hidden=ready;
+ };
+ operationForm.addEventListener('input',refreshCodeButton);
+ operationForm.addEventListener('change',refreshCodeButton);
+ refreshCodeButton();
+ challengeForm.addEventListener('submit',event=>{
+  if(!codeReady()){event.preventDefault();refreshCodeButton();return}
   ['beneficiary_id','amount','idempotency_key','service','phone'].forEach(name=>{
    const source=operationForm.querySelector(`[name="${name}"]`);
-   const target=challengeForm.querySelector(`[name="${name}"]`);
-   if(source&&target)target.value=source.value;
+   const field=challengeForm.querySelector(`[name="${name}"]`);
+   if(source&&field)field.value=source.value;
   });
  });
 }
