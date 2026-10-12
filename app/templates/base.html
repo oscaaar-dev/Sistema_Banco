@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="{{ url_for('static',filename='css/operation.css',v='consent-2') }}">
   {% endif %}
   {% if is_intranet %}
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/intranet.css',v='shell-5') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/intranet.css',v='shell-6') }}">
   {% endif %}
   {% if request.endpoint=='main.accounts' %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/accounts.css',v='accounts-1') }}">
@@ -80,7 +80,7 @@
       </div>
     </header>
   <main class="main-area" id="contenido" tabindex="-1">
-    <div class="intranet-subbar"><div class="intranet-container"><div class="crumb">{% if current_user.role=='SOPORTE' %}Centro de soporte{% else %}Banca personal{% endif %} <span>/</span> {% block crumb %}Resumen{% endblock %}</div><span><i class="bi bi-clock-history"></i> Actividad reciente</span></div></div>
+    <div class="intranet-subbar"><div class="intranet-container"><div class="crumb">{% if current_user.role=='SOPORTE' %}Centro de soporte{% else %}Banca personal{% endif %} <span>/</span> {% block crumb %}Resumen{% endblock %}</div>{% if current_user.role=='SOPORTE' %}<span><i class="bi bi-clock-history"></i> Actividad reciente</span>{% else %}<a class="subbar-link" href="{{ url_for('main.movements') }}"><i class="bi bi-clock-history"></i> Actividad reciente</a>{% endif %}</div></div>
     <div class="page-content">
       {% with messages=get_flashed_messages(with_categories=true) %}
         {% for category,message in messages %}
