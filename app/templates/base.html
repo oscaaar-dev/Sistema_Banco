@@ -110,5 +110,10 @@
   {% if request.endpoint=='main.operation' and request.view_args.kind=='transfer' %}
   <script src="{{ url_for('static',filename='js/transfer-auth.js',v='transfer-auth-1') }}"></script>
   {% endif %}
+  {# Nori solo vive en las páginas públicas: lista cerrada, sin acceso, registro, recuperación ni panel privado.
+     (Las páginas informativas Personas, Herramientas, Seguridad y Acerca no extienden esta plantilla: lo incluyen ellas.) #}
+  {% if is_public and request.endpoint in ('main.index','main.terms','main.privacy') %}
+  {% include 'partials/nori_widget.html' %}
+  {% endif %}
 </body>
 </html>

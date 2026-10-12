@@ -49,6 +49,8 @@ def create_app(config_overrides=None):
     app.register_blueprint(bp)
     from .api import api
     app.register_blueprint(api)
+    from .nori import nori
+    app.register_blueprint(nori)
     from .cli import register_cli
     register_cli(app)
 
