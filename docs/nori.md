@@ -107,6 +107,8 @@ python -m pytest && npx playwright test       # suites completas
 * La recuperación es léxica (TF-IDF): no entiende sinónimos que no estén en los documentos.
 * La expiración por inactividad la aplica el navegador; el servidor no puede imponerla porque no guarda conversaciones.
 * No accede a cuentas, saldos ni datos personales.
+* Nori solo responde en español: no traduce (no hay traducción automática gratuita y local que sea fiable). Si se le pide otro idioma,
+  lo reconoce y remite a las páginas oficiales.
 
 ## Verificar que no hay dependencias ni servicios externos
 

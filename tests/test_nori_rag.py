@@ -184,7 +184,7 @@ def test_the_answer_says_how_it_was_produced(ctx):
 
 # ───────── Sin información suficiente ─────────
 NOT_DOCUMENTED = ['¿Cuál es el clima de hoy?', 'receta de lomo saltado', '¿Quién ganó el mundial?', 'capital de Francia', 'cuánto cuesta un iPhone',
-                  '¿Cómo invierto en bolsa?', 'cuéntame un chiste', 'traduce esto al inglés', 'asdf qwer zxcv']
+                  '¿Cómo invierto en bolsa?', 'cuéntame un chiste', 'asdf qwer zxcv', 'how do I log in?']
 
 
 @pytest.mark.parametrize('question', NOT_DOCUMENTED)

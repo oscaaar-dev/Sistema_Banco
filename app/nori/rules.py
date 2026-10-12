@@ -78,6 +78,10 @@ INTENTS=[
     {'name':'productos','kw':['tasa','tasas','interes','intereses','prestamo','prestamos','credito','creditos','deposito','plazo fijo','cts','dolares','sbs'],
      'reply':'Norte es una demostración académica y no ofrece productos financieros reales, así que no tengo tasas, intereses ni '
              'condiciones que informarte.','mood':'reposo','pages':['acerca','terminos']},
+    {'name':'idioma','kw':['english','in english','ingles','en ingles','al ingles','hablas ingles','speak english','portugues','frances',
+                           'aleman','italiano','quechua','traduce','traducir','traduccion','translate','otro idioma'],
+     'reply':'Por ahora solo puedo responder en español: no uso traducción automática ni servicios externos. Si necesitas ayuda en '
+             'otro idioma, las páginas oficiales de Norte son la referencia.','mood':'confundido','pages':['acerca','herramientas']},
 ]
 
 # Detalle adicional por tema (para «más información»). Cada dato sale de las páginas públicas o del código de Norte.

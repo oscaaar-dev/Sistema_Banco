@@ -133,6 +133,7 @@ QUESTIONS = [
     ('¿Puedo bajar mi estado de cuenta en PDF?', 'cuenta'), ('¿Cuál es el horario de atención?', 'horario'),
     ('¿Qué es Norte?', 'acerca'), ('¿Es dinero real?', 'acerca'), ('¿Dónde están los términos y condiciones?', 'legal'),
     ('¿Qué tasa de interés pagan?', 'productos'), ('¿Dan préstamos?', 'productos'),
+    ('Responde en inglés, please', 'idioma'), ('Do you speak English?', 'idioma'), ('¿Puedes traducir esto?', 'idioma'),
 ]
 
 
