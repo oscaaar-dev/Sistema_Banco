@@ -64,9 +64,11 @@ def test_widget_is_present_on_public_pages(client, path):
     assert 'data-endpoint="/api/nori/chat"' in html and 'data-csrf-url="/api/nori/csrf"' in html
 
 
-def test_widget_is_lifted_above_the_floating_buttons_only_on_the_home_page(client):
-    assert 'nori--lift' in client.get('/').get_data(as_text=True)
-    assert 'nori--lift' not in client.get('/personas').get_data(as_text=True)
+def test_nori_replaces_the_black_help_button_on_the_home_page(client):
+    html = client.get('/').get_data(as_text=True)
+    assert 'id="nori"' in html and 'data-open-cookies' in html
+    assert 'data-open-help' not in html and 'helpDialog' not in html and 'home-help-button' not in html
+    assert 'nori--lift' not in html
 
 
 @pytest.mark.parametrize('path', ['/login', '/register', '/recuperar', '/pagina-que-no-existe'])
@@ -332,3 +334,4 @@ def test_generic_css_classes_are_prefixed_to_avoid_clashes():
 def test_widget_respects_reduced_motion_and_uses_site_colors():
     css = (STATIC / 'nori.css').read_text(encoding='utf-8')
     assert 'prefers-reduced-motion: reduce' in css and '--n-pur: #6d3bd2' in css
+    assert 'nori--lift' not in css and '--n-lift' not in css

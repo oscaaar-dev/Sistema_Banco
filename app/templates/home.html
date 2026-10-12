@@ -178,9 +178,8 @@
 
   {% include 'partials/site_footer.html' %}
 
-  <div class="home-floating-actions" aria-label="Opciones de ayuda y privacidad">
+  <div class="home-floating-actions" aria-label="Opciones de privacidad">
     <button class="home-floating-button home-cookies-button" type="button" data-open-cookies aria-label="Abrir política de cookies"><i class="bi bi-gear-fill"></i><span>Privacidad</span></button>
-    <button class="home-floating-button home-help-button" type="button" data-open-help aria-label="Abrir opciones de ayuda"><i class="bi bi-chat-square-text-fill"></i></button>
   </div>
 
   <dialog class="home-overlay home-cookie-dialog" id="cookieDialog" aria-labelledby="cookieTitle">
@@ -193,17 +192,6 @@
       <div class="home-cookie-category"><div><h3>Preferencias</h3><p>Recuerda opciones locales como el estado del aviso de privacidad. No se envían a terceros.</p></div><label class="home-switch"><input type="checkbox" data-cookie-preferences aria-label="Permitir guardar preferencias"><span></span></label></div>
       <div class="home-cookie-actions"><button type="button" class="nds-btn home-cookie-save" data-save-cookies>Guardar preferencias</button><button type="button" class="nds-btn home-cookie-accept" data-accept-cookies>Aceptar necesarias</button></div>
       <small class="home-cookie-updated">Proyecto en desarrollo · Sin publicidad ni analítica.</small>
-    </div>
-  </dialog>
-
-  <dialog class="home-overlay home-help-dialog" id="helpDialog" aria-labelledby="helpTitle">
-    <div class="home-help-panel">
-      <div class="home-help-heading"><div><span class="home-section-kicker">ESTAMOS PARA ORIENTARTE</span><h2 id="helpTitle">¿Qué quieres hacer?</h2></div><button type="button" class="home-overlay-close" data-close-dialog aria-label="Cerrar ayuda"><i class="bi bi-x-lg"></i></button></div>
-      <p class="home-help-intro">Elige una opción para continuar en Norte.</p>
-      <a class="home-help-option" href="{{ url_for('main.login') }}"><span class="home-help-icon"><i class="bi bi-arrow-left-right"></i></span><span><b>Conocer operaciones</b><small>Transferencias, pagos y recargas</small></span><i class="bi bi-chevron-right"></i></a>
-      <a class="home-help-option" href="{{ url_for('main.register') }}"><span class="home-help-icon"><i class="bi bi-person-plus"></i></span><span><b>Quiero crear una cuenta</b><small>Crea tu perfil para empezar</small></span><i class="bi bi-chevron-right"></i></a>
-      <details class="home-help-faq"><summary><span class="home-help-icon"><i class="bi bi-question-circle"></i></span><span><b>Preguntas frecuentes</b><small>Resuelve tus dudas sobre Norte</small></span><i class="bi bi-chevron-down"></i></summary><div><b>¿Qué alcance tiene Norte?</b><p>Las operaciones registradas no tienen efectos financieros.</p><b>¿Qué es Norte?</b><p>{{ norte_legal_notice }}</p><b>¿Necesitas ayuda con tu acceso?</b><p>Usa la opción “Banca por Internet” para ingresar o crear tu cuenta.</p></div></details>
-      <div class="home-help-foot"><i class="bi bi-info-circle"></i> Norte no brinda asesoría financiera.</div>
     </div>
   </dialog>
 </div>

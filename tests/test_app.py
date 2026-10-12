@@ -79,7 +79,8 @@ def test_public_homepage_links_to_existing_login_and_registration():
     assert response.data.count(b'data-parallax-card') == 5
     assert 'Tu recorrido por Norte es así de simple'.encode() in response.data
     assert b'data-open-cookies' in response.data
-    assert b'data-open-help' in response.data
+    assert b'data-open-help' not in response.data  # Nori ocupa el lugar del antiguo botón de ayuda
+    assert b'id="nori"' in response.data
     for path in (b'/personas', b'/herramientas', b'/seguridad', b'/acerca'):
         assert b'href="' + path + b'"' in response.data
 

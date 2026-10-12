@@ -267,19 +267,17 @@ test.describe('con cámara simulada de Chromium', () => {
   });
 });
 
-test('los diálogos de cookies y ayuda se abren y cierran', async ({ page }) => {
+test('el diálogo de cookies se abre y cierra y Nori ocupa el lugar del botón de ayuda', async ({ page }) => {
   await page.goto('/');
 
   const cookieDialog = page.locator('#cookieDialog');
-  const helpDialog = page.locator('#helpDialog');
 
   await page.locator('[data-open-cookies]').click();
   await expect(cookieDialog).toHaveAttribute('open', '');
   await cookieDialog.locator('[data-close-dialog]').click();
   await expect(cookieDialog).not.toHaveAttribute('open', '');
 
-  await page.locator('[data-open-help]').click();
-  await expect(helpDialog).toHaveAttribute('open', '');
-  await helpDialog.locator('[data-close-dialog]').click();
-  await expect(helpDialog).not.toHaveAttribute('open', '');
+  await expect(page.locator('[data-open-help]')).toHaveCount(0);
+  await expect(page.locator('#helpDialog')).toHaveCount(0);
+  await expect(page.locator('.nori__mascot')).toBeVisible();
 });

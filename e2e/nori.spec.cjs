@@ -58,17 +58,18 @@ test('los datos sensibles se ocultan en el chat y no se recuerdan', async ({ pag
   await expect(page.locator('#nori')).not.toContainText('12345678');
 });
 
-test('en la portada Nori no tapa los botones flotantes de privacidad y ayuda', async ({ page }) => {
+test('en la portada Nori ocupa la esquina inferior derecha, sin botón de ayuda y sin tapar el de privacidad', async ({ page }) => {
   for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
     await page.goto('/');
     await expect(page.locator('.nori__mascot')).toBeVisible();
+    await expect(page.locator('[data-open-help]')).toHaveCount(0);
     await page.waitForTimeout(900);                                  // termina la animación de entrada
     const nori = await page.locator('.nori__mascot').boundingBox();
-    for (const selector of ['[data-open-help]', '[data-open-cookies]']) {
-      const button = await page.locator(selector).boundingBox();
-      expect(overlap(nori, button), `${selector} a ${viewport.width}px`).toBe(false);
-    }
+    const cookies = await page.locator('[data-open-cookies]').boundingBox();
+    expect(overlap(nori, cookies), `privacidad a ${viewport.width}px`).toBe(false);
+    expect(nori.x + nori.width).toBeGreaterThan(viewport.width - 40);   // pegado a la derecha
+    expect(nori.y + nori.height).toBeGreaterThan(viewport.height - 40); // y abajo, donde estaba el botón negro
   }
 });
 

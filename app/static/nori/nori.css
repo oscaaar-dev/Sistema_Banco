@@ -14,11 +14,10 @@
   --n-text: #ffffff;
   --n-mute: #c4bddb;
   --n-size: clamp(112px, 13vw, 156px);
-  --n-lift: 0px;             /* se sube sobre los botones flotantes de la portada */
 
   position: fixed;
   right: max(12px, env(safe-area-inset-right, 0px));
-  bottom: calc(max(10px, env(safe-area-inset-bottom, 0px)) + var(--n-lift));
+  bottom: max(10px, env(safe-area-inset-bottom, 0px));
   z-index: 1000;
   font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: 14px;
@@ -27,8 +26,7 @@
 }
 .nori *, .nori *::before, .nori *::after { box-sizing: border-box; }
 .nori[hidden] { display: none; }
-/* La portada tiene botones flotantes (privacidad y ayuda) abajo a la derecha: Nori se coloca justo encima. */
-.nori--lift { --n-lift: 76px; }
+
 .nori .nori-sr {
   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
@@ -168,7 +166,7 @@
 .nori__panel {
   position: absolute; right: 0; bottom: calc(var(--n-size) + 8px);
   width: min(380px, calc(100vw - 24px));
-  height: min(540px, calc(100dvh - var(--n-size) - var(--n-lift) - 36px));
+  height: min(540px, calc(100dvh - var(--n-size) - 36px));
   display: flex; flex-direction: column;
   background: var(--n-bg); border: 1px solid var(--n-line); border-radius: 18px;
   box-shadow: 0 20px 56px rgba(0, 0, 0, .5); overflow: hidden; transform-origin: 100% 100%;
@@ -229,7 +227,6 @@
 /* ---------- móvil ---------- */
 @media (max-width: 520px) {
   .nori { --n-size: 104px; }
-  .nori--lift { --n-lift: 62px; }
   .nori__panel { width: calc(100vw - 20px); right: 0; }
   .nori__tip { right: 70%; }
 }
