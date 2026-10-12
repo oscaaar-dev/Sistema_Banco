@@ -88,6 +88,9 @@
   mascot.appendChild(tip);
   mascot.appendChild(el('span', 'nori__shadow'));
   mascot.appendChild(stage);
+  var hit = el('span', 'nori__hit');          // zona de clic del cuerpo de Nori (el resto del cuadrado deja pasar los clics)
+  hit.setAttribute('aria-hidden', 'true');
+  mascot.appendChild(hit);
 
   var panel = el('section', 'nori__panel');
   panel.id = 'nori-panel'; panel.hidden = true;
@@ -389,7 +392,7 @@
     mascot.setAttribute('aria-expanded', String(v));
     mascot.setAttribute('aria-label', v ? 'Cerrar chat con Nori' : 'Abrir chat con Nori');
     if (v) {
-      hideTip(); sleeping = false; act('hola', 1700);
+      hideTip(); untuck(); sleeping = false; act('hola', 1700);
       if (!csrf) refreshCsrf().catch(function () {});     // el token se pide al abrir, no al cargar la página
       if (!greeted) startGreeting();
       input.focus();
@@ -413,6 +416,21 @@
       else { history = []; memoryScope = ''; clearMemory(); }
     }).catch(function () { history = []; memoryScope = ''; clearMemory(); });
   }
+
+  /* ---------- Nori se aparta mientras se hace scroll: no tapa enlaces ni botones ---------- */
+  var tuckTimer = null, lastScrollY = window.pageYOffset;
+  function untuck() { clearTimeout(tuckTimer); root.classList.remove('is-tucked'); }
+  window.addEventListener('scroll', function () {
+    var y = window.pageYOffset;
+    if (Math.abs(y - lastScrollY) < 2) return;
+    lastScrollY = y;
+    // No se aparta si el chat está abierto o si la persona está usando a Nori con teclado o puntero.
+    if (isOpen || root.contains(document.activeElement) || root.matches(':hover')) { untuck(); return; }
+    root.classList.add('is-tucked');
+    clearTimeout(tuckTimer);
+    tuckTimer = setTimeout(untuck, 700);
+  }, { passive: true });
+  root.addEventListener('focusin', untuck);
 
   /* ---------- arranque: patrón armed → play ---------- */
   setPose('hola');

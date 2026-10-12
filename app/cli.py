@@ -20,3 +20,15 @@ def register_cli(app):
             click.echo(f'{count} captura(s) superan los {retention} días (no se borró nada).')
             return
         click.echo(f'{purge_expired_captures(retention)} captura(s) eliminadas por superar los {retention} días.')
+
+    @app.cli.command('purge-nori-audit')
+    @click.option('--dry-run', is_flag=True, help='Solo cuenta cuántos registros vencidos hay, sin borrarlos.')
+    def purge_nori_audit(dry_run):
+        """Borra los registros de auditoría de Nori (IP con hash y hora, sin texto) con más de 24 horas."""
+        from .models import AuditLog, now_utc
+        from .nori.safety import AUDIT_ACTION, AUDIT_RETENTION, purge_expired_audit
+        if dry_run:
+            count = AuditLog.query.filter(AuditLog.action == AUDIT_ACTION, AuditLog.created_at < now_utc() - AUDIT_RETENTION).count()
+            click.echo(f'{count} registro(s) de Nori superan las 24 horas (no se borró nada).')
+            return
+        click.echo(f'{purge_expired_audit(force=True)} registro(s) de Nori eliminados por superar las 24 horas.')

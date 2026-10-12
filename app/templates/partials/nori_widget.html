@@ -1,11 +1,11 @@
 {# Nori, asistente de la web pública. Se incluye desde base.html solo en las páginas públicas (nunca en acceso,
    registro ni panel). No usa servicios externos: respuestas por reglas desde el propio backend de Norte. El token
    CSRF se pide al abrir el chat (GET /api/nori/csrf), no al cargar la página. #}
-<link rel="stylesheet" href="{{ url_for('static', filename='nori/nori.css', v='nori-4') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='nori/nori.css', v='nori-5') }}">
 <div id="nori" class="nori" hidden
      data-endpoint="{{ url_for('nori.chat') }}"
      data-csrf-url="{{ url_for('nori.csrf_token') }}"
      data-img="{{ url_for('static', filename='nori/web/') }}"
      data-turns="{{ config.NORI_MEMORY_TURNS }}"
      data-ttl="{{ config.NORI_MEMORY_TTL_SECONDS }}"></div>
-<script src="{{ url_for('static', filename='nori/nori.js', v='nori-4') }}" defer></script>
+<script src="{{ url_for('static', filename='nori/nori.js', v='nori-5') }}" defer></script>

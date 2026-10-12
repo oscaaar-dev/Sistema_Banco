@@ -4,26 +4,35 @@ La conversación vive solo en el ``sessionStorage`` del navegador. El servidor n
 últimos turnos, los **valida como no confiables** y los usa únicamente para entender preguntas de seguimiento
 («más información», «repítelo») durante esa solicitud.
 
-Aislamiento: cada sesión de navegador tiene un *scope* derivado (HMAC) del token CSRF de su cookie de sesión. Si la sesión
-cambia (otro usuario, inicio o cierre de sesión, cookie vencida) el scope cambia y el historial anterior se descarta.
+Aislamiento: el *scope* es un HMAC (con ``SECRET_KEY``) del token CSRF de la cookie de sesión **y de la identidad** (anónimo o
+el usuario autenticado). Cambia si cambia la cookie (vencida, borrada, otro navegador) y también si cambia la identidad con la
+misma cookie, como al cerrar sesión: Flask-Login conserva el token CSRF al salir, así que sin la identidad el historial de un
+usuario seguiría siendo válido para quien use la pestaña después. Un historial cuyo scope no coincide con el actual se descarta.
 """
 import hashlib
 import hmac
 
 from flask import current_app, session
+from flask_login import current_user
 
 from .safety import clean_message, contains_sensitive_data, normalize
 
 ROLES = ('user', 'bot')
 
 
+def _identity():
+    """Quién usa la sesión: ``anon`` o ``user:<id>``. Cambia al iniciar o cerrar sesión aunque la cookie siga siendo la misma."""
+    return f'user:{current_user.get_id()}' if current_user.is_authenticated else 'anon'
+
+
 def session_scope():
-    """Identificador opaco de la sesión actual; vacío si todavía no hay sesión."""
+    """Identificador opaco de la sesión **e identidad** actuales; vacío si todavía no hay sesión."""
     raw = session.get('csrf_token')
     if not raw:
         return ''
     key = str(current_app.config['SECRET_KEY']).encode('utf-8')
-    return hmac.new(key, ('nori-memory:' + str(raw)).encode('utf-8'), hashlib.sha256).hexdigest()[:24]
+    message = f'nori-memory|{_identity()}|{raw}'.encode('utf-8')
+    return hmac.new(key, message, hashlib.sha256).hexdigest()[:24]
 
 
 def max_messages():

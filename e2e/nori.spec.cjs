@@ -107,7 +107,8 @@ test('al llegar al final de la página Nori no tapa ningún enlace ni texto (esc
       await expect(page.locator('.nori__mascot')).toBeVisible();
       await page.waitForTimeout(900);                                // termina la animación de entrada
       await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-      await page.waitForTimeout(150);
+      await page.waitForTimeout(1100);                               // Nori se aparta mientras hay scroll y vuelve al detenerse
+      await expect(page.locator('#nori')).not.toHaveClass(/is-tucked/);
       const covered = await page.evaluate(() => {
         const mascot = document.querySelector('.nori__mascot').getBoundingClientRect();
         const hits = (r) => r.width > 0 && r.height > 0 && !(r.right <= mascot.left || r.left >= mascot.right || r.bottom <= mascot.top || r.top >= mascot.bottom);

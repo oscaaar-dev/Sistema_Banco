@@ -2,6 +2,10 @@
 
 Nada de lo que escribe la persona se guarda en el servidor: el límite de mensajes solo anota una fila de auditoría
 (acción, IP con hash y hora), sin el texto de la conversación.
+
+Retención de esas filas: se consideran vencidas a las 24 horas, pero **no hay una tarea programada**: se borran cuando Nori
+recibe una solicitud (mensaje o apertura del chat) o al ejecutar ``flask --app run purge-nori-audit``. Por eso el plazo real
+es «24 horas, o hasta la siguiente solicitud a Nori si nadie la usa».
 """
 import re
 import time
@@ -14,6 +18,7 @@ from flask import current_app
 from ..models import AuditLog, db, now_utc
 
 AUDIT_ACTION='NORI_CHAT'
+AUDIT_RETENTION=timedelta(days=1)
 _CONTROL_CHARACTERS=re.compile(r'[\x00-\x08\x0b-\x1f\x7f]')
 _DIGIT_SEPARATORS=re.compile(r'(?<=\d)[ .-](?=\d)')
 _LONG_NUMBER=re.compile(r'\d{6,}')
@@ -25,6 +30,30 @@ SENSITIVE_REPLY=('Por tu seguridad no escribas aquí DNI, números de tarjeta, c
 
 # Respaldo en memoria (por proceso): sigue limitando aunque la base de datos no responda.
 _memory_hits=defaultdict(deque)
+_last_purge=0.0          # instante (monotónico) de la última purga de este proceso; solo se usa para no purgar en cada solicitud
+
+
+def purge_expired_audit(force=False):
+    """Borra las filas de auditoría de Nori con más de 24 horas y devuelve cuántas eliminó.
+
+    Se llama desde el chat y desde la entrega del token. Para no escribir en cada solicitud, un mismo proceso purga como
+    mucho una vez cada ``NORI_PURGE_INTERVAL_SECONDS`` (``force=True`` lo ignora). No toca filas de otras acciones.
+    """
+    global _last_purge
+    now_tick=time.monotonic()
+    interval=current_app.config['NORI_PURGE_INTERVAL_SECONDS']
+    if not force and _last_purge and now_tick-_last_purge<interval:
+        return 0
+    try:
+        removed=(AuditLog.query.filter(AuditLog.action==AUDIT_ACTION,AuditLog.created_at<now_utc()-AUDIT_RETENTION)
+                 .delete(synchronize_session=False))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.warning('Nori: no se pudo purgar la auditoría vencida.')
+        return 0
+    _last_purge=now_tick
+    return removed
 
 
 def clean_message(raw,limit):
@@ -67,16 +96,15 @@ def register_request_and_check_limit(ip_hash):
     per_day=config['NORI_DAILY_LIMIT']
     if _memory_limited(ip_hash,per_window,window):
         return True
+    purge_expired_audit()
     try:
         now=now_utc()
         base=AuditLog.query.filter_by(action=AUDIT_ACTION,ip_local=ip_hash)
         if base.filter(AuditLog.created_at>=now-timedelta(seconds=window)).count()>=per_window:
             return True
-        if base.filter(AuditLog.created_at>=now-timedelta(days=1)).count()>=per_day:
+        if base.filter(AuditLog.created_at>=now-AUDIT_RETENTION).count()>=per_day:
             return True
         db.session.add(AuditLog(user_id=None,action=AUDIT_ACTION,module='NORI',result='ATENDIDA',ip_local=ip_hash,created_at=now))
-        # La auditoría de Nori solo sirve para contar: se purga lo que ya no cuenta (más de un día).
-        AuditLog.query.filter(AuditLog.action==AUDIT_ACTION,AuditLog.created_at<now-timedelta(days=1)).delete(synchronize_session=False)
         db.session.commit()
     except Exception:
         db.session.rollback()

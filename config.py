@@ -115,6 +115,7 @@ class Config:
     NORI_RATE_LIMIT_MESSAGES=20
     NORI_RATE_LIMIT_WINDOW_SECONDS=60
     NORI_DAILY_LIMIT=300
+    NORI_PURGE_INTERVAL_SECONDS=60          # como mucho una purga de auditoría por minuto y proceso
     # Memoria temporal de la conversación (vive en el sessionStorage del navegador; el servidor no guarda nada).
     NORI_MEMORY_TURNS=8
     NORI_MEMORY_TTL_SECONDS=1800

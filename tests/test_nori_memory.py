@@ -16,8 +16,10 @@ STATIC = Path(__file__).resolve().parents[1] / 'app' / 'static' / 'nori'
 @pytest.fixture(autouse=True)
 def clean_memory_limiter():
     safety._memory_hits.clear()
+    safety._last_purge = 0.0
     yield
     safety._memory_hits.clear()
+    safety._last_purge = 0.0
 
 
 @pytest.fixture

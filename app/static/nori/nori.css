@@ -23,6 +23,11 @@ html.has-nori .sf .sf__bar { padding-bottom: calc(var(--n-size) + 14px); }
   right: max(12px, env(safe-area-inset-right, 0px));
   bottom: max(10px, env(safe-area-inset-bottom, 0px));
   z-index: 1000;
+  /* El contenedor no captura clics: solo el cuerpo de Nori (.nori__hit) y el panel abierto. Así los enlaces y botones de la
+     página siguen funcionando alrededor del personaje. */
+  pointer-events: none;
+  /* Mientras haces scroll Nori se aparta del borde (C4); la transición se anula con movimiento reducido. */
+  transition: translate .25s ease;
   font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: 14px;
   line-height: 1.45;
@@ -38,11 +43,17 @@ html.has-nori .sf .sf__bar { padding-bottom: calc(var(--n-size) + 14px); }
 
 /* ---------- mascota (botón que abre el chat) ---------- */
 .nori__mascot {
+  pointer-events: none;      /* el clic lo recibe .nori__hit; el teclado sigue usando este botón */
   position: relative; display: block; width: var(--n-size); aspect-ratio: 1;
   padding: 0; margin: 0 0 0 auto; border: 0; background: none; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 .nori__mascot:focus-visible { outline: 3px solid var(--n-pur-hi); outline-offset: 4px; border-radius: 20px; }
+/* Área de clic: el rectángulo del cuerpo de Nori (medido sobre la parte opaca de las poses), con esquinas redondeadas. */
+.nori__hit {
+  position: absolute; top: 9%; right: 7%; bottom: 4%; left: 19%;
+  border-radius: 22%; pointer-events: auto; cursor: pointer;
+}
 .nori__shadow {
   position: absolute; left: 18%; right: 18%; bottom: 1%; height: 7%;
   background: radial-gradient(ellipse at center, rgba(0, 0, 0, .38), transparent 70%);
@@ -176,6 +187,9 @@ html.has-nori .sf .sf__bar { padding-bottom: calc(var(--n-size) + 14px); }
   box-shadow: 0 20px 56px rgba(0, 0, 0, .5); overflow: hidden; transform-origin: 100% 100%;
 }
 .nori__panel[hidden] { display: none; }
+.nori__panel { pointer-events: auto; }
+/* C4: durante el scroll Nori sale del borde derecho y no cubre nada; vuelve cuando el scroll se detiene. */
+.nori.is-tucked { translate: calc(100% + 28px) 0; }
 .nori__panel:not([hidden]) { animation: nori-panel-in .38s steps(1, end); }
 @keyframes nori-panel-in {
   0%   { opacity: .4; transform: translateY(14px) scale(.93); }
@@ -244,6 +258,7 @@ html.has-nori .sf .sf__bar { padding-bottom: calc(var(--n-size) + 14px); }
 /* ---------- movimiento reducido: estado final, sin bucles ---------- */
 @media (prefers-reduced-motion: reduce) {
   .nori *, .nori *::before, .nori *::after { animation: none !important; }
+  .nori { transition: none; }
   .nori--armed .nori__mascot { opacity: 1; transform: none; }
   .nori-pose .nori-fx { opacity: 1; }
   .nori-pose .nori-fr2 { opacity: 0 !important; }

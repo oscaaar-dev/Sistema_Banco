@@ -13,7 +13,7 @@ from flask_wtf.csrf import CSRFError, generate_csrf
 from ..routes import _request_ip_hash
 from .memory import clean_history, last_bot_intent, session_scope
 from .rules import answer, reply_index
-from .safety import SENSITIVE_REPLY, clean_message, contains_sensitive_data, register_request_and_check_limit
+from .safety import SENSITIVE_REPLY, clean_message, contains_sensitive_data, purge_expired_audit, register_request_and_check_limit
 
 nori = Blueprint('nori', __name__, url_prefix='/api/nori')
 
@@ -37,6 +37,7 @@ def csrf_failed(error):
 
 @nori.get('/csrf')
 def csrf_token():
+    purge_expired_audit()                  # abrir el chat también limpia la auditoría vencida (sin tarea programada)
     response = jsonify(csrf=generate_csrf(), scope=session_scope())
     response.headers['Cache-Control'] = 'no-store'
     return response

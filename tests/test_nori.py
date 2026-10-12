@@ -18,8 +18,10 @@ PUBLIC_PAGES = ['/', '/personas', '/herramientas', '/seguridad', '/acerca', '/te
 @pytest.fixture(autouse=True)
 def clean_memory_limiter():
     safety._memory_hits.clear()
+    safety._last_purge = 0.0
     yield
     safety._memory_hits.clear()
+    safety._last_purge = 0.0
 
 
 @pytest.fixture
@@ -277,6 +279,7 @@ def test_daily_limit_uses_the_audit_table_without_storing_text(app, client):
 
 
 def test_audit_rows_older_than_a_day_are_purged(app, client):
+    app.config['NORI_PURGE_INTERVAL_SECONDS'] = 0
     with app.app_context():
         db.session.add(AuditLog(user_id=None, action='NORI_CHAT', module='NORI', result='ATENDIDA', ip_local='x',
                                 created_at=now_utc() - timedelta(days=3)))
