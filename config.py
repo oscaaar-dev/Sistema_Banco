@@ -9,7 +9,12 @@ BASE_DIR=Path(__file__).resolve().parent
 load_dotenv(BASE_DIR/'.env')
 APP_ENV=os.getenv('APP_ENV','development').strip().lower()
 DATABASE_URL=os.getenv('DATABASE_URL') or os.getenv('MYSQL_URL')
-SECRET_KEY=os.getenv('SECRET_KEY')
+_raw_secret_key=os.getenv('SECRET_KEY')
+# Una clave vacía o de solo espacios cuenta como ausente. Un valor válido se conserva tal cual (sin recortarlo), para no
+# cambiar la firma de las sesiones ya emitidas.
+SECRET_KEY=_raw_secret_key if _raw_secret_key and _raw_secret_key.strip() else None
+SECRET_KEY_IS_TEMPORARY=SECRET_KEY is None
+SECRET_KEY_MIN_LENGTH=32
 EMAIL_TRANSPORT=os.getenv('EMAIL_TRANSPORT','smtp').strip().lower()
 BREVO_SANDBOX=os.getenv('BREVO_SANDBOX','false').strip().lower()=='true'
 RAILWAY_ENVIRONMENT_NAME=os.getenv('RAILWAY_ENVIRONMENT_NAME','').strip().lower()
@@ -20,9 +25,20 @@ if APP_ENV=='production':
         required_production_settings.extend(('BREVO_API_KEY','SMTP_FROM'))
     else:
         required_production_settings.extend(('SMTP_HOST','SMTP_USERNAME','SMTP_PASSWORD','SMTP_FROM'))
-    missing_production_settings=[name for name in required_production_settings if not os.getenv(name)]
+    missing_production_settings=[name for name in required_production_settings
+                                 if (SECRET_KEY is None if name=='SECRET_KEY' else not os.getenv(name))]
     if missing_production_settings:
         raise RuntimeError('Faltan variables obligatorias de producción: '+', '.join(missing_production_settings))
+
+def secret_key_warnings(secret_key, temporary):
+    """Avisos sobre la clave de sesión. Nunca incluyen la clave ni su longitud exacta."""
+    if temporary:
+        return ['SECRET_KEY no está definida: se generó una clave temporal propia de este proceso. Con varios workers '
+                '(por ejemplo, gunicorn --workers 2) cada uno tendría una clave distinta y las sesiones, el CSRF y la memoria '
+                'de Nori no coincidirían entre ellos. Define una SECRET_KEY estable y compartida.']
+    if len(str(secret_key))<SECRET_KEY_MIN_LENGTH:
+        return [f'SECRET_KEY tiene menos de {SECRET_KEY_MIN_LENGTH} caracteres: se recomienda un valor aleatorio más largo.']
+    return []
 
 def _https_url(value):
     """Acepta solo enlaces https con dominio; evita esquemas como javascript: en enlaces públicos."""
@@ -78,6 +94,7 @@ def _int_env(name, default, minimum=1):
 class Config:
     APP_ENV=APP_ENV
     SECRET_KEY=SECRET_KEY or secrets.token_hex(32)
+    SECRET_KEY_IS_TEMPORARY=SECRET_KEY_IS_TEMPORARY   # solo para avisar en el arranque; la clave no se registra
     SQLALCHEMY_TRACK_MODIFICATIONS=False
     # Sin DATABASE_URL se usa SQLite local dentro de instance/; con URL se normaliza el driver.
     if not DATABASE_URL:

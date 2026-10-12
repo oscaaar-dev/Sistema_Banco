@@ -71,6 +71,9 @@ El navegador muestra bajo cada respuesta si es *predefinida* o *según la docume
 * El historial que llega al servidor se valida (roles, longitud, cantidad) y se descarta si su *scope* no coincide con la sesión y la
   identidad actuales (cerrar o iniciar sesión, cookie borrada, otro usuario). Ver `app/nori/memory.py`.
 * CSRF activo: el navegador pide un token (`GET /api/nori/csrf`) y lo envía en `X-CSRFToken`.
+* Producción con varios workers: el *scope* y el token CSRF dependen de `SECRET_KEY`, que debe ser la misma en todos. El límite por
+  conexión depende de la IP que identifica `_request_ip_hash`, cuya confianza en `X-Real-IP` está pendiente de verificar en Railway.
+  Lista de verificación y pruebas manuales pendientes en `docs/seguridad-arquitectura.md` (apartado 9).
 * Límites: 20 mensajes por minuto y 300 al día por conexión (IP con hash). Cada mensaje deja una fila de auditoría `NORI_CHAT` con
   fecha, hora y huella de la IP (dato personal seudonimizado), sin texto. Se considera vencida a las 24 h y se borra al recibir una
   solicitud a Nori o con `flask --app run purge-nori-audit` (no hay tarea programada, por lo que puede permanecer más tiempo si

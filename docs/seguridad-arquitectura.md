@@ -90,3 +90,43 @@ Resumen de arquitectura y seguridad; el detalle de mantenimiento está en `docs/
 | Documentos | Se tratan como no confiables (sin secretos, correos, instrucciones a un asistente, URL externas ni enlaces simbólicos); nunca se indexan `data/`, `docs/` ni `.env` |
 
 Límites conocidos: la recuperación es léxica; solo responde en español; la expiración por inactividad la aplica el navegador.
+
+## 9. Lista de verificación de producción (SECRET_KEY, workers e IP del cliente)
+
+Las variables obligatorias y su formato están en el README (apartado de despliegue) y en la sección 5; aquí solo se anota lo que
+afecta a varios workers de Gunicorn (el `Procfile` usa `--workers 2`) y a Nori.
+
+| Comprobación | Estado |
+|---|---|
+| `APP_ENV=production` en el servicio | Debe confirmarse en el entorno real. Fuera de producción la aplicación sigue arrancando sin `SECRET_KEY` |
+| `SECRET_KEY` definida, **estable y con el mismo valor en todos los workers y réplicas** | En producción el arranque se detiene si falta, está vacía o solo tiene espacios (`config.py`; probado en `tests/test_production_readiness.py`). Si no está definida fuera de producción, cada proceso genera una clave propia y se registra un aviso; con varios workers las sesiones, el CSRF y el *scope* de Nori no coincidirían. Una clave de menos de 32 caracteres genera un aviso (sin revelar la clave) pero no impide el arranque |
+| `DATABASE_URL` | Obligatoria en producción; sin ella el arranque se detiene |
+| Dos workers comparten sesión | Probado con dos aplicaciones y la misma clave (cookie, token CSRF y *scope* compatibles; con claves distintas, no). **No se ha ejecutado Gunicorn con varios workers** |
+| Identificación de la IP detrás del proxy | **Pendiente de verificar en Railway** (ver abajo) |
+
+### Identificación de la IP del cliente: riesgo pendiente
+
+`_request_ip_hash` (`app/routes/__init__.py`) decide la IP con la que se aplican los límites del login con OTP, de Nori y de otros
+formularios:
+
+* Si existe `RAILWAY_ENVIRONMENT_NAME`, usa la cabecera `X-Real-IP` tal como llega y, si falta o está vacía, `remote_addr`.
+* En cualquier otro caso usa solo `remote_addr` y no tiene en cuenta `X-Real-IP` ni `X-Forwarded-For`. Detrás de un proxy que no sea
+  Railway, `remote_addr` sería la dirección del proxy y todos los visitantes compartirían el mismo límite.
+* No se usa `ProxyFix` ni `X-Forwarded-For`.
+
+La documentación pública de Railway indica `X-Real-IP` como la cabecera con la IP remota del cliente, pero no dice si el proxy la
+sobrescribe siempre ni si un cliente puede enviarla falsificada. **Mientras eso no se compruebe, la confianza en `X-Real-IP` no está
+validada**: si el proxy no la sobrescribe, quien rote esa cabecera podría eludir los límites. Las pruebas actuales solo describen qué
+cabecera se usa, no demuestran que sea segura.
+
+Evidencia necesaria para cerrar el riesgo (todas **pendientes; no se ha ejecutado ninguna**):
+
+1. En un entorno de **staging** propio (nunca producción), enviar con `curl`, conservando la cookie de sesión y el token de
+   `GET /api/nori/csrf`, más mensajes por minuto que el límite (`NORI_RATE_LIMIT_MESSAGES`, 20 por defecto) a `POST /api/nori/chat`,
+   cambiando en cada petición el valor de `X-Real-IP`.
+2. Si pasado el límite se recibe `429`, el proxy sobrescribe la cabecera y la confianza actual es adecuada. Si las peticiones
+   siguen respondiendo `200`, la cabecera es falsificable: no usarla tal cual y revisar la estrategia (por ejemplo, tomar la
+   dirección que el proxy añade al final de `X-Forwarded-For`) con la topología real confirmada por Railway.
+3. Anotar fecha, entorno y resultado en `PROGRESS.md`.
+4. Con Gunicorn en Linux: arrancar con 2 workers y la misma `SECRET_KEY`, iniciar sesión y navegar varias veces seguidas para
+   comprobar que la sesión no se pierde, y confirmar que los registros de arranque no muestran el aviso de clave temporal.
