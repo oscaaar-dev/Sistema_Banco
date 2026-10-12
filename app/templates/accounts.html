@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Cuentas · Norte{% endblock %}
+{% block crumb %}Cuentas{% endblock %}
+{% block content %}
+<section class="welcome-row ac-head">
+  <div><div class="eyebrow dark">TUS PRODUCTOS</div><h1>Cuentas</h1><p class="muted">Consulta tu cuenta de ahorros, tus datos para recibir dinero y tu actividad del mes.</p></div>
+  {% if overview %}<a class="btn btn-primary" href="{{ url_for('main.account_statement',account_id=overview.account.id) }}"><i class="bi bi-file-earmark-pdf"></i> Descargar estado de cuenta</a>{% endif %}
+</section>
+
+{% if not overview %}
+<article class="panel ac-empty">
+  <span class="soft-icon"><i class="bi bi-wallet2"></i></span>
+  <div><h3>Todavía no tienes una cuenta</h3><p class="muted">Cuando tengas una cuenta de ahorros en Norte, aquí verás su saldo, tus datos para recibir dinero y tu actividad del mes.</p></div>
+</article>
+{% else %}
+{% set account = overview.account %}
+{% set summary = overview.summary %}
+{% if accounts|length > 1 %}
+<nav class="ac-switcher" aria-label="Elegir cuenta">
+  {% for item in accounts %}<a href="{{ url_for('main.accounts',account_id=item.id) }}" class="{% if item.id==account.id %}is-active{% endif %}" {% if item.id==account.id %}aria-current="page"{% endif %}>{{ item.account_type }} ···· {{ item.number[-4:] }}</a>{% endfor %}
+</nav>
+{% endif %}
+
+<section class="ac-top">
+  <article class="balance-card ac-card" aria-label="Cuenta de ahorros terminada en {{ account.number[-4:] }}">
+    <div class="balance-top"><span><i class="bi bi-wallet2"></i> {{ account.account_type|upper }}</span><span class="status-dot"><i class="bi bi-circle-fill" aria-hidden="true"></i>{{ account.status|upper }}</span></div>
+    <div class="balance-caption">Saldo disponible</div>
+    <div class="ac-balance-row">
+      <div class="balance-amount"><small>{{ account.currency }}</small> <span id="acBalance" data-value="{{ '{:,.2f}'.format(account.balance|float) }}">{{ '{:,.2f}'.format(account.balance|float) }}</span></div>
+      <button class="ac-eye" type="button" id="acBalanceToggle" aria-controls="acBalance" aria-pressed="false" aria-label="Ocultar saldo"><i class="bi bi-eye" aria-hidden="true"></i><span>Ocultar saldo</span></button>
+    </div>
+    <dl class="ac-facts">
+      <div><dt>Número de cuenta</dt><dd>···· {{ account.number[-4:] }}</dd></div>
+      <div><dt>Moneda</dt><dd>{{ account.currency }}</dd></div>
+      <div><dt>Estado</dt><dd>{{ account.status|capitalize }}</dd></div>
+      <div><dt>Fecha de apertura</dt><dd>{% if overview.opened %}{{ overview.opened.strftime('%d/%m/%Y') }}{% else %}Sin registro{% endif %}</dd></div>
+    </dl>
+  </article>
+
+  <article class="panel ac-receive" aria-labelledby="acReceiveTitle">
+    <div class="eyebrow dark">PARA TRANSFERENCIAS</div>
+    <h3 id="acReceiveTitle">Datos para recibir dinero</h3>
+    <p class="muted ac-note">Comparte estos datos con otro cliente de Norte para que te agregue como contacto.</p>
+    <div class="ac-copy-row">
+      <div><small>Número de cuenta</small><b id="acNumber">{{ account.number }}</b></div>
+      <button class="btn btn-outline btn-small" type="button" data-copy="{{ account.number }}" data-copy-label="número de cuenta"><i class="bi bi-copy" aria-hidden="true"></i> <span>Copiar</span></button>
+    </div>
+    <div class="ac-copy-row">
+      <div><small>CCI <span class="ac-tag">ficticio, solo demostración</span></small><b id="acCci">{{ overview.cci }}</b></div>
+      <button class="btn btn-outline btn-small" type="button" data-copy="{{ overview.cci }}" data-copy-label="CCI"><i class="bi bi-copy" aria-hidden="true"></i> <span>Copiar</span></button>
+    </div>
+    <p class="ac-holder"><small>Titular</small> {{ overview.holder }}</p>
+    <small class="ac-copy-status" id="acCopyStatus" role="status" aria-live="polite"></small>
+  </article>
+</section>
+
+<section class="ac-mid">
+  <article class="panel ac-month" aria-labelledby="acMonthTitle">
+    <div class="panel-head">
+      <div><div class="eyebrow dark">RESUMEN DEL MES</div><h3 id="acMonthTitle">{{ summary.label|capitalize }}</h3></div>
+      <div class="ac-month-nav" aria-label="Cambiar de mes">
+        {% if overview.previous_month %}<a class="ac-icon-link" href="{{ url_for('main.accounts',account_id=account.id,month=overview.previous_month.strftime('%Y-%m')) }}" aria-label="Mes anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>{% else %}<span class="ac-icon-link is-disabled" aria-hidden="true"><i class="bi bi-chevron-left"></i></span>{% endif %}
+        {% if overview.next_month %}<a class="ac-icon-link" href="{{ url_for('main.accounts',account_id=account.id,month=overview.next_month.strftime('%Y-%m')) }}" aria-label="Mes siguiente"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>{% else %}<span class="ac-icon-link is-disabled" aria-hidden="true"><i class="bi bi-chevron-right"></i></span>{% endif %}
+      </div>
+    </div>
+    <div class="ac-stats">
+      <div class="ac-stat"><span><i class="bi bi-arrow-down-left" aria-hidden="true"></i> Total ingresos</span><b class="amount positive">{{ account.currency }} {{ '{:,.2f}'.format(summary.income|float) }}</b></div>
+      <div class="ac-stat"><span><i class="bi bi-arrow-up-right" aria-hidden="true"></i> Total gastos</span><b class="amount">{{ account.currency }} {{ '{:,.2f}'.format(summary.expense|float) }}</b></div>
+    </div>
+    {% if summary.count %}
+    <figure class="ac-chart">
+      <svg viewBox="0 0 {{ summary.chart_width }} {{ summary.chart_height }}" role="img" aria-labelledby="acChartTitle acChartDesc" preserveAspectRatio="xMidYMid meet">
+        <title id="acChartTitle">Ingresos y gastos por día en {{ summary.label }}</title>
+        <desc id="acChartDesc">Las barras verdes hacia arriba son ingresos y las barras oscuras hacia abajo son gastos de cada día. Total de ingresos {{ '{:,.2f}'.format(summary.income|float) }} y de gastos {{ '{:,.2f}'.format(summary.expense|float) }} {{ account.currency }}.</desc>
+        <line x1="0" x2="{{ summary.chart_width }}" y1="{{ summary.chart_height/2 }}" y2="{{ summary.chart_height/2 }}" class="ac-axis"/>
+        {% for bar in summary.bars %}
+        {% if bar.up %}<rect class="ac-bar-in" x="{{ bar.x }}" y="{{ bar.up_y }}" width="{{ bar.width }}" height="{{ bar.up }}" rx="1"><title>Día {{ bar.day }}: ingresos {{ '{:,.2f}'.format(bar.income|float) }}</title></rect>{% endif %}
+        {% if bar.down %}<rect class="ac-bar-out" x="{{ bar.x }}" y="{{ bar.down_y }}" width="{{ bar.width }}" height="{{ bar.down }}" rx="1"><title>Día {{ bar.day }}: gastos {{ '{:,.2f}'.format(bar.expense|float) }}</title></rect>{% endif %}
+        {% endfor %}
+      </svg>
+      <figcaption><span>Día 1</span><span><i class="ac-key in"></i>Ingresos <i class="ac-key out"></i>Gastos</span><span>Día {{ summary.daily|length }}</span></figcaption>
+    </figure>
+    {% else %}
+    <div class="empty-state ac-empty-month">
+      <p>No hay movimientos en {{ summary.label }}.</p>
+      {% if overview.latest_month_with_movements %}<a class="text-link" href="{{ url_for('main.accounts',account_id=account.id,month=overview.latest_month_with_movements.strftime('%Y-%m')) }}">Ver el último mes con movimientos <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endif %}
+    </div>
+    {% endif %}
+  </article>
+
+  <article class="card-mini-panel ac-card-panel" aria-labelledby="acCardTitle">
+    <div class="panel-head"><div><div class="eyebrow dark">ASOCIADA A ESTA CUENTA</div><h3 id="acCardTitle">Tarjeta de débito</h3></div><a class="text-link" href="{{ url_for('main.cards') }}">Ver <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div>
+    {% for card in overview.cards %}
+    <div class="mini-card"><div class="mini-card-top"><span>norte<span class="brand-dot">.</span></span><i class="bi bi-wifi" aria-hidden="true"></i></div><div class="chip"></div><div class="mini-card-number">•••• &nbsp;•••• &nbsp;•••• &nbsp;{{ card.last4 }}</div><div class="mini-card-bottom"><span>{{ overview.holder|upper }}</span><span>DEBIT</span></div></div>
+    <div class="card-meta"><span>{{ card.card_type }} · {{ card.status }}</span><i class="bi bi-check-circle-fill" aria-hidden="true"></i></div>
+    {% else %}
+    <div class="empty-state">Esta cuenta no tiene una tarjeta de débito asociada.</div>
+    {% endfor %}
+  </article>
+</section>
+
+<article class="panel movements-panel ac-recent" aria-labelledby="acRecentTitle">
+  <div class="panel-head"><div><div class="eyebrow dark">ACTIVIDAD RECIENTE</div><h3 id="acRecentTitle">Últimos 5 movimientos</h3></div><a class="text-link" href="{{ url_for('main.movements',account_id=account.id) }}">Ver todos <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div>
+  {% if overview.recent %}
+  <div class="table-wrap"><table><thead><tr><th>Detalle</th><th>Fecha y hora</th><th class="align-right">Importe</th></tr></thead><tbody>
+    {% for tx in overview.recent %}<tr><td><span class="transaction-icon {% if tx.amount|float > 0 %}income{% endif %}"><i class="bi bi-{% if tx.amount|float > 0 %}arrow-down-left{% else %}arrow-up-right{% endif %}"></i></span><span class="tx-desc">{{ tx.description }}<small>{{ tx.operation_type|title }}</small></span></td><td class="muted">{{ tx.created_at.strftime('%d/%m/%Y %H:%M') }}</td><td class="align-right amount {% if tx.amount|float > 0 %}positive{% endif %}">{% if tx.amount|float > 0 %}+{% else %}−{% endif %}{{ account.currency }} {{ '{:,.2f}'.format(tx.amount|float|abs) }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}
+  <div class="empty-state">Aún no hay movimientos en esta cuenta.</div>
+  {% endif %}
+</article>
+{% endif %}
+<script src="{{ url_for('static',filename='js/accounts.js',v='accounts-1') }}" defer></script>
+{% endblock %}

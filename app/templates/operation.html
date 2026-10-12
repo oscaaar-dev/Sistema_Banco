@@ -29,6 +29,11 @@
       <div class="eyebrow dark">DETALLE DE LA OPERACIÓN</div>
       {% if kind=='transfer' %}
       <label>Destinatario<select name="beneficiary_id" required><option value="">Selecciona un contacto</option>{% for person in recipients %}<option value="{{ person.id }}"{% if pf.beneficiary_id|string==person.id|string %} selected{% endif %}>{{ person.name }} · {{ person.account_number[-4:] }}</option>{% endfor %}</select></label>
+      <div class="contact-actions">
+        <a class="btn btn-outline btn-small" href="{{ url_for('main.contacts',**{'from':'transfer'}) }}"><i class="bi bi-person-plus"></i> Agregar contacto</a>
+        {% if recipients %}<a class="text-link" href="{{ url_for('main.contacts',**{'from':'transfer'}) }}">Administrar o eliminar contactos</a>{% endif %}
+      </div>
+      {% if not recipients %}<small class="contact-empty">Aún no tienes contactos guardados. Agrega a otro cliente de Norte con su DNI o número de cuenta para poder transferirle.</small>{% endif %}
       {% elif kind=='payment' %}
       <label>Servicio<select name="service" required><option value="">Selecciona un servicio</option>{% for service_name in ['Electricidad','Agua','Internet','Tarjeta académica'] %}<option{% if pf.service==service_name %} selected{% endif %}>{{ service_name }}</option>{% endfor %}</select></label>
       {% else %}

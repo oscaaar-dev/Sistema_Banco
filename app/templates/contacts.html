@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Contactos · Norte{% endblock %}
+{% block crumb %}Contactos{% endblock %}
+{% block content %}
+{% set from_arg = {'from':'transfer'} if return_to=='transfer' else {} %}
+<div class="eyebrow dark">CONTACTOS DE TRANSFERENCIA</div>
+<h1>Mis contactos</h1>
+<p class="muted">Guarda a otros clientes de Norte para elegirlos al transferir. Solo tú ves tu lista.</p>
+
+<div class="ct-layout">
+  <section class="panel ct-panel" aria-labelledby="ctAddTitle">
+    <div class="eyebrow dark">NUEVO CONTACTO</div>
+    <h3 id="ctAddTitle">Agregar contacto</h3>
+    {% if candidate %}
+    <div class="ct-candidate" role="group" aria-label="Confirma al cliente encontrado">
+      <span class="ct-avatar" aria-hidden="true"><i class="bi bi-person-check"></i></span>
+      <div><small>¿Es esta persona?</small><b>{{ candidate.name }}</b><span class="muted">Cuenta de Norte terminada en {{ candidate.last4 }}</span></div>
+    </div>
+    <p class="muted ct-note">Por seguridad solo mostramos parte del nombre. Confirma solo si reconoces a esta persona.</p>
+    <div class="ct-actions">
+      <form method="post" action="{{ url_for('main.contact_confirm',**from_arg) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> Confirmar y guardar</button>
+      </form>
+      <a class="btn btn-outline" href="{{ url_for('main.contacts',**from_arg) }}">Cancelar</a>
+    </div>
+    {% else %}
+    <form method="post" action="{{ url_for('main.contact_lookup',**from_arg) }}" class="ct-form" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="ctIdentifier">DNI o número de cuenta del cliente
+        <input id="ctIdentifier" name="identifier" inputmode="numeric" autocomplete="off" maxlength="30" placeholder="Ej.: 12345678" value="{{ identifier }}" required>
+        <small>Escribe solo números. Te mostraremos el nombre parcial para que confirmes antes de guardar.</small>
+      </label>
+      <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Buscar cliente</button>
+    </form>
+    {% endif %}
+  </section>
+
+  <section class="panel ct-panel" aria-labelledby="ctListTitle">
+    <div class="eyebrow dark">GUARDADOS</div>
+    <h3 id="ctListTitle">Contactos guardados <span class="muted ct-count">{{ contacts|length }}</span></h3>
+    {% if contacts %}
+    <ul class="ct-list">
+      {% for contact in contacts %}
+      <li>
+        <span class="ct-avatar" aria-hidden="true">{{ contact.name[:1]|upper }}</span>
+        <div class="ct-person"><b>{{ contact.name }}</b><small>Cuenta ···· {{ contact.account_number[-4:] }}</small></div>
+        <form method="post" action="{{ url_for('main.contact_delete',contact_id=contact.id,**from_arg) }}" data-confirm="¿Eliminar a {{ contact.name }} de tus contactos?">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline btn-small" type="submit" aria-label="Eliminar a {{ contact.name }}"><i class="bi bi-trash3"></i> Eliminar</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty-state">Aún no tienes contactos. Agrega uno con su DNI o número de cuenta para poder transferirle.</div>
+    {% endif %}
+  </section>
+</div>
+<p><a class="text-link" href="{{ url_for('main.operation',kind='transfer') }}"><i class="bi bi-arrow-left"></i> Volver a transferir</a></p>
+<script src="{{ url_for('static',filename='js/contacts.js',v='contacts-1') }}" defer></script>
+{% endblock %}

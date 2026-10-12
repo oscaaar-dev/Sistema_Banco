@@ -11,11 +11,13 @@ from sqlalchemy import desc, or_
 from sqlalchemy.exc import IntegrityError
 from ..models import db, User, LoginChallenge, LoginAttemptLimit, OperationChallenge, Account, BankCard, Beneficiary, Transaction, InteractionSession, OperationCapture, AuditLog, now_utc
 from ..services.banking_service import account_for, process_operation, process_internal_transfer, log, operation_risk_for
-from ..services.statement_service import account_statement_pdf
+from ..services.statement_service import MOVEMENT_TYPES, account_statement_pdf
 from ..services.email_service import EmailDeliveryError, send_login_code, send_operation_code
 from ..services.password_policy import validate_new_password
 from ..services.validation import parse_amount, parse_duration_seconds
 from ..services.capture_service import read_capture
+from ..services.account_service import account_overview, parse_month
+from ..services.contact_service import active_beneficiaries, delete_contact, find_client_account, get_active_beneficiary, mask_name, normalize_identifier, save_contact
 bp=Blueprint('main',__name__)
 
 LOGIN_FAILURE_LIMIT=5
@@ -515,6 +517,29 @@ def dashboard():
             .order_by(desc(Transaction.created_at),desc(Transaction.id)).limit(5).all() if account_ids else [])
     cards=BankCard.query.filter_by(user_id=current_user.id).all()
     return render_template('dashboard.html',account=account,accounts=accounts,recent=recent,cards=cards)
+@bp.route('/accounts')
+@login_required
+def accounts():
+    _require_client()
+    owned=Account.query.filter_by(user_id=current_user.id).order_by(Account.id).all()
+    selected_raw=request.args.get('account_id')
+    if selected_raw:
+        try:
+            selected_id=int(selected_raw)
+        except (TypeError,ValueError):
+            abort(400)
+        account=next((item for item in owned if item.id==selected_id),None)
+        if account is None:
+            abort(404)
+    else:
+        account=owned[0] if owned else None
+    month_raw=request.args.get('month')
+    month=parse_month(month_raw) if month_raw else None
+    if month_raw and month is None:
+        abort(400)
+    overview=account_overview(account,month) if account else None
+    return render_template('accounts.html',accounts=owned,overview=overview)
+
 @bp.route('/movements')
 @login_required
 def movements():
@@ -537,7 +562,7 @@ def movements():
     except (TypeError,ValueError):
         abort(400)
     operation_type=request.args.get('type','').strip().upper()
-    valid_types={'INGRESO','TRANSFERENCIA','PAGO','RECARGA'}
+    valid_types=set(MOVEMENT_TYPES)
     if page<1 or (operation_type and operation_type not in valid_types) or (start and end and start>end):
         abort(400)
     query=Transaction.query.filter_by(account_id=account.id) if account else Transaction.query.filter(db.false())
@@ -567,15 +592,10 @@ def account_statement(account_id):
         end=date.fromisoformat(request.args['to']) if request.args.get('to') else None
     except (TypeError,ValueError):
         abort(400)
-    if start and end and start>end:
+    operation_type=request.args.get('type','').strip().upper()
+    if (start and end and start>end) or (operation_type and operation_type not in MOVEMENT_TYPES):
         abort(400)
-    query=Transaction.query.filter_by(account_id=account.id)
-    if start:
-        query=query.filter(Transaction.created_at>=datetime.combine(start,time.min))
-    if end:
-        query=query.filter(Transaction.created_at<datetime.combine(end+timedelta(days=1),time.min))
-    items=query.order_by(desc(Transaction.created_at),desc(Transaction.id)).all()
-    pdf=account_statement_pdf(account,items,start.isoformat() if start else None,end.isoformat() if end else None)
+    pdf=account_statement_pdf(account,current_user,start,end,operation_type)
     response=Response(pdf,mimetype='application/pdf')
     response.headers['Content-Disposition']='attachment; filename="norte-estado-de-cuenta.pdf"'
     response.headers['Cache-Control']='no-store'
@@ -650,7 +670,7 @@ def camera_analyze():
 def operation(kind):
     _require_client()
     if kind not in ('transfer','payment','recharge'): abort(404)
-    recipients=Beneficiary.query.filter_by(user_id=current_user.id).all(); account=account_for(current_user)
+    recipients=active_beneficiaries(current_user.id).all(); account=account_for(current_user)
     submitted_idempotency_key=request.form.get('idempotency_key','').strip() if request.method=='POST' else ''
     idempotency_key=(submitted_idempotency_key if re.fullmatch(r'[A-Za-z0-9_-]{22,64}',submitted_idempotency_key)
                      else secrets.token_urlsafe(24))
@@ -679,7 +699,7 @@ def operation(kind):
             if kind=='transfer':
                 if account is None:
                     raise ValueError('No se encontró una cuenta activa.')
-                recipient=Beneficiary.query.filter_by(id=beneficiary_id,user_id=current_user.id).first()
+                recipient=get_active_beneficiary(current_user.id,beneficiary_id)
                 if not recipient: raise ValueError('Destinatario no válido.')
                 description='Transferencia a '+recipient.name; op='TRANSFERENCIA'
                 details=f'beneficiary:{recipient.id}'
@@ -752,6 +772,99 @@ def operation(kind):
                            idempotency_key=idempotency_key,masked_email=_masked_email(current_user.email or ''),
                            camera_consent_version=CAMERA_CONSENT_VERSION,prefill=prefill)
 
+CONTACT_PENDING_TTL=timedelta(minutes=10)
+CONTACT_NOT_FOUND_MESSAGE='No pudimos encontrar un cliente de Norte con esos datos. Revisa el DNI o el número de cuenta e inténtalo de nuevo.'
+
+def _contacts_page(status=200,candidate=None,identifier='',return_to=''):
+    contacts=active_beneficiaries(current_user.id).all()
+    return render_template('contacts.html',contacts=contacts,candidate=candidate,identifier=identifier,return_to=return_to),status
+
+def _contact_return_to():
+    return 'transfer' if request.values.get('from')=='transfer' else ''
+
+def _contact_lookup_rate_limited():
+    since=now_utc()-timedelta(seconds=current_app.config['CONTACT_LOOKUP_RATE_LIMIT_WINDOW_SECONDS'])
+    return (_recent_audit_count('CONTACT_LOOKUP',since,user_id=current_user.id)>=current_app.config['CONTACT_LOOKUP_RATE_LIMIT_USER']
+            or _recent_audit_count('CONTACT_LOOKUP',since,ip_hash=_request_ip_hash('contact-lookup-ip'))>=current_app.config['CONTACT_LOOKUP_RATE_LIMIT_IP'])
+
+@bp.route('/contacts')
+@login_required
+def contacts():
+    _require_client()
+    session.pop('pending_contact',None)
+    return _contacts_page(return_to=_contact_return_to())
+
+@bp.route('/contacts/lookup',methods=['POST'])
+@login_required
+def contact_lookup():
+    _require_client()
+    return_to=_contact_return_to()
+    session.pop('pending_contact',None)
+    raw=request.form.get('identifier','')
+    identifier=normalize_identifier(raw)
+    if identifier is None:
+        flash('Escribe un DNI de 8 dígitos o un número de cuenta de 10 a 20 dígitos, solo con números.','error')
+        return _contacts_page(400,identifier=raw[:30],return_to=return_to)
+    if _contact_lookup_rate_limited():
+        flash('Hiciste varias búsquedas seguidas. Por seguridad, espera unos minutos antes de volver a intentarlo.','error')
+        return _contacts_page(429,identifier=raw[:30],return_to=return_to)
+    account=find_client_account(identifier)
+    log(current_user,'CONTACT_LOOKUP','CONTACTOS',result='ENCONTRADO' if account else 'SIN_RESULTADO',ip_local=_request_ip_hash('contact-lookup-ip'))
+    db.session.commit()
+    if account is None:
+        flash(CONTACT_NOT_FOUND_MESSAGE,'error')
+        return _contacts_page(404,identifier=raw[:30],return_to=return_to)
+    if account.user_id==current_user.id:
+        flash('Ese número corresponde a tus propias cuentas. Para moverte saldo entre ellas usa un traslado interno.','error')
+        return _contacts_page(400,identifier=raw[:30],return_to=return_to)
+    if any(item.account_number==account.number for item in active_beneficiaries(current_user.id).all()):
+        flash('Ya tienes a este cliente en tus contactos.','info')
+        return _contacts_page(409,identifier=raw[:30],return_to=return_to)
+    holder=db.session.get(User,account.user_id)
+    session['pending_contact']={'account_id':account.id,'at':now_utc().isoformat()}
+    candidate={'name':mask_name(holder.full_name),'last4':account.number[-4:]}
+    return _contacts_page(candidate=candidate,return_to=return_to)
+
+@bp.route('/contacts/confirm',methods=['POST'])
+@login_required
+def contact_confirm():
+    _require_client()
+    return_to=_contact_return_to()
+    pending=session.pop('pending_contact',None)
+    try:
+        if not isinstance(pending,dict) or now_utc()-datetime.fromisoformat(pending['at'])>CONTACT_PENDING_TTL:
+            raise ValueError('La búsqueda venció. Vuelve a ingresar el DNI o el número de cuenta para agregar el contacto.')
+        account=Account.query.filter_by(id=pending['account_id'],status='ACTIVA').first()
+        if account is None:
+            raise ValueError(CONTACT_NOT_FOUND_MESSAGE)
+        contact=save_contact(current_user,account)
+        log(current_user,'CONTACT_ADDED','CONTACTOS')
+        db.session.commit()
+    except (ValueError,KeyError,TypeError) as error:
+        db.session.rollback()
+        flash(str(error) if isinstance(error,ValueError) else 'La búsqueda venció. Vuelve a ingresar el DNI o el número de cuenta para agregar el contacto.','error')
+        return _contacts_page(400,return_to=return_to)
+    except IntegrityError:
+        db.session.rollback()
+        flash('No se pudo guardar el contacto. Inténtalo nuevamente.','error')
+        return _contacts_page(409,return_to=return_to)
+    flash(f'Agregaste a {contact.name} a tus contactos.','success')
+    return redirect(url_for('main.operation',kind='transfer') if return_to=='transfer' else url_for('main.contacts'))
+
+@bp.route('/contacts/<int:contact_id>/delete',methods=['POST'])
+@login_required
+def contact_delete(contact_id):
+    _require_client()
+    contact=get_active_beneficiary(current_user.id,contact_id)
+    if contact is None:
+        abort(404)
+    name=contact.name
+    delete_contact(contact)
+    log(current_user,'CONTACT_REMOVED','CONTACTOS')
+    db.session.commit()
+    flash(f'Eliminaste a {name} de tus contactos.','success')
+    return redirect(url_for('main.operation',kind='transfer') if _contact_return_to()=='transfer' else url_for('main.contacts'))
+
 @bp.route('/operation/<kind>/send-code',methods=['POST'])
 @login_required
 def send_transfer_code(kind):
@@ -770,7 +883,7 @@ def send_transfer_code(kind):
             raise ValueError('No hay saldo suficiente en la cuenta seleccionada.')
         beneficiary_id=request.form.get('beneficiary_id',type=int)
         if kind=='transfer':
-            beneficiary=Beneficiary.query.filter_by(id=beneficiary_id,user_id=current_user.id).first()
+            beneficiary=get_active_beneficiary(current_user.id,beneficiary_id)
             if beneficiary is None:
                 raise ValueError('Selecciona un destinatario válido antes de pedir el código.')
             op='TRANSFERENCIA'; details=f'beneficiary:{beneficiary.id}'
