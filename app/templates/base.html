@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-ds.css',v='ds-5') }}">
   <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-site.css',v='site-4') }}">
   {% if is_public %}
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-public.css',v='public-3') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-public.css',v='public-4') }}">
   {% else %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/app.css',v='camera-layout-4') }}">
   {% if request.endpoint=='main.operation' %}
@@ -109,6 +109,11 @@
   <script src="{{ url_for('static',filename='js/app.js',v='camera-capture-1') }}"></script>
   {% if request.endpoint=='main.operation' and request.view_args.kind=='transfer' %}
   <script src="{{ url_for('static',filename='js/transfer-auth.js',v='transfer-auth-1') }}"></script>
+  {% endif %}
+  {# Nori solo vive en las páginas públicas: lista cerrada, sin acceso, registro, recuperación ni panel privado.
+     (Las páginas informativas Personas, Herramientas, Seguridad y Acerca no extienden esta plantilla: lo incluyen ellas.) #}
+  {% if is_public and request.endpoint in ('main.index','main.terms','main.privacy') %}
+  {% include 'partials/nori_widget.html' %}
   {% endif %}
 </body>
 </html>

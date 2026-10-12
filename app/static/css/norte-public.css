@@ -396,3 +396,5 @@ body.nh-body,.public-home,.info-page,.legal-page{background:var(--n-mist)}
   .home-promo-art{aspect-ratio:16/10}
 }
 @media(prefers-reduced-motion:reduce){.home-hero-photo{transition:none}}
+/* Los artículos legales con varios párrafos (p. ej. el de Nori en privacidad) separan sus párrafos. */
+.legal-content article p+p{margin-top:var(--s-4)}

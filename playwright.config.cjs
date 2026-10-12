@@ -32,6 +32,9 @@ module.exports = defineConfig({
       APP_ENV: 'testing',
       DATABASE_URL: 'sqlite://',
       SECRET_KEY: 'playwright-test-session-only',
+      // La suite envía muchos mensajes a Nori desde una sola IP: se suben los límites solo en este servidor de pruebas.
+      NORI_RATE_LIMIT_MESSAGES: '5000',
+      NORI_DAILY_LIMIT: '500000',
       PORT: port,
     },
     url: `http://127.0.0.1:${port}`,

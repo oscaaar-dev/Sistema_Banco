@@ -9,7 +9,12 @@ BASE_DIR=Path(__file__).resolve().parent
 load_dotenv(BASE_DIR/'.env')
 APP_ENV=os.getenv('APP_ENV','development').strip().lower()
 DATABASE_URL=os.getenv('DATABASE_URL') or os.getenv('MYSQL_URL')
-SECRET_KEY=os.getenv('SECRET_KEY')
+_raw_secret_key=os.getenv('SECRET_KEY')
+# Una clave vacía o de solo espacios cuenta como ausente. Un valor válido se conserva tal cual (sin recortarlo), para no
+# cambiar la firma de las sesiones ya emitidas.
+SECRET_KEY=_raw_secret_key if _raw_secret_key and _raw_secret_key.strip() else None
+SECRET_KEY_IS_TEMPORARY=SECRET_KEY is None
+SECRET_KEY_MIN_LENGTH=32
 EMAIL_TRANSPORT=os.getenv('EMAIL_TRANSPORT','smtp').strip().lower()
 BREVO_SANDBOX=os.getenv('BREVO_SANDBOX','false').strip().lower()=='true'
 RAILWAY_ENVIRONMENT_NAME=os.getenv('RAILWAY_ENVIRONMENT_NAME','').strip().lower()
@@ -20,9 +25,20 @@ if APP_ENV=='production':
         required_production_settings.extend(('BREVO_API_KEY','SMTP_FROM'))
     else:
         required_production_settings.extend(('SMTP_HOST','SMTP_USERNAME','SMTP_PASSWORD','SMTP_FROM'))
-    missing_production_settings=[name for name in required_production_settings if not os.getenv(name)]
+    missing_production_settings=[name for name in required_production_settings
+                                 if (SECRET_KEY is None if name=='SECRET_KEY' else not os.getenv(name))]
     if missing_production_settings:
         raise RuntimeError('Faltan variables obligatorias de producción: '+', '.join(missing_production_settings))
+
+def secret_key_warnings(secret_key, temporary):
+    """Avisos sobre la clave de sesión. Nunca incluyen la clave ni su longitud exacta."""
+    if temporary:
+        return ['SECRET_KEY no está definida: se generó una clave temporal propia de este proceso. Con varios workers '
+                '(por ejemplo, gunicorn --workers 2) cada uno tendría una clave distinta y las sesiones, el CSRF y la memoria '
+                'de Nori no coincidirían entre ellos. Define una SECRET_KEY estable y compartida.']
+    if len(str(secret_key))<SECRET_KEY_MIN_LENGTH:
+        return [f'SECRET_KEY tiene menos de {SECRET_KEY_MIN_LENGTH} caracteres: se recomienda un valor aleatorio más largo.']
+    return []
 
 def _https_url(value):
     """Acepta solo enlaces https con dominio; evita esquemas como javascript: en enlaces públicos."""
@@ -58,9 +74,27 @@ def _public_base_url():
 def _contact_email():
     value=os.getenv('NORTE_CONTACT_EMAIL','').strip()
     return value if re.fullmatch(r'[^@\s<>"]+@[^@\s<>"]+\.[^@\s<>"]+',value) else ''
+def _engine_options(database_uri):
+    """Opciones del motor SQL. ``pool_recycle`` evita conexiones caducadas en MySQL/PostgreSQL; en SQLite no aplica y, con una
+    base en memoria, descartaría la única conexión (y todas las tablas) a los 300 s, lo que rompía las suites largas."""
+    options={'pool_pre_ping':True,'hide_parameters':True}
+    if not str(database_uri).startswith('sqlite'):
+        options['pool_recycle']=300
+    return options
+
+
+def _int_env(name, default, minimum=1):
+    """Entero positivo desde una variable de entorno opcional; si falta o es inválido, el valor por defecto."""
+    try:
+        return max(minimum,int(os.getenv(name,'').strip() or default))
+    except ValueError:
+        return default
+
+
 class Config:
     APP_ENV=APP_ENV
     SECRET_KEY=SECRET_KEY or secrets.token_hex(32)
+    SECRET_KEY_IS_TEMPORARY=SECRET_KEY_IS_TEMPORARY   # solo para avisar en el arranque; la clave no se registra
     SQLALCHEMY_TRACK_MODIFICATIONS=False
     # Sin DATABASE_URL se usa SQLite local dentro de instance/; con URL se normaliza el driver.
     if not DATABASE_URL:
@@ -74,7 +108,7 @@ class Config:
     else:
         SQLALCHEMY_DATABASE_URI=DATABASE_URL
     # hide_parameters evita que un error de SQL imprima parámetros (por ejemplo, los bytes de una foto) en los logs.
-    SQLALCHEMY_ENGINE_OPTIONS={'pool_pre_ping':True,'pool_recycle':300,'hide_parameters':True}
+    SQLALCHEMY_ENGINE_OPTIONS=_engine_options(SQLALCHEMY_DATABASE_URI)
     SESSION_COOKIE_HTTPONLY=True
     SESSION_COOKIE_SAMESITE='Lax'
     SESSION_COOKIE_SECURE=os.getenv('COOKIE_SECURE',str(APP_ENV=='production').lower()).lower()=='true'
@@ -110,6 +144,25 @@ class Config:
     CONTACT_LOOKUP_RATE_LIMIT_USER=8
     CONTACT_LOOKUP_RATE_LIMIT_IP=20
     CONTACT_LOOKUP_RATE_LIMIT_WINDOW_SECONDS=600
+    # Nori (asistente de la web pública): sin servicios externos; límites por conexión (IP con hash).
+    NORI_MAX_MESSAGE_CHARS=500
+    NORI_RATE_LIMIT_MESSAGES=_int_env('NORI_RATE_LIMIT_MESSAGES',20)
+    NORI_RATE_LIMIT_WINDOW_SECONDS=60
+    NORI_DAILY_LIMIT=_int_env('NORI_DAILY_LIMIT',300)
+    # Recuperación documental local (TF-IDF): umbral de relevancia, fuentes citadas y tamaños máximos.
+    NORI_RAG_ENABLED=True
+    NORI_RAG_MIN_SCORE=0.12
+    NORI_RAG_STRONG_SCORE=0.20          # fragmento específico (2 o más términos) que gana a una regla débil
+    NORI_RAG_OVERRIDE_SCORE=0.30        # con 3 o más términos en común, gana incluso a una regla fuerte
+    NORI_RAG_SINGLE_TERM_SCORE=0.45     # con un solo término en común hace falta mucha más relevancia
+    NORI_RAG_MAX_SOURCES=2
+    NORI_RAG_EXCERPT_CHARS=380
+    NORI_RAG_QUERY_CHARS=200
+    NORI_PURGE_INTERVAL_SECONDS=60          # como mucho una purga de auditoría por minuto y proceso
+    # Memoria temporal de la conversación (vive en el sessionStorage del navegador; el servidor no guarda nada).
+    NORI_MEMORY_TURNS=8
+    NORI_MEMORY_TTL_SECONDS=1800
+    NORI_MAX_REQUEST_BYTES=32768
     PASSWORD_RESET_TTL_SECONDS=1800
     PASSWORD_RESET_RATE_LIMIT_IP=5
     PASSWORD_RESET_RATE_LIMIT_USER=3

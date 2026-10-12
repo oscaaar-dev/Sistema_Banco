@@ -88,13 +88,9 @@ if(parallaxItems.length&&!reducedMotion.matches){
 }
 
 const cookieDialog=document.getElementById('cookieDialog');
-const helpDialog=document.getElementById('helpDialog');
 const closeDialog=(button)=>button.closest('dialog')?.close();
 document.querySelector('[data-open-cookies]')?.addEventListener('click',()=>{
  cookieDialog.showModal();
-});
-document.querySelector('[data-open-help]')?.addEventListener('click',()=>{
- helpDialog.showModal();
 });
 document.querySelectorAll('[data-close-dialog]').forEach((button)=>{
  button.addEventListener('click',()=>closeDialog(button));

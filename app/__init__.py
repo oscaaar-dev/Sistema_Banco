@@ -5,7 +5,7 @@ from flask_wtf.csrf import CSRFProtect
 from datetime import datetime
 from pathlib import Path
 from sqlalchemy import inspect
-from config import Config
+from config import Config, secret_key_warnings
 from .models import db, User
 login_manager=LoginManager()
 login_manager.login_view='main.login'
@@ -43,12 +43,17 @@ def create_app(config_overrides=None):
     app.config.from_object(Config)
     if config_overrides:
         app.config.update(config_overrides)
+    temporary_key=bool(app.config.get('SECRET_KEY_IS_TEMPORARY')) and not (config_overrides and 'SECRET_KEY' in config_overrides)
+    for warning in secret_key_warnings(app.config['SECRET_KEY'], temporary_key):
+        app.logger.warning(warning)
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
     db.init_app(app); login_manager.init_app(app); csrf.init_app(app)
     from .routes import bp
     app.register_blueprint(bp)
     from .api import api
     app.register_blueprint(api)
+    from .nori import nori
+    app.register_blueprint(nori)
     from .cli import register_cli
     register_cli(app)
 
