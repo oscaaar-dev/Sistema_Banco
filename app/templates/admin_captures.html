@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Capturas de seguridad · Norte{% endblock %}
+{% block crumb %}Capturas de seguridad{% endblock %}
+{% block content %}
+<div class="eyebrow dark">PRIVACIDAD</div>
+<h1>Capturas de seguridad</h1>
+<p class="muted">Fotos tomadas al confirmar operaciones. Solo las ve la administración, nunca tienen un enlace público y cada consulta queda en la auditoría. Se eliminan a los {{ retention_days }} días.</p>
+<article class="panel movements-panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">ÚLTIMAS 100</div><h3>Capturas</h3></div><a class="btn btn-outline btn-small" href="{{ url_for('main.admin') }}">Volver a administración</a></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Foto</th><th>Usuario</th><th>Operación</th><th>Fecha</th><th>Tamaño</th><th>Aviso</th></tr></thead>
+    <tbody>{% for c in captures %}
+      <tr>
+        <td><a href="{{ url_for('main.admin_capture_image',capture_id=c.id) }}" target="_blank" rel="noopener"><img src="{{ url_for('main.admin_capture_image',capture_id=c.id) }}" alt="Foto de seguridad de la operación {{ c.transaction_id }}" width="96" height="72" loading="lazy" style="object-fit:cover;border-radius:12px"></a></td>
+        <td>{{ c.user.username }}</td>
+        <td>#{{ c.transaction_id }} · {{ c.transaction.operation_type }}</td>
+        <td>{{ c.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+        <td>{{ (c.size_bytes/1024)|round(0)|int }} KB · {{ c.width }}×{{ c.height }}</td>
+        <td>{{ c.consent_version or '—' }}</td>
+      </tr>
+    {% else %}<tr><td colspan="6" class="empty-state">Aún no hay capturas.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</article>
+{% endblock %}

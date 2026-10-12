@@ -1,0 +1,21 @@
+{# Panel de la cámara obligatoria: vista previa, estado, ayuda si el navegador la bloquea y la aclaración de privacidad. #}
+<section class="panel operation-camera">
+  <div class="operation-camera-head"><span class="soft-icon"><i class="bi bi-camera-video"></i></span><div><b>Cámara de seguridad</b><small>Se toma una foto al confirmar la operación.</small></div><span class="required-tag">OBLIGATORIA</span></div>
+  <div class="operation-camera-body">
+    <div class="operation-video-wrap" id="operationVideoWrap"><video id="cameraVideo" autoplay playsinline muted hidden></video><div class="camera-placeholder" id="cameraPlaceholder"><i class="bi bi-camera-video"></i><span>Vista previa de cámara</span><small>Activa la cámara para poder confirmar</small></div><span class="camera-indicator" id="cameraIndicator" hidden><i></i> ACTIVA</span></div>
+    <div class="camera-analysis-box" aria-live="polite"><b>Una foto por operación</b><small>La foto se guarda con tu usuario, la operación y la fecha. La cámara se apaga apenas se toma.</small></div>
+    <div class="operation-camera-actions"><button type="button" class="btn btn-primary btn-small" id="startCamera"><i class="bi bi-camera-video"></i> Activar cámara</button><button type="button" class="btn btn-outline btn-small" id="stopCamera" disabled><i class="bi bi-camera-video-off"></i> Apagar</button></div>
+    <small class="camera-status" id="cameraStatus" aria-live="polite">Activa la cámara y escribe el código de tu correo para confirmar.</small>
+    <div class="camera-help" id="cameraHelp" hidden role="alert">
+      <b>No pudimos usar la cámara</b>
+      <p>Sin cámara no se puede completar la operación. Para habilitarla:</p>
+      <ol>
+        <li>Haz clic en el icono de candado o de cámara que está junto a la dirección de la página.</li>
+        <li>Cambia «Cámara» a <b>Permitir</b>.</li>
+        <li>Recarga la página y pulsa «Activar cámara».</li>
+        <li>Comprueba que ninguna otra aplicación esté usando la cámara y que esté conectada.</li>
+      </ol>
+    </div>
+  </div>
+  <div class="operation-camera-foot"><i class="bi bi-shield-lock"></i> Se toma una sola foto al confirmar; se guarda {{ config.CAPTURE_RETENTION_DAYS }} días asociada a tu usuario, a la operación y a la fecha. La cámara no identifica personas ni reemplaza el código por correo.</div>
+</section>

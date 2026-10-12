@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from app import create_app
 from app.models import Account, Beneficiary, OperationChallenge, Transaction, Transfer, User
+from camera_helpers import accept_camera_notice, capture_file
 
 
 def _csrf(response):
@@ -42,6 +43,7 @@ def _send_code(client, token, key, beneficiary_id, amount='12.34'):
 
 
 def _submit_transfer(client, token, key, beneficiary_id, code, amount='12.34'):
+    accept_camera_notice(client, token, 'transfer', key)
     return client.post('/operation/transfer', data={
         'csrf_token': token,
         'idempotency_key': key,
@@ -49,6 +51,8 @@ def _submit_transfer(client, token, key, beneficiary_id, code, amount='12.34'):
         'amount': amount,
         'otp_code': code,
         'form_duration_seconds': '10',
+        'camera_consent': 'yes',
+        'capture': capture_file(),
     })
 
 

@@ -4,6 +4,7 @@ import re
 from ..models import db, Account, Beneficiary, Transaction, Transfer, InteractionSession, MLResult, InteractionFeatures, TransactionStep, AuditLog, OperationRiskAssessment
 from ..ai.interaction_model import cluster_interactions
 from ..ai.operation_risk import assess_operation_risk
+from .capture_service import add_capture
 
 def account_for(user):
     return Account.query.filter_by(user_id=user.id,status='ACTIVA').first()
@@ -33,7 +34,7 @@ def _store_cluster_results():
         else:
             db.session.add(MLResult(session_id=session.id,cluster_id=outcome['cluster_id'],label=outcome['label'],method='K-Means (sesiones de interacción)'))
 
-def process_operation(user,kind,amount,description,beneficiary_id=None,service=None,consent=False,duration_seconds=None,idempotency_key=None):
+def process_operation(user,kind,amount,description,beneficiary_id=None,service=None,consent=False,duration_seconds=None,idempotency_key=None,capture=None,capture_meta=None):
     account=(Account.query.filter_by(user_id=user.id,status='ACTIVA')
              .with_for_update().first())
     if not account:raise ValueError('No se encontró una cuenta activa.')
@@ -64,6 +65,9 @@ def process_operation(user,kind,amount,description,beneficiary_id=None,service=N
     session.ended_at=datetime.now(timezone.utc).replace(tzinfo=None)
     db.session.add(tx)
     db.session.flush()
+    if capture:
+        # La foto va en la misma transacción que la operación: si falla, no se completa nada.
+        add_capture(user.id,tx.id,capture,**(capture_meta or {}))
     if kind=='TRANSFERENCIA':
         db.session.add(Transfer(
             transaction_id=tx.id,
@@ -82,7 +86,7 @@ def process_operation(user,kind,amount,description,beneficiary_id=None,service=N
     return tx
 
 
-def process_internal_transfer(user,source_account_id,destination_account_id,amount,duration_seconds=None,idempotency_key=None):
+def process_internal_transfer(user,source_account_id,destination_account_id,amount,duration_seconds=None,idempotency_key=None,capture=None,capture_meta=None):
     if source_account_id==destination_account_id:
         raise ValueError('Elige dos cuentas distintas para el traslado.')
     if idempotency_key is not None and not re.fullmatch(r'[A-Za-z0-9_-]{22,64}',idempotency_key):
@@ -129,6 +133,8 @@ def process_internal_transfer(user,source_account_id,destination_account_id,amou
                                balance_after=destination.balance,status='COMPLETADA',idempotency_key=idempotency_key)
     interaction.ended_at=datetime.now(timezone.utc).replace(tzinfo=None)
     db.session.add_all((source_tx,destination_tx)); db.session.flush()
+    if capture:
+        add_capture(user.id,source_tx.id,capture,**(capture_meta or {}))
     db.session.add(TransactionStep(session_id=interaction.id,event_type='completed',step_name='Traslado entre cuentas propias',
                                    metadata_json={'source_account_id':source.id,'destination_account_id':destination.id}))
     db.session.add(InteractionFeatures(session_id=interaction.id,duration_seconds=duration,steps=5,errors=0,back_actions=0,
