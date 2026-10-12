@@ -16,6 +16,8 @@
   var TURNS = Math.max(1, parseInt(root.dataset.turns, 10) || 8);
   var TTL = Math.max(60, parseInt(root.dataset.ttl, 10) || 1800) * 1000;
   var MAX_STORED_CHARS = 1200;
+  /* Origen de cada respuesta de Nori: reglas predefinidas o fragmentos de la documentación de Norte (recuperación local). */
+  var KIND_LABELS = { reglas: 'Respuesta predefinida', documentacion: 'Según la documentación de Norte' };
   var motion = matchMedia('(prefers-reduced-motion: reduce)');
   var reduce = function () { return motion.matches; };
 
@@ -113,11 +115,13 @@
   var input = el('input', 'nori__input');
   input.type = 'text'; input.maxLength = MAX_CHARS; input.placeholder = 'Escribe tu consulta…';
   input.setAttribute('aria-label', 'Tu mensaje para Nori');
+  input.setAttribute('aria-describedby', 'nori-legal');
   var send = el('button', 'nori__send', 'Enviar');
   send.type = 'submit';
   form.appendChild(input); form.appendChild(send);
   var legal = el('p', 'nori__legal', 'Demo académica. No escribas DNI, contraseñas, tarjetas ni códigos. La conversación se guarda solo en esta pestaña ' +
     'y se borra al cerrarla, con «Nueva conversación» o tras ' + Math.round(TTL / 60000) + ' minutos sin actividad.');
+  legal.id = 'nori-legal';
   [head, log, form, legal].forEach(function (n) { panel.appendChild(n); });
   root.appendChild(panel); root.appendChild(mascot);
 
@@ -160,7 +164,7 @@
   var memoryScope = '';      // sesión del navegador a la que pertenece el historial (la entrega el servidor)
   var scope = '';            // sesión actual según el servidor
   var greeted = false, csrf = null, lastActivity = Date.now();
-  var greeting = Promise.resolve(), memoryReady = Promise.resolve();
+  var greeting = Promise.resolve(), memoryReady = Promise.resolve(), lastUserBubble = null;
 
   function storage() { try { return window.sessionStorage; } catch (e) { return null; } }
   function clearMemory() { var s = storage(); if (s) { try { s.removeItem(MEMORY_KEY); } catch (e) { /* sin acceso */ } } }
@@ -183,7 +187,8 @@
     var turns = [];
     data.turns.slice(-TURNS * 2).forEach(function (t) {
       if (!t || (t.role !== 'user' && t.role !== 'bot') || typeof t.text !== 'string' || !t.text || t.text.length > MAX_STORED_CHARS) return;
-      turns.push({ role: t.role, text: t.text, links: t.role === 'bot' ? cleanLinks(t.links) : [] });
+      turns.push({ role: t.role, text: t.text, links: t.role === 'bot' ? cleanLinks(t.links) : [],
+                  kind: t.role === 'bot' && KIND_LABELS[t.kind] ? t.kind : '' });
     });
     while (turns.length && turns[0].role !== 'user') turns.shift();
     if (!turns.length) { clearMemory(); return null; }
@@ -228,7 +233,7 @@
     var shown = el('span'); shown.setAttribute('aria-hidden', 'true');
     bubble.appendChild(full); bubble.appendChild(shown);
     if (reduce()) { shown.textContent = text; scroll(); return Promise.resolve(); }
-    var step = Math.max(1, Math.ceil(text.length / 150)), i = 0;
+    var step = Math.max(1, Math.ceil(text.length / 70)), i = 0;      // la escritura dura como máximo ~1 s
     return new Promise(function (resolve) {
       (function tick() {
         i = Math.min(text.length, i + step);
@@ -236,6 +241,21 @@
         if (i < text.length) setTimeout(tick, 16); else resolve();
       })();
     });
+  }
+
+  /* Etiqueta pequeña bajo la respuesta: distingue lo predefinido de lo documentado. */
+  function addKind(kind) {
+    if (!KIND_LABELS[kind]) return;
+    log.appendChild(el('div', 'nori-kind', KIND_LABELS[kind]));
+  }
+  function retryChip(text, failedNodes) {
+    var b = el('button', 'nori-chip nori-chip--retry', 'Reintentar'); b.type = 'button';
+    b.addEventListener('click', function () {
+      if (busy) return;
+      failedNodes.forEach(function (node) { if (node.parentNode) node.parentNode.removeChild(node); });
+      submit(text, { retry: true });
+    });
+    return b;
   }
 
   function addChips(items, makeChip) {
@@ -262,7 +282,7 @@
   function renderStored(turns) {
     turns.forEach(function (t) {
       if (t.role === 'user') log.appendChild(el('div', 'nori-msg nori-msg--user', t.text));
-      else { log.appendChild(el('div', 'nori-msg nori-msg--bot', t.text)); addChips(t.links, linkChip); }
+      else { log.appendChild(el('div', 'nori-msg nori-msg--bot', t.text)); addKind(t.kind); addChips(t.links, linkChip); }
     });
     scroll();
   }
@@ -273,8 +293,15 @@
     log.appendChild(bubble);
     setPose('hablando');
     await typeInto(bubble, text);
+    addKind(opts.kind);
     addChips(opts.links, linkChip);
     addChips(opts.suggestions, quickChip);
+    if (opts.retry) {                                    // error de conexión o del servidor: se puede volver a intentar
+      var box = el('div', 'nori__chips');
+      var failed = [bubble, box];
+      box.appendChild(retryChip(opts.retry, failed));
+      log.appendChild(box); scroll();
+    }
     var mood = MOODS[opts.mood] ? opts.mood : 'reposo';
     // la pose del ánimo se queda un momento y luego Nori descansa
     if (mood === 'reposo') act('reposo'); else act(mood, 2600);
@@ -323,7 +350,8 @@
     return r.data;
   }
 
-  async function submit(text) {
+  async function submit(text, options) {
+    options = options || {};
     text = (text || '').trim().slice(0, MAX_CHARS);
     if (!text) return;
     await memoryReady;                                    // espera a comprobar la memoria guardada
@@ -333,7 +361,9 @@
     sleeping = false;
     if (expired()) resetConversation('Pasó un rato sin actividad, así que empezamos una conversación nueva.');
     log.querySelectorAll('.nori__chips').forEach(function (c) { c.remove(); });
-    var userBubble = addUser(text);
+    var userBubble = options.retry ? (lastUserBubble || addUser(text)) : addUser(text);
+    lastUserBubble = userBubble;
+    log.setAttribute('aria-busy', 'true');
     var t0 = Date.now();
     var ind = typing();
     var my = ++token;
@@ -351,12 +381,15 @@
     var left = 800 - (Date.now() - t0);
     if (left > 0) await wait(left);                       // que se alcance a ver a Nori pensando
     ind.remove();
-    await botSay(String(data.reply || ''), { mood: data.mood, links: data.links, suggestions: data.suggestions });
+    log.removeAttribute('aria-busy');
+    var canRetry = data.offline || (data.error && data.error !== 'rate_limit' && data.error !== 'invalid' && data.error !== 'empty' && data.error !== 'too_long');
+    await botSay(String(data.reply || ''), { mood: data.mood, links: data.links, suggestions: data.suggestions, kind: data.kind,
+      retry: canRetry ? text : '' });
     // Solo se recuerdan intercambios normales: no errores, no sin conexión y nunca mensajes con datos sensibles.
     if (!data.redact && !data.error && !data.offline && String(data.reply || '').length <= MAX_STORED_CHARS) {
       if (!history.length) memoryScope = typeof data.scope === 'string' ? data.scope : scope;
       history.push({ role: 'user', text: text, links: [] });
-      history.push({ role: 'bot', text: String(data.reply), links: cleanLinks(data.links) });
+      history.push({ role: 'bot', text: String(data.reply), links: cleanLinks(data.links), kind: KIND_LABELS[data.kind] ? data.kind : '' });
       saveMemory();
     }
     busy = false; send.disabled = false;
