@@ -16,6 +16,7 @@ from ..services.email_service import EmailDeliveryError, send_login_code, send_o
 from ..services.password_policy import validate_new_password
 from ..services.validation import parse_amount, parse_duration_seconds
 from ..services.capture_service import read_capture
+from ..services.account_service import account_overview, parse_month
 from ..services.contact_service import active_beneficiaries, delete_contact, find_client_account, get_active_beneficiary, mask_name, normalize_identifier, save_contact
 bp=Blueprint('main',__name__)
 
@@ -516,6 +517,29 @@ def dashboard():
             .order_by(desc(Transaction.created_at),desc(Transaction.id)).limit(5).all() if account_ids else [])
     cards=BankCard.query.filter_by(user_id=current_user.id).all()
     return render_template('dashboard.html',account=account,accounts=accounts,recent=recent,cards=cards)
+@bp.route('/accounts')
+@login_required
+def accounts():
+    _require_client()
+    owned=Account.query.filter_by(user_id=current_user.id).order_by(Account.id).all()
+    selected_raw=request.args.get('account_id')
+    if selected_raw:
+        try:
+            selected_id=int(selected_raw)
+        except (TypeError,ValueError):
+            abort(400)
+        account=next((item for item in owned if item.id==selected_id),None)
+        if account is None:
+            abort(404)
+    else:
+        account=owned[0] if owned else None
+    month_raw=request.args.get('month')
+    month=parse_month(month_raw) if month_raw else None
+    if month_raw and month is None:
+        abort(400)
+    overview=account_overview(account,month) if account else None
+    return render_template('accounts.html',accounts=owned,overview=overview)
+
 @bp.route('/movements')
 @login_required
 def movements():

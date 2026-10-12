@@ -26,6 +26,9 @@
   {% if is_intranet %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/intranet.css',v='shell-5') }}">
   {% endif %}
+  {% if request.endpoint=='main.accounts' %}
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/accounts.css',v='accounts-1') }}">
+  {% endif %}
   {% if request.endpoint in ('main.contacts','main.contact_lookup','main.contact_confirm','main.operation') %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/contacts.css',v='contacts-1') }}">
   {% endif %}
@@ -54,7 +57,7 @@
           <a class="active" href="{{ url_for('main.support') }}"><i class="bi bi-life-preserver"></i>Soporte</a>
           {% else %}
           <a class="{% if request.endpoint=='main.dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-1x2"></i>Resumen</a>
-          <a href="{{ url_for('main.dashboard') }}#accounts"><i class="bi bi-wallet2"></i>Cuentas</a>
+          <a class="{% if request.endpoint=='main.accounts' %}active{% endif %}" href="{{ url_for('main.accounts') }}"><i class="bi bi-wallet2"></i>Cuentas</a>
           <a class="{% if request.endpoint=='main.operation' and request.view_args.kind=='transfer' %}active{% endif %}" href="{{ url_for('main.operation',kind='transfer') }}"><i class="bi bi-arrow-left-right"></i>Transferir</a>
           <a class="{% if request.endpoint=='main.operation' and request.view_args.kind=='payment' %}active{% endif %}" href="{{ url_for('main.operation',kind='payment') }}"><i class="bi bi-receipt"></i>Pagar</a>
           <a class="{% if request.endpoint=='main.operation' and request.view_args.kind=='recharge' %}active{% endif %}" href="{{ url_for('main.operation',kind='recharge') }}"><i class="bi bi-phone"></i>Recargar</a>
