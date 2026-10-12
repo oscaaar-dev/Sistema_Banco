@@ -26,6 +26,9 @@
   {% if is_intranet %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/intranet.css',v='shell-5') }}">
   {% endif %}
+  {% if request.endpoint in ('main.contacts','main.contact_lookup','main.contact_confirm','main.operation') %}
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/contacts.css',v='contacts-1') }}">
+  {% endif %}
   {% if is_auth %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/auth.css',v='auth-password-toggle-1') }}">
   {% endif %}

@@ -16,6 +16,7 @@ from ..services.email_service import EmailDeliveryError, send_login_code, send_o
 from ..services.password_policy import validate_new_password
 from ..services.validation import parse_amount, parse_duration_seconds
 from ..services.capture_service import read_capture
+from ..services.contact_service import active_beneficiaries, delete_contact, find_client_account, get_active_beneficiary, mask_name, normalize_identifier, save_contact
 bp=Blueprint('main',__name__)
 
 LOGIN_FAILURE_LIMIT=5
@@ -650,7 +651,7 @@ def camera_analyze():
 def operation(kind):
     _require_client()
     if kind not in ('transfer','payment','recharge'): abort(404)
-    recipients=Beneficiary.query.filter_by(user_id=current_user.id).all(); account=account_for(current_user)
+    recipients=active_beneficiaries(current_user.id).all(); account=account_for(current_user)
     submitted_idempotency_key=request.form.get('idempotency_key','').strip() if request.method=='POST' else ''
     idempotency_key=(submitted_idempotency_key if re.fullmatch(r'[A-Za-z0-9_-]{22,64}',submitted_idempotency_key)
                      else secrets.token_urlsafe(24))
@@ -679,7 +680,7 @@ def operation(kind):
             if kind=='transfer':
                 if account is None:
                     raise ValueError('No se encontró una cuenta activa.')
-                recipient=Beneficiary.query.filter_by(id=beneficiary_id,user_id=current_user.id).first()
+                recipient=get_active_beneficiary(current_user.id,beneficiary_id)
                 if not recipient: raise ValueError('Destinatario no válido.')
                 description='Transferencia a '+recipient.name; op='TRANSFERENCIA'
                 details=f'beneficiary:{recipient.id}'
@@ -752,6 +753,99 @@ def operation(kind):
                            idempotency_key=idempotency_key,masked_email=_masked_email(current_user.email or ''),
                            camera_consent_version=CAMERA_CONSENT_VERSION,prefill=prefill)
 
+CONTACT_PENDING_TTL=timedelta(minutes=10)
+CONTACT_NOT_FOUND_MESSAGE='No pudimos encontrar un cliente de Norte con esos datos. Revisa el DNI o el número de cuenta e inténtalo de nuevo.'
+
+def _contacts_page(status=200,candidate=None,identifier='',return_to=''):
+    contacts=active_beneficiaries(current_user.id).all()
+    return render_template('contacts.html',contacts=contacts,candidate=candidate,identifier=identifier,return_to=return_to),status
+
+def _contact_return_to():
+    return 'transfer' if request.values.get('from')=='transfer' else ''
+
+def _contact_lookup_rate_limited():
+    since=now_utc()-timedelta(seconds=current_app.config['CONTACT_LOOKUP_RATE_LIMIT_WINDOW_SECONDS'])
+    return (_recent_audit_count('CONTACT_LOOKUP',since,user_id=current_user.id)>=current_app.config['CONTACT_LOOKUP_RATE_LIMIT_USER']
+            or _recent_audit_count('CONTACT_LOOKUP',since,ip_hash=_request_ip_hash('contact-lookup-ip'))>=current_app.config['CONTACT_LOOKUP_RATE_LIMIT_IP'])
+
+@bp.route('/contacts')
+@login_required
+def contacts():
+    _require_client()
+    session.pop('pending_contact',None)
+    return _contacts_page(return_to=_contact_return_to())
+
+@bp.route('/contacts/lookup',methods=['POST'])
+@login_required
+def contact_lookup():
+    _require_client()
+    return_to=_contact_return_to()
+    session.pop('pending_contact',None)
+    raw=request.form.get('identifier','')
+    identifier=normalize_identifier(raw)
+    if identifier is None:
+        flash('Escribe un DNI de 8 dígitos o un número de cuenta de 10 a 20 dígitos, solo con números.','error')
+        return _contacts_page(400,identifier=raw[:30],return_to=return_to)
+    if _contact_lookup_rate_limited():
+        flash('Hiciste varias búsquedas seguidas. Por seguridad, espera unos minutos antes de volver a intentarlo.','error')
+        return _contacts_page(429,identifier=raw[:30],return_to=return_to)
+    account=find_client_account(identifier)
+    log(current_user,'CONTACT_LOOKUP','CONTACTOS',result='ENCONTRADO' if account else 'SIN_RESULTADO',ip_local=_request_ip_hash('contact-lookup-ip'))
+    db.session.commit()
+    if account is None:
+        flash(CONTACT_NOT_FOUND_MESSAGE,'error')
+        return _contacts_page(404,identifier=raw[:30],return_to=return_to)
+    if account.user_id==current_user.id:
+        flash('Ese número corresponde a tus propias cuentas. Para moverte saldo entre ellas usa un traslado interno.','error')
+        return _contacts_page(400,identifier=raw[:30],return_to=return_to)
+    if any(item.account_number==account.number for item in active_beneficiaries(current_user.id).all()):
+        flash('Ya tienes a este cliente en tus contactos.','info')
+        return _contacts_page(409,identifier=raw[:30],return_to=return_to)
+    holder=db.session.get(User,account.user_id)
+    session['pending_contact']={'account_id':account.id,'at':now_utc().isoformat()}
+    candidate={'name':mask_name(holder.full_name),'last4':account.number[-4:]}
+    return _contacts_page(candidate=candidate,return_to=return_to)
+
+@bp.route('/contacts/confirm',methods=['POST'])
+@login_required
+def contact_confirm():
+    _require_client()
+    return_to=_contact_return_to()
+    pending=session.pop('pending_contact',None)
+    try:
+        if not isinstance(pending,dict) or now_utc()-datetime.fromisoformat(pending['at'])>CONTACT_PENDING_TTL:
+            raise ValueError('La búsqueda venció. Vuelve a ingresar el DNI o el número de cuenta para agregar el contacto.')
+        account=Account.query.filter_by(id=pending['account_id'],status='ACTIVA').first()
+        if account is None:
+            raise ValueError(CONTACT_NOT_FOUND_MESSAGE)
+        contact=save_contact(current_user,account)
+        log(current_user,'CONTACT_ADDED','CONTACTOS')
+        db.session.commit()
+    except (ValueError,KeyError,TypeError) as error:
+        db.session.rollback()
+        flash(str(error) if isinstance(error,ValueError) else 'La búsqueda venció. Vuelve a ingresar el DNI o el número de cuenta para agregar el contacto.','error')
+        return _contacts_page(400,return_to=return_to)
+    except IntegrityError:
+        db.session.rollback()
+        flash('No se pudo guardar el contacto. Inténtalo nuevamente.','error')
+        return _contacts_page(409,return_to=return_to)
+    flash(f'Agregaste a {contact.name} a tus contactos.','success')
+    return redirect(url_for('main.operation',kind='transfer') if return_to=='transfer' else url_for('main.contacts'))
+
+@bp.route('/contacts/<int:contact_id>/delete',methods=['POST'])
+@login_required
+def contact_delete(contact_id):
+    _require_client()
+    contact=get_active_beneficiary(current_user.id,contact_id)
+    if contact is None:
+        abort(404)
+    name=contact.name
+    delete_contact(contact)
+    log(current_user,'CONTACT_REMOVED','CONTACTOS')
+    db.session.commit()
+    flash(f'Eliminaste a {name} de tus contactos.','success')
+    return redirect(url_for('main.operation',kind='transfer') if _contact_return_to()=='transfer' else url_for('main.contacts'))
+
 @bp.route('/operation/<kind>/send-code',methods=['POST'])
 @login_required
 def send_transfer_code(kind):
@@ -770,7 +864,7 @@ def send_transfer_code(kind):
             raise ValueError('No hay saldo suficiente en la cuenta seleccionada.')
         beneficiary_id=request.form.get('beneficiary_id',type=int)
         if kind=='transfer':
-            beneficiary=Beneficiary.query.filter_by(id=beneficiary_id,user_id=current_user.id).first()
+            beneficiary=get_active_beneficiary(current_user.id,beneficiary_id)
             if beneficiary is None:
                 raise ValueError('Selecciona un destinatario válido antes de pedir el código.')
             op='TRANSFERENCIA'; details=f'beneficiary:{beneficiary.id}'

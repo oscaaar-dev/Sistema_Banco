@@ -5,6 +5,7 @@ from ..models import db, Account, Beneficiary, Transaction, Transfer, Interactio
 from ..ai.interaction_model import cluster_interactions
 from ..ai.operation_risk import assess_operation_risk
 from .capture_service import add_capture
+from .contact_service import find_destination_account, get_active_beneficiary, mask_name
 
 def account_for(user):
     return Account.query.filter_by(user_id=user.id,status='ACTIVA').first()
@@ -35,9 +36,19 @@ def _store_cluster_results():
             db.session.add(MLResult(session_id=session.id,cluster_id=outcome['cluster_id'],label=outcome['label'],method='K-Means (sesiones de interacción)'))
 
 def process_operation(user,kind,amount,description,beneficiary_id=None,service=None,consent=False,duration_seconds=None,idempotency_key=None,capture=None,capture_meta=None):
-    account=(Account.query.filter_by(user_id=user.id,status='ACTIVA')
-             .with_for_update().first())
+    account=account_for(user)
     if not account:raise ValueError('No se encontró una cuenta activa.')
+    # Si el destinatario es otro cliente de Norte, se bloquean ambas cuentas siempre en el mismo orden (por id)
+    # para que dos transferencias cruzadas no se esperen entre sí.
+    destination_id=None
+    if kind=='TRANSFERENCIA':
+        preview=get_active_beneficiary(user.id,beneficiary_id)
+        destination=find_destination_account(preview.account_number,account.id) if preview else None
+        destination_id=destination.id if destination else None
+    locked={item.id:item for item in Account.query.filter(Account.id.in_([account.id]+([destination_id] if destination_id else [])))
+            .order_by(Account.id).with_for_update().all()}
+    account=locked[account.id]
+    destination=locked.get(destination_id)
     value=Decimal(str(amount)).quantize(Decimal('0.01'))
     if idempotency_key is not None:
         if not re.fullmatch(r'[A-Za-z0-9_-]{22,64}',idempotency_key):
@@ -51,7 +62,7 @@ def process_operation(user,kind,amount,description,beneficiary_id=None,service=N
     if kind in ('TRANSFERENCIA','PAGO','RECARGA') and account.balance<value:raise ValueError('Saldo insuficiente para esta operación.')
     beneficiary=None
     if kind=='TRANSFERENCIA':
-        beneficiary=Beneficiary.query.filter_by(id=beneficiary_id,user_id=user.id).first()
+        beneficiary=get_active_beneficiary(user.id,beneficiary_id)
         if beneficiary is None:raise ValueError('Selecciona un destinatario válido.')
     start=datetime.now(timezone.utc).replace(tzinfo=None)
     risk=operation_risk_for(user,kind,value,duration_seconds)
@@ -64,6 +75,12 @@ def process_operation(user,kind,amount,description,beneficiary_id=None,service=N
     tx=Transaction(account_id=account.id,session_id=session.id,operation_type=kind,description=description[:180],amount=-value,balance_after=account.balance,status='COMPLETADA',idempotency_key=idempotency_key)
     session.ended_at=datetime.now(timezone.utc).replace(tzinfo=None)
     db.session.add(tx)
+    if destination is not None:
+        # El destinatario es cliente de Norte: el movimiento queda registrado también en su cuenta.
+        destination.balance=(destination.balance+value).quantize(Decimal('0.01'))
+        db.session.add(Transaction(account_id=destination.id,operation_type='INGRESO',
+                                   description=('Transferencia recibida de '+mask_name(user.full_name))[:180],
+                                   amount=value,balance_after=destination.balance,status='COMPLETADA'))
     db.session.flush()
     if capture:
         # La foto va en la misma transacción que la operación: si falla, no se completa nada.
