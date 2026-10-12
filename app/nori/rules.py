@@ -6,6 +6,7 @@ a partir de una lista cerrada de páginas públicas, así nunca apuntan fuera de
 """
 from flask import current_app, url_for
 
+from ..services.validation import MAX_AMOUNT
 from .safety import normalize
 
 # Páginas oficiales a las que Nori puede enviar (etiqueta, endpoint).
@@ -79,6 +80,55 @@ INTENTS=[
              'condiciones que informarte.','mood':'reposo','pages':['acerca','terminos']},
 ]
 
+# Detalle adicional por tema (para «más información»). Cada dato sale de las páginas públicas o del código de Norte.
+def _minutes(seconds):
+    return max(1, round(seconds / 60))
+
+
+def _more_operaciones():
+    from ..routes import OPERATION_CODE_TTL
+    return (f'Cada operación se confirma con un código enviado a tu correo, que vence en {_minutes(OPERATION_CODE_TTL.total_seconds())} minutos, '
+            f'y con la cámara. El monto máximo por operación es S/ {MAX_AMOUNT:,.2f}.')
+
+
+MORE={
+    'ingresar':lambda: ('Si es tu primera vez, primero crea tu perfil con «Abrir cuenta». El código de seguridad llega al correo registrado y vence en '
+                        f"{_minutes(current_app.config['LOGIN_CODE_TTL_SECONDS'])} minutos; si olvidaste tu contraseña usa «¿Olvidaste tu contraseña?»."),
+    'abrir':'La contraseña debe cumplir los requisitos que se muestran mientras la escribes. Al terminar, ingresa con tu DNI o correo y Norte te enviará un código de seguridad.',
+    'recuperar':lambda: ('El enlace de recuperación llega al correo registrado y vence en '
+                         f"{_minutes(current_app.config['PASSWORD_RESET_TTL_SECONDS'])} minutos. Por seguridad, la respuesta es la misma exista o no la cuenta."),
+    'seguridad':'Norte no es una entidad financiera, así que sus controles no sustituyen los de un banco real. Usa datos de prueba y no reutilices contraseñas de otros servicios.',
+    'camara':'Si no aceptas el aviso o no activas la cámara, la operación no se completa y puedes cancelarla. La foto no identifica personas ni reemplaza el código del correo.',
+    'operaciones':_more_operaciones,
+    'cuenta':'El estado de cuenta en PDF respeta los filtros de fechas y de tipo que elijas en Movimientos.',
+    'herramientas':'Cada recorrido funciona con datos de demostración: nada de lo que ves se conecta a bancos ni a empresas de servicios.',
+    'personas':'Gerencia es un perfil de referencia: la demostración aún no tiene un rol ni un tablero gerencial independiente. Soporte ve conteos y eventos técnicos, sin datos personales.',
+    'acerca':'Norte es independiente y no está afiliado, patrocinado ni respaldado por el BCP.',
+}
+
+# Frases de seguimiento (ya normalizadas). Solo se usan si el mensaje no coincide con ningún tema por sí mismo.
+MORE_PHRASES=('mas','mas informacion','mas detalles','dame mas detalles','cuentame mas','explicame','explicame mas','y eso','como asi','detalles','amplia')
+REPEAT_PHRASES=('repite','repitelo','repite eso','otra vez','no entendi','no te entendi','que dijiste','puedes repetir')
+NO_CONTEXT_REPLY=('¿Sobre qué tema quieres saber? Puedo ayudarte con el ingreso, abrir una cuenta, seguridad, cámara, herramientas, '
+                  'transferencias o el estado de cuenta.')
+
+
+def _text(value):
+    return value() if callable(value) else value
+
+
+def reply_index():
+    """Texto normalizado de cada respuesta conocida de Nori -> (tema, variante) para entender el historial recibido.
+
+    La variante es ``'base'`` (primera respuesta) o ``'more'`` (la ampliación de «más información»)."""
+    index={}
+    for intent in INTENTS:
+        index[normalize(_text(intent['reply']))]=(intent['name'],'base')
+        if intent['name'] in MORE:
+            index[normalize(_text(MORE[intent['name']]))]=(intent['name'],'more')
+    return index
+
+
 FALLBACK_REPLY=('No encontré información suficiente para responder eso con certeza. Para saber más, revisa las páginas oficiales '
                 'de Norte: Personas, Herramientas, Seguridad o Acerca de Norte.')
 
@@ -105,17 +155,45 @@ def _links(keys):
     return [{'label':PAGES[key][0],'href':url_for(PAGES[key][1])} for key in keys]
 
 
-def answer(message):
-    """Respuesta de Nori: ``reply``, ``mood``, ``links`` y ``suggestions``. Sin evidencia suficiente, lo reconoce y orienta."""
+def _is_phrase(normalized,phrases):
+    """El mensaje es una de las frases (o empieza por ella y es corto): «más información», «repítelo», etc."""
+    words=normalized.split()
+    return len(words)<=5 and any(normalized==phrase or normalized.startswith(phrase+' ') for phrase in phrases)
+
+
+def _topic_reply(intent,reply=None):
+    return {'reply':reply if reply is not None else _text(intent['reply']),'mood':intent['mood'],'links':_links(intent.get('pages',[])),
+            'suggestions':list(DEFAULT_SUGGESTIONS) if intent.get('suggest') else [],'intent':intent['name']}
+
+
+def answer(message,last_intent=None):
+    """Respuesta de Nori: ``reply``, ``mood``, ``links`` y ``suggestions``.
+
+    ``last_intent`` es ``(tema, variante)`` de la respuesta anterior (de la memoria de la conversación) y solo sirve para
+    preguntas de seguimiento. Sin evidencia suficiente, Nori lo reconoce y orienta a las páginas oficiales.
+    """
     normalized=normalize(message)
     best,best_score=None,0
     for intent in INTENTS:
         score=_score(normalized,intent['kw'])
         if score>best_score:
             best,best_score=intent,score
-    if best is None:
-        return {'reply':FALLBACK_REPLY,'mood':'confundido','links':_links(OFFICIAL_PAGES),
-                'suggestions':list(DEFAULT_SUGGESTIONS),'intent':None}
-    reply=best['reply']() if callable(best['reply']) else best['reply']
-    return {'reply':reply,'mood':best['mood'],'links':_links(best.get('pages',[])),
-            'suggestions':list(DEFAULT_SUGGESTIONS) if best.get('suggest') else [],'intent':best['name']}
+    if best is not None:
+        return _topic_reply(best)
+    last_name,last_variant=last_intent if last_intent else (None,None)
+    previous=next((intent for intent in INTENTS if intent['name']==last_name),None)
+    if _is_phrase(normalized,MORE_PHRASES):
+        if previous is None:
+            return {'reply':NO_CONTEXT_REPLY,'mood':'hola','links':[],'suggestions':list(DEFAULT_SUGGESTIONS),'intent':None}
+        if previous['name'] in MORE:
+            return _topic_reply(previous,_text(MORE[previous['name']]))
+        return {'reply':'Sobre ese tema no tengo más detalles. Puedes revisar las páginas oficiales de Norte.','mood':'reposo',
+                'links':_links(OFFICIAL_PAGES),'suggestions':[],'intent':previous['name']}
+    if _is_phrase(normalized,REPEAT_PHRASES):
+        if previous is None:
+            return {'reply':NO_CONTEXT_REPLY,'mood':'hola','links':[],'suggestions':list(DEFAULT_SUGGESTIONS),'intent':None}
+        if last_variant=='more' and previous['name'] in MORE:
+            return _topic_reply(previous,_text(MORE[previous['name']]))
+        return _topic_reply(previous)
+    return {'reply':FALLBACK_REPLY,'mood':'confundido','links':_links(OFFICIAL_PAGES),
+            'suggestions':list(DEFAULT_SUGGESTIONS),'intent':None}

@@ -115,6 +115,10 @@ class Config:
     NORI_RATE_LIMIT_MESSAGES=20
     NORI_RATE_LIMIT_WINDOW_SECONDS=60
     NORI_DAILY_LIMIT=300
+    # Memoria temporal de la conversación (vive en el sessionStorage del navegador; el servidor no guarda nada).
+    NORI_MEMORY_TURNS=8
+    NORI_MEMORY_TTL_SECONDS=1800
+    NORI_MAX_REQUEST_BYTES=32768
     PASSWORD_RESET_TTL_SECONDS=1800
     PASSWORD_RESET_RATE_LIMIT_IP=5
     PASSWORD_RESET_RATE_LIMIT_USER=3

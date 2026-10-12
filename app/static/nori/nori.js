@@ -11,6 +11,11 @@
   var ENDPOINT = root.dataset.endpoint;
   var CSRF_URL = root.dataset.csrfUrl;
   var MAX_CHARS = 500;
+  /* Memoria temporal: últimos turnos en sessionStorage (solo esta pestaña) con expiración por inactividad. */
+  var MEMORY_KEY = 'nori:v1:conversation';
+  var TURNS = Math.max(1, parseInt(root.dataset.turns, 10) || 8);
+  var TTL = Math.max(60, parseInt(root.dataset.ttl, 10) || 1800) * 1000;
+  var MAX_STORED_CHARS = 1200;
   var motion = matchMedia('(prefers-reduced-motion: reduce)');
   var reduce = function () { return motion.matches; };
 
@@ -92,9 +97,12 @@
   var headTxt = el('div', 'nori__head-txt');
   headTxt.appendChild(el('p', 'nori__title', 'Nori'));
   headTxt.appendChild(el('p', 'nori__sub', 'Asistente de Norte · demo académica'));
+  var fresh = el('button', 'nori__new', 'Nueva conversación');
+  fresh.type = 'button';
+  fresh.title = 'Borra la conversación actual y empieza una nueva';
   var close = el('button', 'nori__close', '×');
   close.type = 'button'; close.setAttribute('aria-label', 'Cerrar chat');
-  head.appendChild(headTxt); head.appendChild(close);
+  head.appendChild(headTxt); head.appendChild(fresh); head.appendChild(close);
   var log = el('div', 'nori__log');
   log.setAttribute('role', 'log'); log.setAttribute('aria-live', 'polite');
   var form = el('form', 'nori__form');
@@ -105,7 +113,8 @@
   var send = el('button', 'nori__send', 'Enviar');
   send.type = 'submit';
   form.appendChild(input); form.appendChild(send);
-  var legal = el('p', 'nori__legal', 'Demo académica. No escribas DNI, contraseñas, tarjetas ni códigos.');
+  var legal = el('p', 'nori__legal', 'Demo académica. No escribas DNI, contraseñas, tarjetas ni códigos. La conversación se guarda solo en esta pestaña ' +
+    'y se borra al cerrarla, con «Nueva conversación» o tras ' + Math.round(TTL / 60000) + ' minutos sin actividad.');
   [head, log, form, legal].forEach(function (n) { panel.appendChild(n); });
   root.appendChild(panel); root.appendChild(mascot);
 
@@ -143,13 +152,61 @@
   });
   mascot.addEventListener('mouseenter', function () { if (!busy && !sleeping && !isOpen) act('hola', 1800); });
 
-  /* ---------- chat ---------- */
-  var history = [], greeted = false, csrf = null, greeting = Promise.resolve();
+  /* ---------- chat y memoria temporal ---------- */
+  var history = [];          // [{ role: 'user'|'bot', text, links }] (últimos TURNS turnos)
+  var memoryScope = '';      // sesión del navegador a la que pertenece el historial (la entrega el servidor)
+  var scope = '';            // sesión actual según el servidor
+  var greeted = false, csrf = null, lastActivity = Date.now();
+  var greeting = Promise.resolve(), memoryReady = Promise.resolve();
+
+  function storage() { try { return window.sessionStorage; } catch (e) { return null; } }
+  function clearMemory() { var s = storage(); if (s) { try { s.removeItem(MEMORY_KEY); } catch (e) { /* sin acceso */ } } }
+  function cleanLinks(list) {
+    var out = [];
+    (Array.isArray(list) ? list : []).slice(0, 4).forEach(function (l) {
+      var href = l && safeHref(l.href);
+      if (href && typeof l.label === 'string' && l.label.length <= 60) out.push({ label: l.label, href: href });
+    });
+    return out;
+  }
+  /* Lo guardado nunca se da por bueno: se valida estructura, roles, largos, enlaces y fecha. */
+  function loadMemory() {
+    var s = storage(), data;
+    if (!s) return null;
+    try { var raw = s.getItem(MEMORY_KEY); if (raw === null) return null; data = JSON.parse(raw); } catch (e) { clearMemory(); return null; }
+    var now = Date.now();
+    if (!data || data.v !== 1 || typeof data.updated !== 'number' || typeof data.scope !== 'string' || !Array.isArray(data.turns) ||
+        now - data.updated > TTL || data.updated > now + 60000) { clearMemory(); return null; }   // inválida o vencida por inactividad
+    var turns = [];
+    data.turns.slice(-TURNS * 2).forEach(function (t) {
+      if (!t || (t.role !== 'user' && t.role !== 'bot') || typeof t.text !== 'string' || !t.text || t.text.length > MAX_STORED_CHARS) return;
+      turns.push({ role: t.role, text: t.text, links: t.role === 'bot' ? cleanLinks(t.links) : [] });
+    });
+    while (turns.length && turns[0].role !== 'user') turns.shift();
+    if (!turns.length) { clearMemory(); return null; }
+    return { scope: data.scope, updated: data.updated, turns: turns };
+  }
+  function saveMemory() {
+    var s = storage();
+    history = history.slice(-TURNS * 2);
+    while (history.length && history[0].role !== 'user') history.shift();   // siempre empieza por una pregunta
+    lastActivity = Date.now();
+    if (!s) return;
+    if (!history.length) { clearMemory(); return; }
+    try { s.setItem(MEMORY_KEY, JSON.stringify({ v: 1, updated: lastActivity, scope: memoryScope, turns: history })); }
+    catch (e) { /* almacenamiento lleno o bloqueado: Nori sigue funcionando sin memoria */ }
+  }
+  function expired() { return history.length > 0 && Date.now() - lastActivity > TTL; }
+  function clearLog() { while (log.firstChild) log.removeChild(log.firstChild); }
+  function resetConversation(note) {
+    history = []; memoryScope = ''; clearMemory(); clearLog();
+    if (note) log.appendChild(el('div', 'nori-msg nori-msg--bot', note));
+  }
+
   function scroll() { log.scrollTop = log.scrollHeight; }
   function addUser(text) {
     var bubble = el('div', 'nori-msg nori-msg--user', text);
-    log.appendChild(bubble);
-    history.push({ role: 'user', text: text }); scroll();
+    log.appendChild(bubble); scroll();
     return bubble;
   }
   function typing() {
@@ -198,13 +255,21 @@
     return a;
   }
 
+  /* Vuelve a mostrar la conversación guardada (sin animaciones de escritura). */
+  function renderStored(turns) {
+    turns.forEach(function (t) {
+      if (t.role === 'user') log.appendChild(el('div', 'nori-msg nori-msg--user', t.text));
+      else { log.appendChild(el('div', 'nori-msg nori-msg--bot', t.text)); addChips(t.links, linkChip); }
+    });
+    scroll();
+  }
+
   async function botSay(text, opts) {
     opts = opts || {};
     var bubble = el('div', 'nori-msg nori-msg--bot');
     log.appendChild(bubble);
     setPose('hablando');
     await typeInto(bubble, text);
-    history.push({ role: 'bot', text: text });
     addChips(opts.links, linkChip);
     addChips(opts.suggestions, quickChip);
     var mood = MOODS[opts.mood] ? opts.mood : 'reposo';
@@ -228,6 +293,7 @@
   async function refreshCsrf() {
     var r = await fetchJson(CSRF_URL, { method: 'GET', headers: { 'Accept': 'application/json' } }, 8000);
     csrf = r.data && typeof r.data.csrf === 'string' ? r.data.csrf : null;
+    scope = r.data && typeof r.data.scope === 'string' ? r.data.scope : '';
     return csrf;
   }
   async function askNori(text) {
@@ -236,7 +302,11 @@
       return fetchJson(ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf || '' },
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({
+          message: text,
+          history: history.slice(-TURNS * 2).map(function (t) { return { role: t.role, text: t.text }; }),
+          scope: memoryScope
+        })
       }, 20000);
     };
     var r = await post();
@@ -245,17 +315,20 @@
       r = await post();
     }
     if (r.data && typeof r.data.csrf === 'string') csrf = r.data.csrf;
-    if (!r.data || typeof r.data.reply !== 'string') return { reply: OFFLINE, mood: 'confundido' };
+    if (r.data && typeof r.data.scope === 'string') scope = r.data.scope;
+    if (!r.data || typeof r.data.reply !== 'string') return { reply: OFFLINE, mood: 'confundido', offline: true };
     return r.data;
   }
 
   async function submit(text) {
     text = (text || '').trim().slice(0, MAX_CHARS);
     if (!text) return;
+    await memoryReady;                                    // espera a comprobar la memoria guardada
     await greeting;                                       // si Nori aún está saludando, el mensaje espera su turno
     if (busy) return;
     busy = true; send.disabled = true; input.value = '';
     sleeping = false;
+    if (expired()) resetConversation('Pasó un rato sin actividad, así que empezamos una conversación nueva.');
     log.querySelectorAll('.nori__chips').forEach(function (c) { c.remove(); });
     var userBubble = addUser(text);
     var t0 = Date.now();
@@ -267,24 +340,49 @@
     try {
       data = await askNori(text);
     } catch (e) {
-      data = { reply: OFFLINE, mood: 'confundido' };
+      data = { reply: OFFLINE, mood: 'confundido', offline: true };
     }
     clearTimeout(longWait);
-    if (data.redact) {                                  // datos sensibles: no se muestran ni se recuerdan
-      userBubble.textContent = 'Mensaje oculto por contener datos sensibles.';
-      history.pop();
-    }
+    if (data.redact) userBubble.textContent = 'Mensaje oculto por contener datos sensibles.';   // no se muestra ni se recuerda
+    if (data.reset) { history = []; memoryScope = ''; clearMemory(); }   // la sesión cambió: se descarta la memoria anterior
     var left = 800 - (Date.now() - t0);
     if (left > 0) await wait(left);                       // que se alcance a ver a Nori pensando
     ind.remove();
     await botSay(String(data.reply || ''), { mood: data.mood, links: data.links, suggestions: data.suggestions });
+    // Solo se recuerdan intercambios normales: no errores, no sin conexión y nunca mensajes con datos sensibles.
+    if (!data.redact && !data.error && !data.offline && String(data.reply || '').length <= MAX_STORED_CHARS) {
+      if (!history.length) memoryScope = typeof data.scope === 'string' ? data.scope : scope;
+      history.push({ role: 'user', text: text, links: [] });
+      history.push({ role: 'bot', text: String(data.reply), links: cleanLinks(data.links) });
+      saveMemory();
+    }
     busy = false; send.disabled = false;
     if (isOpen) input.focus();
     bump();
   }
   form.addEventListener('submit', function (e) { e.preventDefault(); submit(input.value); });
 
-  /* ---------- abrir / cerrar ---------- */
+  /* ---------- saludo, nueva conversación y apertura ---------- */
+  function startGreeting() {
+    greeted = true; busy = true;
+    greeting = (async function () {
+      await memoryReady;
+      if (expired()) resetConversation(null);
+      if (history.length) { busy = false; return; }       // hay conversación guardada: se retoma sin saludar
+      await wait(450);
+      await botSay('¡Hola! Soy Nori, tu guía en Norte. Pregúntame cómo ingresar, abrir una cuenta o cómo cuidar tu seguridad.',
+        { mood: 'hola', suggestions: QUICK });
+      busy = false;
+    })();
+  }
+  fresh.addEventListener('click', function () {
+    if (busy) return;                                     // se espera a que Nori termine de responder
+    resetConversation(null);
+    input.value = '';
+    startGreeting();
+    input.focus();
+  });
+
   function hideTip() { root.classList.remove('is-tip'); }
   async function setOpen(v) {
     isOpen = v; panel.hidden = !v;
@@ -293,15 +391,7 @@
     if (v) {
       hideTip(); sleeping = false; act('hola', 1700);
       if (!csrf) refreshCsrf().catch(function () {});     // el token se pide al abrir, no al cargar la página
-      if (!greeted) {
-        greeted = true; busy = true;
-        greeting = (async function () {
-          await wait(450);
-          await botSay('¡Hola! Soy Nori, tu guía en Norte. Pregúntame cómo ingresar, abrir una cuenta o cómo cuidar tu seguridad.',
-            { mood: 'hola', suggestions: QUICK });
-          busy = false;
-        })();
-      }
+      if (!greeted) startGreeting();
       input.focus();
     } else {
       act('hola', 1000);
@@ -312,6 +402,17 @@
   root.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && isOpen) { setOpen(false); mascot.focus(); }
   });
+
+  /* ---------- recuperar la conversación al recargar o cambiar de página ---------- */
+  var saved = loadMemory();
+  if (saved) {
+    // Se valida con el servidor que la sesión sigue siendo la misma; si no (otro usuario, sesión vencida), se descarta.
+    history = saved.turns; memoryScope = saved.scope; lastActivity = saved.updated;
+    memoryReady = refreshCsrf().then(function () {
+      if (scope && saved.scope === scope) renderStored(saved.turns);
+      else { history = []; memoryScope = ''; clearMemory(); }
+    }).catch(function () { history = []; memoryScope = ''; clearMemory(); });
+  }
 
   /* ---------- arranque: patrón armed → play ---------- */
   setPose('hola');

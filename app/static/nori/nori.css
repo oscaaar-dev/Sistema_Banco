@@ -195,6 +195,12 @@ html.has-nori .sf .sf__bar { padding-bottom: calc(var(--n-size) + 14px); }
   background: transparent; color: var(--n-text); font-size: 20px; line-height: 1; cursor: pointer;
 }
 .nori__close:hover { background: rgba(255, 255, 255, .08); }
+.nori__new {
+  flex: none; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--n-line);
+  background: transparent; color: var(--n-text); font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
+}
+.nori__new:hover, .nori__new:focus-visible { background: rgba(255, 255, 255, .1); }
+.nori__new:focus-visible { outline: 2px solid var(--n-pur-hi); outline-offset: 2px; }
 
 .nori__log { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .nori-msg { max-width: 86%; padding: 9px 12px; border-radius: 14px; overflow-wrap: anywhere; animation: nori-msg-in .24s steps(3, end); }
