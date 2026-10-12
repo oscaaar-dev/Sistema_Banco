@@ -83,6 +83,7 @@ Este OTP es una medida demostrativa para la aplicación académica; no debe trat
 - Indicador demostrativo, basado en reglas transparentes, sobre montos y frecuencia de operaciones; no decide ni bloquea operaciones.
 - Escenarios de prueba sintéticos del indicador en `tests/fixtures/operation_risk_scenarios.csv`; se usan para validar niveles, no para entrenar un detector de fraude.
 - **Nori**, asistente de las páginas públicas: responde con reglas y con recuperación documental local (TF-IDF sobre documentos autorizados), sin modelos generativos ni servicios externos. Mantenimiento, documentos y límites en `docs/nori.md`.
+- **Panel del cliente** (`/dashboard`): resumen del mes (ingresos y egresos reales, sin traslados entre cuentas propias), depósito de demostración (hasta S/ 5,000 por depósito y S/ 15,000 por cuenta cada 24 horas, con clave de idempotencia), apertura de hasta 3 cuentas de ahorros y solicitud de la tarjeta de débito de muestra con bloqueo y desbloqueo. Todo es ficticio y lee y escribe solo en la base; los contactos para transferir se gestionan en `/contacts`.
 
 ## Alcance honesto de IA y privacidad
 

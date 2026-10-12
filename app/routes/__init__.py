@@ -7,14 +7,14 @@ from decimal import Decimal, InvalidOperation
 import re
 from flask import Blueprint, Response, current_app, render_template, request, redirect, url_for, flash, abort, jsonify, session
 from flask_login import login_user, logout_user, login_required, current_user
-from sqlalchemy import desc, or_
+from sqlalchemy import desc, func, or_
 from sqlalchemy.exc import IntegrityError
 from ..models import db, User, LoginChallenge, LoginAttemptLimit, OperationChallenge, Account, BankCard, Beneficiary, Transaction, InteractionSession, OperationCapture, AuditLog, now_utc
 from ..services.banking_service import account_for, process_operation, process_internal_transfer, log, operation_risk_for
 from ..services.statement_service import MOVEMENT_TYPES, account_statement_pdf
 from ..services.email_service import EmailDeliveryError, send_login_code, send_operation_code
 from ..services.password_policy import validate_new_password
-from ..services.validation import parse_amount, parse_duration_seconds
+from ..services.validation import AMOUNT_RANGE_MESSAGE, parse_amount, parse_duration_seconds
 from ..services.capture_service import read_capture
 from ..services.account_service import account_overview, parse_month
 from ..services.contact_service import active_beneficiaries, delete_contact, find_client_account, get_active_beneficiary, mask_name, normalize_identifier, save_contact
@@ -395,11 +395,7 @@ def register():
         try:
             db.session.add(user)
             db.session.flush()
-            account_number=None
-            while account_number is None:
-                candidate=f'{100000000000+secrets.randbelow(900000000000):012d}'
-                if not Account.query.filter_by(number=candidate).first():
-                    account_number=candidate
+            account_number=_new_account_number()
             db.session.add(Account(
                 user_id=user.id,
                 account_type='Cuenta de ahorros',
@@ -506,6 +502,22 @@ def cancel_login():
 @login_required
 def logout():
     log(current_user,'LOGOUT','SEGURIDAD'); db.session.commit(); logout_user(); return redirect(url_for('main.login'))
+MAX_ACCOUNTS=3
+MAX_DEPOSIT=Decimal('5000')
+MAX_DEPOSIT_PER_DAY=Decimal('15000')      # por cuenta, en las últimas 24 horas
+DEPOSIT_DESCRIPTION='Depósito de demostración'
+DEPOSIT_KEY_PATTERN=r'[A-Za-z0-9_-]{22,64}'
+
+def _new_account_number():
+    """Número de cuenta de 12 dígitos que no existe todavía."""
+    while True:
+        candidate=f'{100000000000+secrets.randbelow(900000000000):012d}'
+        if not Account.query.filter_by(number=candidate).first():
+            return candidate
+
+def _back_to_dashboard(anchor=''):
+    return redirect(url_for('main.dashboard')+anchor)
+
 @bp.route('/dashboard')
 @login_required
 def dashboard():
@@ -516,7 +528,92 @@ def dashboard():
     recent=(Transaction.query.filter(Transaction.account_id.in_(account_ids))
             .order_by(desc(Transaction.created_at),desc(Transaction.id)).limit(5).all() if account_ids else [])
     cards=BankCard.query.filter_by(user_id=current_user.id).all()
-    return render_template('dashboard.html',account=account,accounts=accounts,recent=recent,cards=cards)
+    month_start=now_utc().replace(day=1,hour=0,minute=0,second=0,microsecond=0)
+    month_income=month_expense=Decimal('0.00')
+    if account_ids:
+        # Los traslados entre cuentas propias no son ingresos ni gastos: se excluyen del resumen.
+        month=Transaction.query.filter(Transaction.account_id.in_(account_ids),Transaction.created_at>=month_start,
+                                       ~Transaction.description.like('Traslado %'))
+        month_income=month.filter(Transaction.amount>0).with_entities(func.coalesce(func.sum(Transaction.amount),0)).scalar()
+        month_expense=-month.filter(Transaction.amount<0).with_entities(func.coalesce(func.sum(Transaction.amount),0)).scalar()
+    return render_template('dashboard.html',account=account,accounts=accounts,recent=recent,cards=cards,
+                           month_income=Decimal(month_income),month_expense=Decimal(month_expense),
+                           total_balance=sum((item.balance for item in accounts),Decimal('0.00')),
+                           can_open_account=len(accounts)<MAX_ACCOUNTS,max_accounts=MAX_ACCOUNTS,
+                           max_deposit=MAX_DEPOSIT,max_deposit_per_day=MAX_DEPOSIT_PER_DAY,
+                           deposit_key=secrets.token_urlsafe(24),
+                           cards_without=[item for item in accounts if not any(card.account_id==item.id for card in cards)])
+
+@bp.route('/accounts/open',methods=['POST'])
+@login_required
+def open_account():
+    _require_client()
+    db.session.get(User,current_user.id,with_for_update=True)       # serializa aperturas simultáneas del mismo cliente
+    if Account.query.filter_by(user_id=current_user.id,status='ACTIVA').count()>=MAX_ACCOUNTS:
+        db.session.rollback()
+        flash(f'Puedes tener hasta {MAX_ACCOUNTS} cuentas activas en Norte.','error')
+        return _back_to_dashboard('#accounts')
+    db.session.add(Account(user_id=current_user.id,account_type='Cuenta de ahorros',number=_new_account_number(),
+                           balance=Decimal('0.00')))
+    log(current_user,'ACCOUNT_OPENED','CUENTAS')
+    db.session.commit()
+    flash('Abrimos una nueva cuenta de ahorros de demostración con saldo S/ 0.00.','success')
+    return _back_to_dashboard('#accounts')
+
+@bp.route('/accounts/<int:account_id>/deposit',methods=['POST'])
+@login_required
+def deposit(account_id):
+    _require_client()
+    account=(Account.query.filter_by(id=account_id,user_id=current_user.id,status='ACTIVA')
+             .with_for_update().first_or_404())
+    key=request.form.get('idempotency_key','').strip()
+    try:
+        if not re.fullmatch(DEPOSIT_KEY_PATTERN,key):
+            raise ValueError('El formulario venció. Recarga la página e inténtalo de nuevo.')
+        previous=Transaction.query.filter_by(account_id=account.id,idempotency_key=key).first()
+        if previous:
+            flash('Ese depósito ya estaba registrado.','success')
+            return redirect(url_for('main.receipt',transaction_id=previous.id))
+        try:
+            amount=parse_amount(request.form.get('amount'),maximum=MAX_DEPOSIT)
+        except ValueError as error:
+            if str(error)==AMOUNT_RANGE_MESSAGE:
+                raise ValueError(f'El depósito debe estar entre S/ 0.01 y S/ {MAX_DEPOSIT:,.2f}.') from None
+            raise
+        today=(db.session.query(func.coalesce(func.sum(Transaction.amount),0))
+               .filter(Transaction.account_id==account.id,Transaction.description==DEPOSIT_DESCRIPTION,
+                       Transaction.created_at>=now_utc()-timedelta(hours=24)).scalar())
+        if Decimal(today)+amount>MAX_DEPOSIT_PER_DAY:
+            raise ValueError(f'Superaste el límite de depósitos de demostración: S/ {MAX_DEPOSIT_PER_DAY:,.2f} por cuenta cada 24 horas.')
+        account.balance=(account.balance+amount).quantize(Decimal('0.01'))
+        tx=Transaction(account_id=account.id,operation_type='INGRESO',description=DEPOSIT_DESCRIPTION,amount=amount,
+                       balance_after=account.balance,status='COMPLETADA',idempotency_key=key)
+        db.session.add(tx)
+        log(current_user,'DEPOSIT_DEMO','CUENTAS')
+        db.session.commit()
+        flash('Depósito de demostración registrado. No es dinero real.','success')
+        return redirect(url_for('main.receipt',transaction_id=tx.id))
+    except ValueError as error:
+        db.session.rollback()
+        flash(str(error),'error')
+    return _back_to_dashboard('#accounts')
+
+@bp.route('/cards/request',methods=['POST'])
+@login_required
+def request_card():
+    _require_client()
+    account=Account.query.filter_by(id=request.form.get('account_id',type=int),user_id=current_user.id,status='ACTIVA').first()
+    if account is None:
+        flash('Selecciona una cuenta activa para asociar la tarjeta.','error')
+    elif BankCard.query.filter_by(account_id=account.id).first():
+        flash('Esa cuenta ya tiene una tarjeta de débito de muestra.','error')
+    else:
+        db.session.add(BankCard(user_id=current_user.id,account_id=account.id,last4=f'{secrets.randbelow(10000):04d}',
+                                limit_amount=Decimal('3000')))
+        log(current_user,'CARD_REQUESTED','TARJETAS')
+        db.session.commit()
+        flash('Tu tarjeta de débito de muestra ya está activa.','success')
+    return _back_to_dashboard('#tarjetas')
 @bp.route('/accounts')
 @login_required
 def accounts():
@@ -618,6 +715,8 @@ def update_card_status(card_id):
     log(current_user,'CARD_'+('LOCKED' if target=='Bloqueada' else 'UNLOCKED'),'TARJETAS')
     db.session.commit()
     flash('Tarjeta bloqueada.' if target=='Bloqueada' else 'Tarjeta desbloqueada.','success')
+    if request.form.get('next')=='dashboard':
+        return _back_to_dashboard('#tarjetas')
     return redirect(url_for('main.cards'))
 
 @bp.route('/operation-risk')
