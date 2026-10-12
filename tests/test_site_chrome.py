@@ -114,3 +114,25 @@ def test_footer_keeps_only_essential_navigation_and_legal_links():
     for href in ('/personas', '/herramientas', '/seguridad', '/acerca', '/privacidad', '/terminos'):
         assert f'href="{href}"' in footer
     assert 'Ayuda y educación' not in footer and 'Próximamente' not in footer
+
+
+MOCKUPS = {
+    '/': 'mockup-dashboard.webp',
+    '/register': 'mockup-registro.webp',
+    '/login': 'mockup-dashboard-movil.webp',
+}
+
+
+@pytest.mark.parametrize('path, filename', MOCKUPS.items())
+def test_real_screenshot_mockups_are_placed_with_alt_text_and_are_served(path, filename):
+    client = _client()
+    html = client.get(path).get_data(as_text=True)
+    tag = re.search(rf'<img[^>]*images/mockups/{re.escape(filename)}[^>]*>', html)
+    assert tag, f'{filename} no aparece en {path}'
+    alt = re.search(r'alt="([^"]+)"', tag.group(0))
+    assert alt and len(alt.group(1)) > 30, 'alt descriptivo en español'
+    assert 'width="1600"' in tag.group(0) and 'height=' in tag.group(0), 'dimensiones declaradas para evitar saltos de diseño'
+    response = client.get(f'/static/images/mockups/{filename}')
+    assert response.status_code == 200 and response.mimetype == 'image/webp'
+    assert response.data[:4] == b'RIFF' and response.data[8:12] == b'WEBP'
+    assert len(response.data) < 300 * 1024, 'imagen optimizada'

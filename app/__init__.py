@@ -1,3 +1,4 @@
+import mimetypes
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_login import LoginManager, current_user, logout_user
 from flask_wtf.csrf import CSRFProtect
@@ -33,6 +34,9 @@ def _validate_existing_schema():
         if missing_columns: details.append('columnas: '+', '.join(missing_columns))
         raise RuntimeError('El esquema de la base requiere una migración aprobada ('+'; '.join(details)+'). '
                            'La aplicación no crea ni altera esquemas persistentes al iniciar.')
+
+# En algunos sistemas (p. ej. Windows) Python no conoce WebP y lo serviría como application/octet-stream.
+mimetypes.add_type('image/webp','.webp')
 
 def create_app(config_overrides=None):
     app=Flask(__name__)
