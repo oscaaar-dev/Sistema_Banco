@@ -151,3 +151,31 @@ def test_paragraphs_of_the_section_are_separated_by_the_legal_page_styles(app):
     assert '.legal-content article p+p{margin-top:var(--s-4)}' in css
     html = app.test_client().get('/privacidad').get_data(as_text=True)
     assert 'css/norte-public.css?v=public-4' in html
+
+
+# ───────── Documentación de respuestas y diálogo de cookies (RAG local) ─────────
+def test_the_text_explains_rules_documents_sources_and_limitations(app):
+    text = _section(app.test_client())
+    for expected in ('respuestas predefinidas por reglas', 'recuperación documental local', 'las páginas públicas',
+                     'documentos verificados que se mantiene en el propio sistema', 'cita con su fuente',
+                     'indica si es predefinida o si se basa en la documentación', 'No usa inteligencia artificial generativa',
+                     'no redacta texto nuevo con un modelo de lenguaje', 'la búsqueda se hace dentro del servidor de Norte',
+                     'Limitaciones.', 'puede no encontrar una respuesta', 'orientativas', 'no usan tu cuenta, tus saldos ni tus datos personales',
+                     'No escribas en el chat DNI, teléfonos, números de tarjeta, contraseñas, códigos ni datos de otras personas'):
+        assert expected in text, expected
+
+
+def test_what_the_text_says_about_sources_is_what_the_system_really_does(app):
+    from app.nori import knowledge, rag
+    with app.test_request_context('/'):
+        origins = {chunk.origin for chunk in rag.get_index().chunks}
+        titles = {chunk.title for chunk in rag.get_index().chunks}
+    assert origins == {'documento', 'pagina'} and {'Privacidad', 'Herramientas'} <= titles          # páginas públicas + documentos propios
+    assert knowledge.KNOWLEDGE_DIR.name == 'knowledge' and knowledge.KNOWLEDGE_DIR.parent.name == 'nori'          # carpeta propia de Nori
+
+
+def test_the_cookie_dialog_mentions_the_technical_session_cookie_used_by_nori(app):
+    html = app.test_client().get('/').get_data(as_text=True)
+    assert 'cookie de sesión técnica del sitio, que protege el chat' in html
+    assert 'almacenamiento de sesión de tu pestaña' in html
+    assert 'No utiliza cookies publicitarias ni herramientas de seguimiento' in html          # lo anterior se conserva
