@@ -73,3 +73,20 @@ Los valores de límites y caducidad (`PASSWORD_RESET_*`) están en `config.py`.
 - Enviar el correo toma más tiempo para cuentas de cliente existentes que para correos desconocidos (diferencia medible). Mitigarlo exigiría enviar en segundo plano.
 - `seed_service.py` conserva contraseñas de demostración por defecto (`DEMO_PASSWORD`, `ADMIN_PASSWORD`); no cumplen la política nueva y son solo para pruebas. Defínelas por variable de entorno fuera de ellas.
 - No se probó la entrega real por SMTP/Brevo: falta configurar el servicio de correo en tu entorno.
+
+## 8. Nori, asistente de las páginas públicas
+
+Resumen de arquitectura y seguridad; el detalle de mantenimiento está en `docs/nori.md`.
+
+| Tema | Comportamiento comprobado por pruebas |
+|---|---|
+| Alcance | Solo páginas públicas; nunca en acceso, registro, recuperación, errores ni panel privado |
+| Respuestas | Reglas predefinidas + recuperación documental local (TF-IDF) sobre documentos autorizados; sin IA generativa ni servicios externos ni dependencias nuevas |
+| CSRF | Activo: `GET /api/nori/csrf` entrega el token y `POST /api/nori/chat` lo exige en `X-CSRFToken` |
+| Entradas | Máximo 500 caracteres; DNI, teléfonos, tarjetas, códigos y claves se rechazan y no se procesan ni se guardan |
+| Límites | 20 mensajes por minuto y 300 por día por conexión (IP con hash); respaldo en memoria si la base falla |
+| Memoria | Últimos 8 turnos en `sessionStorage`, 30 min de inactividad; el servidor valida el historial y lo descarta si el *scope* (HMAC de la sesión y la identidad) no coincide: cerrar o iniciar sesión, otro usuario o cookie borrada |
+| Persistencia | Ninguna conversación en base de datos ni archivos. Solo una fila de auditoría `NORI_CHAT` por mensaje (fecha, hora, hash de IP), vencida a las 24 h y purgada al recibir solicitudes o con `purge-nori-audit` |
+| Documentos | Se tratan como no confiables (sin secretos, correos, instrucciones a un asistente, URL externas ni enlaces simbólicos); nunca se indexan `data/`, `docs/` ni `.env` |
+
+Límites conocidos: la recuperación es léxica; solo responde en español; la expiración por inactividad la aplica el navegador.
