@@ -5,6 +5,7 @@
   'use strict';
   var root = document.getElementById('nori');
   if (!root) return;
+  document.documentElement.classList.add('has-nori');   // reserva espacio al final de la página (ver nori.css)
 
   var IMG = root.dataset.img;
   var ENDPOINT = root.dataset.endpoint;
@@ -320,8 +321,13 @@
     requestAnimationFrame(function () {
       root.classList.add('nori--play');
       act('hola', 3400);
-      setTimeout(function () { if (!isOpen) root.classList.add('is-tip'); }, 1100);
-      setTimeout(hideTip, 7600);
+      // el globo de saludo se muestra una sola vez por sesión del navegador para no tapar contenido en cada página
+      var tipSeen = false;
+      try { tipSeen = window.sessionStorage.getItem('nori:v1:tip') === '1'; window.sessionStorage.setItem('nori:v1:tip', '1'); } catch (e) { tipSeen = false; }
+      if (!tipSeen) {
+        setTimeout(function () { if (!isOpen) root.classList.add('is-tip'); }, 1100);
+        setTimeout(hideTip, 7600);
+      }
     });
   });
   bump();

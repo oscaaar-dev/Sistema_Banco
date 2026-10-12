@@ -4,6 +4,11 @@
    Todas las clases y animaciones llevan el prefijo «nori» para no chocar con el CSS del sitio.
    ========================================================================== */
 
+/* Tamaño de Nori: lo comparten el widget y el espacio que se reserva al final de la página. */
+html.has-nori, .nori { --n-size: clamp(104px, 11vw, 136px); }
+/* Al llegar al final de la página Nori queda en un espacio reservado del pie y no tapa ningún enlace ni texto. */
+html.has-nori .sf .sf__bar { padding-bottom: calc(var(--n-size) + 14px); }
+
 .nori {
   --n-ink: #14122b;          /* línea del párpado (parte del dibujo de Nori) */
   --n-pur: #6d3bd2;          /* violeta de Norte */
@@ -13,7 +18,6 @@
   --n-line: rgba(255, 255, 255, .14);
   --n-text: #ffffff;
   --n-mute: #c4bddb;
-  --n-size: clamp(112px, 13vw, 156px);
 
   position: fixed;
   right: max(12px, env(safe-area-inset-right, 0px));
@@ -226,7 +230,7 @@
 
 /* ---------- móvil ---------- */
 @media (max-width: 520px) {
-  .nori { --n-size: 104px; }
+  html.has-nori, .nori { --n-size: 96px; }
   .nori__panel { width: calc(100vw - 20px); right: 0; }
   .nori__tip { right: 70%; }
 }

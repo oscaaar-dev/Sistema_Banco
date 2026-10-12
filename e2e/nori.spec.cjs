@@ -95,3 +95,38 @@ test('con movimiento reducido Nori sigue visible y usable', async ({ page }) => 
   await page.keyboard.press('Escape');
   await expect(page.locator('#nori-panel')).toBeHidden();
 });
+
+test('al llegar al final de la página Nori no tapa ningún enlace ni texto (escritorio y móvil)', async ({ page }) => {
+  // sin el globo de saludo (es temporal): aquí se mide la posición fija de Nori
+  await page.addInitScript(() => window.sessionStorage.setItem('nori:v1:tip', '1'));
+  const viewports = [{ width: 1280, height: 900 }, { width: 390, height: 844 }, { width: 360, height: 640 }];
+  for (const path of ['/', '/personas', '/privacidad']) {
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      await page.goto(path);
+      await expect(page.locator('.nori__mascot')).toBeVisible();
+      await page.waitForTimeout(900);                                // termina la animación de entrada
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await page.waitForTimeout(150);
+      const covered = await page.evaluate(() => {
+        const mascot = document.querySelector('.nori__mascot').getBoundingClientRect();
+        const hits = (r) => r.width > 0 && r.height > 0 && !(r.right <= mascot.left || r.left >= mascot.right || r.bottom <= mascot.top || r.top >= mascot.bottom);
+        const candidates = document.querySelectorAll('footer a, footer p, footer span, footer b, footer small, footer h2, footer h3, footer li, footer button, [data-open-cookies], [data-open-help]');
+        const found = [];
+        candidates.forEach((element) => {
+          if (element.closest('#nori')) return;
+          const rect = element.getBoundingClientRect();
+          const text = (element.textContent || '').trim();
+          if (text && hits(rect)) found.push(`${element.tagName}.${element.className}: ${text.slice(0, 40)}`);
+          if (!text && element.matches('button') && hits(rect)) found.push(`${element.tagName}.${element.className}`);
+        });
+        return found;
+      });
+      expect(covered, `${path} a ${viewport.width}px`).toEqual([]);
+      const link = page.getByRole('link', { name: /Volver al inicio/ });
+      await expect(link).toBeVisible();
+      const [nori, back] = [await page.locator('.nori__mascot').boundingBox(), await link.boundingBox()];
+      expect(overlap(nori, back), `«Volver al inicio» en ${path} a ${viewport.width}px`).toBe(false);
+    }
+  }
+});
