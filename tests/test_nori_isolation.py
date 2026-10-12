@@ -351,3 +351,28 @@ def test_scroll_tuck_is_wired_accessible_and_respects_reduced_motion():
     assert re.search(r'setTimeout\(untuck, \d+\)', js)
     assert 'aria-hidden' in js and "hit.setAttribute('aria-hidden', 'true')" in js     # la zona de clic no duplica al botón accesible
     assert 'display: none' not in css[css.index('.nori.is-tucked'):css.index('.nori.is-tucked') + 120]   # sigue en el árbol de accesibilidad
+
+
+def test_without_requests_to_nori_expired_rows_stay_for_days_until_the_next_request(app):
+    """No existe una tarea programada: el resto del sitio no purga y la limpieza ocurre al volver a usarse Nori."""
+    app.config['NORI_PURGE_INTERVAL_SECONDS'] = 0
+    _audit(app, age=timedelta(days=5))
+    _audit(app, age=timedelta(days=40), ip='y')
+    client = app.test_client()
+    for path in ('/', '/personas', '/seguridad', '/privacidad', '/login'):
+        assert client.get(path).status_code == 200
+    assert _count(app) == 2                                             # siguen ahí varios días después
+    assert client.get('/api/nori/csrf').status_code == 200
+    assert _count(app) == 0                                             # la siguiente solicitud a Nori las elimina
+
+
+def test_in_memory_fallback_limiter_forgets_idle_connections(app):
+    """El respaldo en memoria no crece sin límite con conexiones que ya no escriben."""
+    from app.nori import safety
+    with app.app_context():
+        safety._memory_hits.clear()
+        for number in range(safety._MEMORY_KEYS_LIMIT + 10):
+            safety._memory_hits[f'ip-{number}'].append(0.0)               # actividad muy antigua
+        assert safety._memory_limited('nueva', 5, 60) is False
+        assert len(safety._memory_hits) == 1 and 'nueva' in safety._memory_hits
+        safety._memory_hits.clear()

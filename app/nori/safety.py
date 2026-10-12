@@ -77,8 +77,14 @@ def contains_sensitive_data(text):
     return bool(_SECRET_ASSIGNMENT.search(text) or _SECRET_DECLARATION.search(normalize(text)))
 
 
+_MEMORY_KEYS_LIMIT=2048  # tope de conexiones distintas que recuerda el respaldo; al superarlo se descartan las inactivas
+
+
 def _memory_limited(key,limit,window):
     now=time.monotonic()
+    if len(_memory_hits)>_MEMORY_KEYS_LIMIT:
+        for stale in [k for k,v in _memory_hits.items() if not v or now-v[-1]>window]:
+            del _memory_hits[stale]
     hits=_memory_hits[key]
     while hits and now-hits[0]>window:
         hits.popleft()
