@@ -11,3 +11,4 @@ pandas==2.3.0
 # numpy se fija porque lo exigen pandas y scikit-learn (no se importa directamente)
 numpy==2.2.6
 scikit-learn==1.7.0
+reportlab==5.0.1

@@ -11,7 +11,7 @@ from sqlalchemy import desc, or_
 from sqlalchemy.exc import IntegrityError
 from ..models import db, User, LoginChallenge, LoginAttemptLimit, OperationChallenge, Account, BankCard, Beneficiary, Transaction, InteractionSession, OperationCapture, AuditLog, now_utc
 from ..services.banking_service import account_for, process_operation, process_internal_transfer, log, operation_risk_for
-from ..services.statement_service import account_statement_pdf
+from ..services.statement_service import MOVEMENT_TYPES, account_statement_pdf
 from ..services.email_service import EmailDeliveryError, send_login_code, send_operation_code
 from ..services.password_policy import validate_new_password
 from ..services.validation import parse_amount, parse_duration_seconds
@@ -562,7 +562,7 @@ def movements():
     except (TypeError,ValueError):
         abort(400)
     operation_type=request.args.get('type','').strip().upper()
-    valid_types={'INGRESO','TRANSFERENCIA','PAGO','RECARGA'}
+    valid_types=set(MOVEMENT_TYPES)
     if page<1 or (operation_type and operation_type not in valid_types) or (start and end and start>end):
         abort(400)
     query=Transaction.query.filter_by(account_id=account.id) if account else Transaction.query.filter(db.false())
@@ -592,15 +592,10 @@ def account_statement(account_id):
         end=date.fromisoformat(request.args['to']) if request.args.get('to') else None
     except (TypeError,ValueError):
         abort(400)
-    if start and end and start>end:
+    operation_type=request.args.get('type','').strip().upper()
+    if (start and end and start>end) or (operation_type and operation_type not in MOVEMENT_TYPES):
         abort(400)
-    query=Transaction.query.filter_by(account_id=account.id)
-    if start:
-        query=query.filter(Transaction.created_at>=datetime.combine(start,time.min))
-    if end:
-        query=query.filter(Transaction.created_at<datetime.combine(end+timedelta(days=1),time.min))
-    items=query.order_by(desc(Transaction.created_at),desc(Transaction.id)).all()
-    pdf=account_statement_pdf(account,items,start.isoformat() if start else None,end.isoformat() if end else None)
+    pdf=account_statement_pdf(account,current_user,start,end,operation_type)
     response=Response(pdf,mimetype='application/pdf')
     response.headers['Content-Disposition']='attachment; filename="norte-estado-de-cuenta.pdf"'
     response.headers['Cache-Control']='no-store'

@@ -1,64 +1,70 @@
+"""Datos y PDF del estado de cuenta: aquí se consulta la base; el dibujo del PDF vive en ``statement_pdf``."""
+from datetime import datetime, time, timedelta
 from decimal import Decimal
-from config import LEGAL_NOTICE
+from flask import current_app
+from sqlalchemy import asc, desc
+from ..models import Transaction, now_utc
+from .statement_pdf import StatementData, StatementRow, render_statement
+
+MOVEMENT_TYPES=('INGRESO','TRANSFERENCIA','PAGO','RECARGA')
 
 
-def _pdf_literal(value):
-    encoded=str(value).encode('cp1252','replace')
-    return b'('+encoded.replace(b'\\',b'\\\\').replace(b'(',b'\\(').replace(b')',b'\\)')+b')'
+def _money(value):
+    return Decimal(str(value if value is not None else 0)).quantize(Decimal('0.01'))
 
 
-def _build_pdf_pages(lines):
-    pages=[lines[index:index+45] for index in range(0,len(lines),45)] or [[]]
-    objects={
-        1:b'<< /Type /Catalog /Pages 2 0 R >>',
-        3:b'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
-    }
-    page_ids=[]
-    next_id=4
-    for page_lines in pages:
-        page_id=next_id; content_id=next_id+1; next_id+=2
-        page_ids.append(page_id)
-        commands=[b'BT',b'/F1 10 Tf',b'50 750 Td',b'14 TL']
-        for line in page_lines:
-            commands.extend((_pdf_literal(line),b'Tj',b'T*'))
-        commands.append(b'ET')
-        stream=b' '.join(commands)
-        objects[page_id]=(f'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] '
-                          f'/Resources << /Font << /F1 3 0 R >> >> /Contents {content_id} 0 R >>').encode('ascii')
-        objects[content_id]=b'<< /Length '+str(len(stream)).encode('ascii')+b' >>\nstream\n'+stream+b'\nendstream'
-    kids=b' '.join(f'{page_id} 0 R'.encode('ascii') for page_id in page_ids)
-    objects[2]=b'<< /Type /Pages /Kids ['+kids+b'] /Count '+str(len(page_ids)).encode('ascii')+b' >>'
-    output=bytearray(b'%PDF-1.4\n%\xe2\xe3\xcf\xd3\n')
-    offsets=[0]
-    for object_id in range(1,next_id):
-        offsets.append(len(output))
-        output.extend(f'{object_id} 0 obj\n'.encode('ascii'))
-        output.extend(objects[object_id]); output.extend(b'\nendobj\n')
-    xref_offset=len(output)
-    output.extend(f'xref\n0 {next_id}\n'.encode('ascii'))
-    output.extend(b'0000000000 65535 f \n')
-    for offset in offsets[1:]:
-        output.extend(f'{offset:010d} 00000 n \n'.encode('ascii'))
-    output.extend(f'trailer\n<< /Size {next_id} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF'.encode('ascii'))
-    return bytes(output)
+def build_statement_data(account,owner,start=None,end=None,operation_type=None,issued_at=None):
+    """Reúne lo que muestra el PDF respetando los filtros de fechas (desde/hasta, inclusivos) y de tipo.
+
+    Los saldos inicial y final son los de la cuenta al empezar y terminar el periodo (todos los tipos); los totales de
+    ingresos y egresos corresponden a los movimientos listados, es decir, a los filtros aplicados.
+    """
+    base=Transaction.query.filter_by(account_id=account.id)
+    window=base
+    if start:
+        window=window.filter(Transaction.created_at>=datetime.combine(start,time.min))
+    if end:
+        window=window.filter(Transaction.created_at<datetime.combine(end+timedelta(days=1),time.min))
+    ordering=(asc(Transaction.created_at),asc(Transaction.id))
+    first_in_window=window.order_by(*ordering).first()
+    last_in_window=window.order_by(desc(Transaction.created_at),desc(Transaction.id)).first()
+    if first_in_window is not None:
+        opening=_money(first_in_window.balance_after)-_money(first_in_window.amount)
+    else:
+        before=(base.filter(Transaction.created_at<datetime.combine(start,time.min)).order_by(desc(Transaction.created_at),desc(Transaction.id)).first()
+                if start else None)
+        earliest=None if before else base.order_by(*ordering).first()
+        if before is not None:
+            opening=_money(before.balance_after)
+        elif earliest is not None:
+            opening=_money(earliest.balance_after)-_money(earliest.amount)
+        else:
+            opening=_money(account.balance)
+    closing=_money(last_in_window.balance_after) if last_in_window is not None else opening
+
+    listed=window.filter_by(operation_type=operation_type) if operation_type else window
+    rows=[StatementRow(item.created_at,item.operation_type,item.description,_money(item.amount),_money(item.balance_after))
+          for item in listed.order_by(*ordering).all()]
+    income=sum((row.amount for row in rows if row.amount>0),Decimal('0.00'))
+    expense=sum((-row.amount for row in rows if row.amount<0),Decimal('0.00'))
+
+    # Sin filtro de fechas, el periodo va de la primera a la última fecha registrada de la cuenta.
+    period_start=start
+    period_end=end
+    if period_start is None or period_end is None:
+        first_recorded=base.order_by(*ordering).first()
+        last_recorded=base.order_by(desc(Transaction.created_at),desc(Transaction.id)).first()
+        if period_start is None and first_recorded is not None:
+            period_start=first_recorded.created_at.date()
+        if period_end is None and last_recorded is not None:
+            period_end=last_recorded.created_at.date()
+    return StatementData(
+        holder_name=owner.full_name,holder_dni=owner.dni or '',account_type=account.account_type,
+        account_number=account.number,currency=account.currency,period_start=period_start,period_end=period_end,
+        issued_at=issued_at or now_utc(),opening_balance=opening,closing_balance=closing,total_income=income,
+        total_expense=expense,legal_notice=current_app.config['LEGAL_NOTICE'],type_filter=operation_type or '',rows=rows,
+    )
 
 
-def account_statement_pdf(account, transactions, start_date=None, end_date=None):
-    lines=[
-        'NORTE. | ESTADO DE CUENTA',
-        LEGAL_NOTICE,
-        f'Cuenta de {account.account_type} terminada en {account.number[-4:]} | Moneda {account.currency}',
-        f'Periodo: {start_date or "inicio"} a {end_date or "hoy"}',
-        f'Saldo actual: {account.currency} {Decimal(account.balance):,.2f}',
-        '',
-        'FECHA Y HORA          TIPO          DETALLE                         IMPORTE       SALDO',
-        '-'*94,
-    ]
-    for item in transactions:
-        occurred=item.created_at.strftime('%d/%m/%Y %H:%M')
-        description=f'{item.operation_type}: {item.description}'[:38]
-        lines.append(f'{occurred:<19} {item.operation_type[:10]:<10} {description:<39} '
-                     f'{Decimal(item.amount):>10,.2f} {Decimal(item.balance_after):>10,.2f}')
-    if not transactions:
-        lines.append('No hay movimientos en el periodo seleccionado.')
-    return _build_pdf_pages(lines)
+def account_statement_pdf(account,owner,start=None,end=None,operation_type=None):
+    return render_statement(build_statement_data(account,owner,start,end,operation_type))
