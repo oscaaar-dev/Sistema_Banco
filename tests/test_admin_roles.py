@@ -88,7 +88,12 @@ def test_the_general_administrator_creates_an_admin_who_defines_their_own_passwo
         assert not AdminActivationToken.query.filter_by(token_hash=token).count() and AdminActivationToken.query.filter_by(token_hash=admins.token_hash(token)).count() == 1
     # activación: la persona elige su contraseña (la política se exige) y la cuenta sigue PENDIENTE hasta que un general la active
     anon = world['anon']
-    assert anon.get(f'/admin/activar/{token}').status_code == 200
+    page = anon.get(f'/admin/activar/{token}')
+    assert page.status_code == 200
+    # la página debe verse como las demás pantallas de acceso: con la hoja de estilos de autenticación y la política de contraseña
+    html = page.get_data(as_text=True)
+    assert 'css/auth.css' in html and 'js/auth.js' in html and 'js/password-policy.js' in html
+    assert 'css/auth.css' in anon.get('/admin/activar/token-invalido').get_data(as_text=True)
     bad = anon.post(f'/admin/activar/{token}', data={'csrf_token': csrf(anon, f'/admin/activar/{token}'), 'password': 'corta', 'password_confirmation': 'corta'})
     assert bad.status_code == 400
     ok = anon.post(f'/admin/activar/{token}', data={'csrf_token': csrf(anon, f'/admin/activar/{token}'), 'password': NEW_PASSWORD, 'password_confirmation': NEW_PASSWORD})
