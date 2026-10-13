@@ -1,0 +1,50 @@
+{#
+  Barra lateral del Centro de control. Solo se enlazan rutas que existen; cada enlace aparece únicamente si el usuario tiene el permiso
+  que la ruta exige (la autorización real se vuelve a comprobar en el servidor en cada petición: ocultar un enlace no concede ni quita acceso).
+#}
+{% set e = request.endpoint or '' %}
+{% set sees_fraud = can('fraude.consultar') %}
+{% set sees_captures = can('capturas.consultar') %}
+{% set sees_audit = can('auditoria.consultar') %}
+<aside class="adm-sidebar" id="admSidebar" data-adm-sidebar>
+  <a class="adm-brand" href="{{ url_for('main.admin') }}" aria-label="Norte, control de riesgo: ir al dashboard">
+    <span class="adm-brand-name">NORTE<span>.</span></span>
+    <span class="adm-brand-tag">Control de riesgo</span>
+  </a>
+  <nav class="adm-nav" aria-label="Navegación administrativa">
+    <p class="adm-nav-title" id="admNavOverview">Visión general</p>
+    <ul class="adm-nav-group" aria-labelledby="admNavOverview">
+      <li><a href="{{ url_for('main.admin') }}"{% if e == 'main.admin' %} aria-current="page"{% endif %}><i class="bi bi-grid-1x2-fill" aria-hidden="true"></i>Dashboard</a></li>
+    </ul>
+    {% if sees_fraud %}
+    <p class="adm-nav-title" id="admNavMonitor">Monitoreo</p>
+    <ul class="adm-nav-group" aria-labelledby="admNavMonitor">
+      <li><a href="{{ url_for('main.fraud_dashboard') }}"{% if e in ('main.fraud_dashboard', 'main.fraud_model') %} aria-current="page"{% endif %}><i class="bi bi-shield-exclamation" aria-hidden="true"></i>Detección de fraude</a></li>
+      <li><a href="{{ url_for('main.fraud_dashboard') }}#incidentes"{% if e.startswith('main.fraud_incident') %} aria-current="page"{% endif %}><i class="bi bi-exclamation-octagon" aria-hidden="true"></i>Incidentes</a></li>
+      <li><a href="{{ url_for('main.fraud_holds') }}"{% if e == 'main.fraud_holds' %} aria-current="page"{% endif %}><i class="bi bi-hourglass-split" aria-hidden="true"></i>Operaciones retenidas</a></li>
+      <li><a href="{{ url_for('main.fraud_restrictions') }}"{% if e == 'main.fraud_restrictions' %} aria-current="page"{% endif %}><i class="bi bi-slash-circle" aria-hidden="true"></i>Restricciones</a></li>
+    </ul>
+    {% endif %}
+    {% if sees_captures or sees_audit %}
+    <p class="adm-nav-title" id="admNavEvidence">Evidencia</p>
+    <ul class="adm-nav-group" aria-labelledby="admNavEvidence">
+      {% if sees_captures %}<li><a href="{{ url_for('main.admin_captures') }}"{% if e == 'main.admin_captures' %} aria-current="page"{% endif %}><i class="bi bi-camera" aria-hidden="true"></i>Capturas de seguridad</a></li>{% endif %}
+      {% if sees_audit %}<li><a href="{{ url_for('main.fraud_audit') }}"{% if e == 'main.fraud_audit' %} aria-current="page"{% endif %}><i class="bi bi-journal-text" aria-hidden="true"></i>Auditoría</a></li>{% endif %}
+    </ul>
+    {% endif %}
+    {% if is_general_admin() %}
+    <p class="adm-nav-title" id="admNavConfig">Configuración</p>
+    <ul class="adm-nav-group" aria-labelledby="admNavConfig">
+      <li><a href="{{ url_for('main.admin_accounts') }}"{% if e.startswith('main.admin_account') %} aria-current="page"{% endif %}><i class="bi bi-people" aria-hidden="true"></i>Cuentas administrativas</a></li>
+    </ul>
+    {% endif %}
+  </nav>
+  <div class="adm-user">
+    <span class="adm-user-name">{{ current_user.full_name }}</span>
+    <span class="adm-user-role">{% if current_user.role == 'ADMIN_GENERAL' %}Administrador General{% else %}Administrador{% endif %}</span>
+    <form method="post" action="{{ url_for('main.logout') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="adm-logout" type="submit"><i class="bi bi-box-arrow-right" aria-hidden="true"></i>Cerrar sesión</button>
+    </form>
+  </div>
+</aside>

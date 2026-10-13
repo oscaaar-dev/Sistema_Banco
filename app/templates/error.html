@@ -1,4 +1,5 @@
-{% extends 'base.html' %}
+{# Dentro de /admin* un administrador ve el error en su propio layout (sin la navegación de banca personal). #}
+{% extends 'admin_base.html' if (request.path == '/admin' or request.path.startswith('/admin/')) and current_user.is_authenticated and current_user.role in ('ADMINISTRADOR', 'ADMIN_GENERAL') else 'base.html' %}
 {% block title %}{{ status }} · Norte{% endblock %}
 {% block content %}{% include 'error_content.html' %}{% endblock %}
 {% block auth_content %}

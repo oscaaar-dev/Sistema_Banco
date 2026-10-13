@@ -1,0 +1,33 @@
+{#
+  Componentes del Centro de control. Solo presentación: reciben valores ya calculados por el backend y no consultan nada.
+  Uso: {% from 'partials/admin_ui.html' import page_header, metric, badge, tile %}
+#}
+{% macro page_header(eyebrow, title, subtitle=none) %}
+<header class="adm-head">
+  <p class="adm-eyebrow">{{ eyebrow }}</p>
+  <h1>{{ title }}</h1>
+  {% if subtitle %}<p class="adm-sub">{{ subtitle }}</p>{% endif %}
+</header>
+{% endmacro %}
+
+{# Indicador. `value` None = no disponible (se dice con texto). `tone`: is-ok | is-warn | is-alert | is-info | '' ; `state` = texto del estado (el color nunca es la única señal). #}
+{% macro metric(label, value, hint=none, icon='bi-circle', tone='', href=none, state=none) %}
+{% if href %}<a class="adm-metric {{ tone }}" href="{{ href }}">{% else %}<div class="adm-metric {{ tone }}">{% endif %}
+  <span class="adm-metric-label"><i class="bi {{ icon }}" aria-hidden="true"></i>{{ label }}</span>
+  {% if value is none %}<span class="adm-metric-value is-na">No disponible</span>{% else %}<strong class="adm-metric-value">{{ value }}</strong>{% endif %}
+  {% if hint %}<span class="adm-metric-hint">{{ hint }}</span>{% endif %}
+  {% if state %}<span class="adm-badge adm-metric-state {{ tone }}">{{ state }}</span>{% endif %}
+{% if href %}</a>{% else %}</div>{% endif %}
+{% endmacro %}
+
+{% macro badge(text, tone='') %}<span class="adm-badge {{ tone }}">{{ text }}</span>{% endmacro %}
+
+{# Bloque de acceso operativo: título, descripción breve, icono y acción explícita. #}
+{% macro tile(icon, title, text, href, action) %}
+<article class="adm-tile">
+  <span class="adm-tile-icon"><i class="bi {{ icon }}" aria-hidden="true"></i></span>
+  <h2>{{ title }}</h2>
+  <p>{{ text }}</p>
+  <a class="btn btn-primary" href="{{ href }}">{{ action }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+</article>
+{% endmacro %}

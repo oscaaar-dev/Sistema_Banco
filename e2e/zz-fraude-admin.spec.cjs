@@ -38,10 +38,13 @@ test('un administrador ve el modo de observación, las versiones del modelo y lo
   await expect(page.getByText('observación: se registran evaluaciones e incidentes')).toBeVisible();
   await expect(page.getByText('no una probabilidad de fraude')).toBeVisible();
   await expect(page.getByText('Todavía no se entrenó ningún modelo')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Descargar CSV' })).toHaveCount(0);       // las exportaciones están en un desplegable cerrado
+  await page.getByText('Informes y exportaciones (CSV)').click();
   await expect(page.getByRole('button', { name: 'Descargar CSV' })).toHaveCount(7);       // 6 informes + la auditoría
-  await expect(page.getByRole('link', { name: 'Restricciones activas y vencidas' })).toBeVisible();
+  const nav = page.getByRole('navigation', { name: 'Navegación administrativa' });
+  await expect(nav.getByRole('link', { name: 'Restricciones' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Auditoría antifraude' })).toBeVisible();
-  await page.getByRole('link', { name: 'Operaciones retenidas' }).click();
+  await nav.getByRole('link', { name: 'Operaciones retenidas' }).click();
   await expect(page.getByRole('heading', { name: 'Operaciones retenidas', level: 1 })).toBeVisible();
   await expect(page.getByText('no se ejecutó')).toBeVisible();
 });
@@ -49,6 +52,7 @@ test('un administrador ve el modo de observación, las versiones del modelo y lo
 test('la descarga CSV llega en UTF-8 con cabeceras claras y sin datos personales', async ({ page }) => {
   await loginAs(page, 2);
   await page.goto('/admin/fraude');
+  await page.getByText('Informes y exportaciones (CSV)').click();
   const form = page.locator('form[action$="/exportar/evaluaciones.csv"]');
   await form.locator('select[name="nivel"]').selectOption('NORMAL');
   const [download] = await Promise.all([page.waitForEvent('download'), form.getByRole('button', { name: 'Descargar CSV' }).click()]);

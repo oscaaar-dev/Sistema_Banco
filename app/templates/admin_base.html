@@ -1,0 +1,41 @@
+{#
+  Layout EXCLUSIVO del área administrativa (/admin*). Sustituye al armazón de banca personal de base.html:
+  barra lateral propia, hoja de estilos propia (admin.css) y sin la navegación de la banca (Resumen, Cuentas, Transferir...).
+  Las páginas de acceso y activación (/admin/activar) NO usan este layout: son públicas y siguen las pantallas de autenticación.
+#}
+{% extends 'base.html' %}
+{% block head_css %}
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/admin.css',v='admin-3') }}">
+{% endblock %}
+{% block head_extra %}
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&display=swap" rel="stylesheet">
+{% endblock %}
+{% block body_class %}adm-body{% endblock %}
+{% block shell %}
+<a class="adm-skip" href="#contenido">Ir al contenido principal</a>
+<div class="adm-app" data-adm-app>
+  <header class="adm-topbar">
+    <a class="adm-brand" href="{{ url_for('main.admin') }}" aria-label="Norte, control de riesgo: ir al dashboard">
+      <span class="adm-brand-name">NORTE<span>.</span></span>
+    </a>
+    <button class="adm-menu-btn" type="button" data-adm-toggle aria-controls="admSidebar" aria-expanded="false" aria-label="Abrir menú de navegación"><i class="bi bi-list" aria-hidden="true"></i>Menú</button>
+  </header>
+  {% include 'partials/admin_sidebar.html' %}
+  <div class="adm-overlay" data-adm-overlay aria-hidden="true"></div>
+  <main class="adm-main" id="contenido" tabindex="-1">
+    <nav class="adm-crumb" aria-label="Ruta de navegación">
+      <ol><li>Norte</li><li aria-current="page">{% block crumb %}Administración{% endblock %}</li></ol>
+    </nav>
+    {% with messages=get_flashed_messages(with_categories=true) %}
+      {% if messages %}<div class="adm-flashes">{% for category,message in messages %}<div class="flash {{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+    <footer class="adm-foot">{{ norte_legal_notice }}</footer>
+  </main>
+</div>
+{% endblock %}
+{% block scripts %}
+  <script src="{{ url_for('static',filename='js/admin.js',v='admin-1') }}" defer></script>
+{% endblock %}

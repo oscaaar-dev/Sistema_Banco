@@ -1,78 +1,126 @@
-{% extends 'base.html' %}
+{% extends 'admin_base.html' %}
+{% from 'partials/admin_ui.html' import page_header, metric %}
 {% block title %}Fraude · Norte{% endblock %}
 {% block crumb %}Administración / Fraude{% endblock %}
 {% block content %}
-<div class="eyebrow dark">SEGURIDAD</div>
-<h1>Detección de fraude</h1>
-<p class="muted">Modo actual: <b>{{ config.FRAUD_MODE }}</b>
-  {% if config.FRAUD_MODE == 'shadow' %}(observación: se registran evaluaciones e incidentes, pero no se aplican medidas automáticas){% elif config.FRAUD_MODE == 'off' %}(desactivado: solo rigen las restricciones que haya impuesto un administrador){% else %}(medidas automáticas activas){% endif %}.
-  Reglas {{ config.FRAUD_RULES_VERSION }}.</p>
-<p><a class="text-link" href="{{ url_for('main.fraud_restrictions') }}">Restricciones activas y vencidas</a> ·
-   <a class="text-link" href="{{ url_for('main.fraud_holds') }}">Operaciones retenidas</a> ·
-   {% if can('auditoria.consultar') %}<a class="text-link" href="{{ url_for('main.fraud_audit') }}">Auditoría antifraude</a> ·{% endif %}
-   <a class="text-link" href="{{ url_for('main.admin') }}">Volver a administración</a></p>
+{% set mode = config.FRAUD_MODE %}
+{% set level_tones = {'ABIERTO': 'is-warn', 'EN_INVESTIGACION': 'is-info', 'CONFIRMADO': 'is-danger', 'DESCARTADO': ''} %}
 
-<section class="stats-grid">
-  <article class="panel stat-card"><small>EVALUACIONES ({{ summary.days }} DÍAS)</small><strong>{{ summary.total }}</strong></article>
-  <article class="panel stat-card"><small>INTERMEDIO</small><strong>{{ summary.by_level.get('INTERMEDIO', 0) }}</strong></article>
-  <article class="panel stat-card"><small>SOSPECHOSO</small><strong>{{ summary.by_level.get('SOSPECHOSO', 0) }}</strong></article>
-  <article class="panel stat-card"><small>NO EVALUADAS (FALLOS)</small><strong>{{ summary.by_level.get('NO_EVALUADO', 0) }}</strong></article>
-  <article class="panel stat-card"><small>RESTRICCIONES ACTIVAS</small><strong>{{ summary.active_restrictions }}</strong></article>
-  <article class="panel stat-card"><small>OPERACIONES RETENIDAS</small><strong>{{ summary.held_operations }}</strong></article>
+{# 1. Encabezado #}
+{{ page_header('Seguridad', 'Detección de fraude', 'Monitoreo antifraude') }}
+
+{# 2. Estado del motor y avisos importantes (siempre visibles, nunca en tooltips) #}
+<section class="adm-mode {% if mode == 'off' %}is-off{% elif mode != 'shadow' %}is-enforce{% endif %}" aria-labelledby="admModeTitle">
+  <span class="adm-mode-label" id="admModeTitle">Modo: {{ mode|upper }}</span>
+  <p>Modo actual: <b>{{ mode }}</b>
+    {% if mode == 'shadow' %}(observación: se registran evaluaciones e incidentes, pero no se aplican medidas automáticas){% elif mode == 'off' %}(desactivado: solo rigen las restricciones que haya impuesto un administrador){% else %}(medidas automáticas activas){% endif %}.
+    Reglas {{ config.FRAUD_RULES_VERSION }}.</p>
 </section>
-<p class="muted fraud-note">Latencia media {{ summary.latency_ms.mean if summary.latency_ms.mean is not none else '—' }} ms · p95 {{ summary.latency_ms.p95 if summary.latency_ms.p95 is not none else '—' }} ms ·
-  Requieren más verificación: {{ ('%.1f' % (summary.pct_needing_verification * 100)) ~ ' %' if summary.pct_needing_verification is not none else '—' }}.
-  La puntuación (0-100) es una herramienta interna de clasificación, no una probabilidad de fraude, y los umbrales son iniciales: no están validados con datos reales etiquetados. Una alerta no es un fraude confirmado.</p>
+<aside class="adm-notice" aria-label="Avisos importantes">
+  <strong>Avisos importantes</strong>
+  <ul>
+    <li>La puntuación (0-100) es una herramienta interna de clasificación, no una probabilidad de fraude.</li>
+    <li>Los umbrales son iniciales: no están validados con datos reales etiquetados. Una alerta no es un fraude confirmado.</li>
+    <li>{{ norte_legal_notice }}</li>
+  </ul>
+</aside>
 
-<article class="panel movements-panel full-panel">
-  <div class="panel-head"><div><div class="eyebrow dark">INCIDENTES</div><h3>Incidentes de fraude</h3></div></div>
+{# 3. Incidentes y acciones operativas disponibles: cada enlace lleva a una vista y a filtros que ya existen #}
+<section class="panel" aria-labelledby="admOpsTitle">
+  <div class="panel-head"><div><div class="eyebrow dark">COLA OPERATIVA ({{ summary.days }} DÍAS)</div><h3 id="admOpsTitle">Incidentes y acciones operativas</h3></div></div>
+  <ul class="adm-privacy">
+    <li><a class="text-link" href="{{ url_for('main.fraud_dashboard', estado='ABIERTO') }}#incidentes">Incidentes abiertos: {{ summary.incidents_by_status.get('ABIERTO', 0) }}</a></li>
+    <li><a class="text-link" href="{{ url_for('main.fraud_dashboard', estado='EN_INVESTIGACION') }}#incidentes">En investigación: {{ summary.incidents_by_status.get('EN_INVESTIGACION', 0) }}</a></li>
+    <li><a class="text-link" href="{{ url_for('main.fraud_holds') }}">Operaciones retenidas: {{ summary.held_operations }}{% if can('fraude.resolver_retenciones') %} · puedes revisarlas{% endif %}</a></li>
+    <li><a class="text-link" href="{{ url_for('main.fraud_restrictions') }}">Restricciones activas: {{ summary.active_restrictions }}{% if can('fraude.gestionar_restricciones') %} · puedes levantarlas{% endif %}</a></li>
+  </ul>
+</section>
+
+{# 4. Subnavegación #}
+<nav class="adm-subnav" aria-label="Secciones de detección de fraude">
+  <a href="{{ url_for('main.fraud_dashboard') }}" aria-current="page"><i class="bi bi-shield-exclamation" aria-hidden="true"></i>Detección</a>
+  <a href="#incidentes"><i class="bi bi-exclamation-octagon" aria-hidden="true"></i>Incidentes</a>
+  <a href="{{ url_for('main.fraud_holds') }}"><i class="bi bi-hourglass-split" aria-hidden="true"></i>Operaciones retenidas</a>
+  <a href="{{ url_for('main.fraud_restrictions') }}"><i class="bi bi-slash-circle" aria-hidden="true"></i>Restricciones</a>
+  {% if can('auditoria.consultar') %}<a href="{{ url_for('main.fraud_audit') }}"><i class="bi bi-journal-text" aria-hidden="true"></i>Auditoría antifraude</a>{% endif %}
+</nav>
+
+{# 5. Filtros (los controles, parámetros y validaciones de siempre; método GET) #}
+<section class="adm-filters" aria-labelledby="admFiltersTitle">
+  <p class="adm-filters-title" id="admFiltersTitle">Filtrar incidentes</p>
   <form method="get" class="fraud-form fraud-filters" action="{{ url_for('main.fraud_dashboard') }}">
     <label>Estado<select name="estado"><option value="">Todos</option>{% for s in statuses %}<option value="{{ s }}" {% if filters.estado == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></label>
     <label>Nivel<select name="nivel"><option value="">Todos</option>{% for l in ('SOSPECHOSO','FRAUDE') %}<option value="{{ l }}" {% if filters.nivel == l %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
     <label>Tipo<select name="tipo"><option value="">Todos</option>{% for t in ('TRANSACCIONAL','ACCESO') %}<option value="{{ t }}" {% if filters.tipo == t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></label>
     <label>Desde<input type="date" name="desde" value="{{ filters.desde }}"></label>
     <label>Hasta<input type="date" name="hasta" value="{{ filters.hasta }}"></label>
-    <button class="btn btn-outline" type="submit">Filtrar</button>
+    <button class="btn btn-primary" type="submit">Aplicar filtros</button>
+    <a class="btn" href="{{ url_for('main.fraud_dashboard') }}#incidentes">Limpiar</a>
   </form>
+</section>
+
+{# 6. Métricas: observaciones del motor frente a incidentes y a medidas aplicadas #}
+<section class="adm-metrics adm-metrics--6" aria-label="Métricas de los últimos {{ summary.days }} días">
+  {{ metric('Evaluaciones (' ~ summary.days ~ ' días)', summary.total, 'Observaciones del motor', 'bi-binoculars', 'is-info') }}
+  {{ metric('Intermedio', summary.by_level.get('INTERMEDIO', 0), 'Requieren más verificación', 'bi-exclamation-triangle', 'is-warn' if summary.by_level.get('INTERMEDIO', 0) else '') }}
+  {{ metric('Sospechoso', summary.by_level.get('SOSPECHOSO', 0), 'Alertas, no fraudes confirmados', 'bi-exclamation-octagon', 'is-alert' if summary.by_level.get('SOSPECHOSO', 0) else '') }}
+  {{ metric('No evaluadas (fallos)', summary.by_level.get('NO_EVALUADO', 0), 'Evaluaciones que fallaron', 'bi-x-octagon', 'is-warn' if summary.by_level.get('NO_EVALUADO', 0) else '') }}
+  {{ metric('Restricciones activas', summary.active_restrictions, 'Medidas aplicadas, con vencimiento', 'bi-slash-circle', 'is-warn' if summary.active_restrictions else 'is-ok', url_for('main.fraud_restrictions')) }}
+  {{ metric('Operaciones retenidas', summary.held_operations, 'Medidas aplicadas, pendientes de revisión', 'bi-hourglass-split', 'is-warn' if summary.held_operations else 'is-ok', url_for('main.fraud_holds')) }}
+</section>
+<p class="fraud-note">Las <b>evaluaciones</b> son observaciones del motor; los <b>incidentes</b> son casos que una persona debe revisar; las <b>restricciones</b> y las <b>operaciones retenidas</b> son las medidas efectivamente aplicadas.
+  Latencia media {{ summary.latency_ms.mean if summary.latency_ms.mean is not none else '—' }} ms · p95 {{ summary.latency_ms.p95 if summary.latency_ms.p95 is not none else '—' }} ms ·
+  Requieren más verificación: {{ ('%.1f' % (summary.pct_needing_verification * 100)) ~ ' %' if summary.pct_needing_verification is not none else '—' }}.</p>
+
+{# 7. Resultados #}
+<article class="panel" id="incidentes">
+  <div class="panel-head"><div><div class="eyebrow dark">INCIDENTES</div><h3>Incidentes de fraude</h3></div></div>
   <div class="table-wrap"><table>
     <thead><tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Tipo</th><th>Nivel</th><th>Estado</th><th>Resumen</th></tr></thead>
     <tbody>{% for i in incidents %}
       <tr><td><a class="text-link" href="{{ url_for('main.fraud_incident', incident_id=i.id) }}">#{{ i.id }}</a></td>
           <td>{{ i.created_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ i.user.username if i.user else '—' }}</td><td>{{ i.category }}</td>
-          <td><span class="fraud-badge fraud-{{ i.level }}">{{ i.level }}</span></td><td>{{ i.status }}</td><td>{{ i.title }}</td></tr>
+          <td><span class="fraud-badge fraud-{{ i.level }}">{{ i.level }}</span></td><td><span class="fraud-badge {{ level_tones.get(i.status, '') }}">{{ i.status }}</span></td><td>{{ i.title }}</td></tr>
     {% else %}<tr><td colspan="7" class="empty-state">No hay incidentes con estos filtros.</td></tr>{% endfor %}</tbody>
   </table></div>
 </article>
 
-<article class="panel full-panel">
-  <div class="panel-head"><div><div class="eyebrow dark">DETECTOR DE ANOMALÍAS</div><h3>Versiones del modelo (solo observación)</h3></div></div>
+{# 8. Modelos y versiones #}
+<article class="panel">
+  <div class="panel-head"><div><div class="eyebrow dark">DETECTOR DE ANOMALÍAS</div><h3>Modelos y versiones (solo observación)</h3></div></div>
+  {% if mode == 'shadow' %}<p class="adm-notice"><strong>Modo shadow.</strong> Los resultados de los modelos son de observación: no debe inferirse que se ejecuten decisiones automáticas.</p>{% endif %}
   <p class="muted fraud-note">Un entrenamiento siempre crea un <b>candidato</b>; solo se activa con una orden explícita y validada (<code>flask --app run fraud-model-activate</code>).
     El modelo no cambia niveles ni aplica medidas: aprende lo habitual y mide qué tan atípica es una operación. Sin etiquetas confirmadas suficientes no se calculan métricas supervisadas.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>Versión</th><th>Origen</th><th>Estado</th><th>Entrenado</th><th>Filas (entr./eval.)</th><th>Tasa de alertas en evaluación</th></tr></thead>
-    <tbody>{% for v in versions %}<tr><td><a class="text-link" href="{{ url_for('main.fraud_model', version=v.version) }}">{{ v.version }}</a></td><td>{{ v.source }}</td><td>{{ v.status }}</td><td>{{ v.trained_at.strftime('%d/%m/%Y %H:%M') }}</td>
+    <tbody>{% for v in versions %}<tr><td><a class="text-link" href="{{ url_for('main.fraud_model', version=v.version) }}">{{ v.version }}</a></td><td>{{ v.source }}</td><td><span class="fraud-badge">{{ v.status }}</span></td><td>{{ v.trained_at.strftime('%d/%m/%Y %H:%M') }}</td>
       <td>{{ v.n_train }} / {{ v.n_eval }}</td><td>{{ ('%.1f' % ((v.metrics.get('evaluacion', {}).get('tasa_de_alertas', 0)) * 100)) ~ ' %' if v.metrics.get('evaluacion') else '—' }}</td></tr>
     {% else %}<tr><td colspan="6" class="empty-state">Todavía no se entrenó ningún modelo: el motor funciona solo con reglas.</td></tr>{% endfor %}</tbody>
   </table></div>
 </article>
 
+{# 9. Informes y exportaciones: sección secundaria desplegable; mismas rutas, parámetros y archivos #}
 {% if can('fraude.exportar') %}
-<article class="panel full-panel">
-  <div class="panel-head"><div><div class="eyebrow dark">INFORMES</div><h3>Descargar CSV</h3></div></div>
-  <p class="muted fraud-note">UTF-8, fechas en UTC, máximo {{ export_max_rows }} filas por descarga. Sin nombres, correos ni datos de contacto: los clientes se identifican por su número interno.
-    Cada descarga queda registrada en la auditoría.</p>
-  {% for dataset, fields in export_forms %}
-  {% if dataset != 'auditoria' or can('auditoria.consultar') %}
-  <form method="get" class="fraud-form" action="{{ url_for('main.fraud_export', dataset=dataset) }}">
-    <strong>{{ export_titles[dataset] }}</strong>
-    {% for name, label, options in fields %}
-    <label>{{ label }}{% if options is none %}<input type="date" name="{{ name }}">{% elif options == 'numero' %}<input type="number" name="{{ name }}" min="1" max="365" value="7">
-      {% else %}<select name="{{ name }}"><option value="">Todos</option>{% for o in options %}<option value="{{ o }}">{{ o }}</option>{% endfor %}</select>{% endif %}</label>
+<details class="adm-details" id="informes">
+  <summary>Informes y exportaciones (CSV)</summary>
+  <div class="adm-details-body">
+    <p class="muted fraud-note">UTF-8, fechas en UTC, máximo {{ export_max_rows }} filas por descarga. Sin nombres, correos ni datos de contacto: los clientes se identifican por su número interno.
+      Cada descarga queda registrada en la auditoría.</p>
+    {% for dataset, fields in export_forms %}
+    {% if dataset != 'auditoria' or can('auditoria.consultar') %}
+    <div class="adm-export-group">
+      <form method="get" class="fraud-form" action="{{ url_for('main.fraud_export', dataset=dataset) }}">
+        <strong>{{ export_titles[dataset] }}</strong>
+        {% for name, label, options in fields %}
+        <label>{{ label }}{% if options is none %}<input type="date" name="{{ name }}">{% elif options == 'numero' %}<input type="number" name="{{ name }}" min="1" max="365" value="7">
+          {% else %}<select name="{{ name }}"><option value="">Todos</option>{% for o in options %}<option value="{{ o }}">{{ o }}</option>{% endfor %}</select>{% endif %}</label>
+        {% endfor %}
+        <button class="btn" type="submit">Descargar CSV</button>
+      </form>
+    </div>
+    {% endif %}
     {% endfor %}
-    <button class="btn btn-outline" type="submit">Descargar CSV</button>
-  </form>
-  {% endif %}
-  {% endfor %}
-</article>
+  </div>
+</details>
 {% endif %}
 {% endblock %}

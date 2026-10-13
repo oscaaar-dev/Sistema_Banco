@@ -10,6 +10,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import desc, func, or_
 from sqlalchemy.exc import IntegrityError
 from .. import fraud
+from ..fraud import metrics as fraud_metrics
 from ..models import db, User, LoginChallenge, LoginAttemptLimit, OperationChallenge, Account, BankCard, Beneficiary, Transaction, InteractionSession, OperationCapture, AuditLog, now_utc
 from ..services import admin_service as admins
 from ..services.banking_service import account_for, process_operation, process_internal_transfer, log, operation_risk_for
@@ -1208,7 +1209,15 @@ def receipt(transaction_id):
 @admins.requires()
 def admin():
     sessions=InteractionSession.query.order_by(desc(InteractionSession.started_at)).limit(100).all()
-    return render_template('admin.html',users=User.query.count(),operations=Transaction.query.count(),sessions=sessions,logs=AuditLog.query.order_by(desc(AuditLog.created_at)).limit(20).all())
+    # Solo presentación: el dashboard reutiliza el mismo resumen que ya calcula /admin/fraude y solo para quien tiene permiso de consulta.
+    fraud_summary=None
+    if admins.has_permission(current_user,admins.P_FRAUD_VIEW):
+        try:
+            fraud_summary=fraud_metrics.summary(7)
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception('No se pudo obtener el resumen antifraude para el dashboard.')
+    return render_template('admin.html',users=User.query.count(),operations=Transaction.query.count(),sessions=sessions,logs=AuditLog.query.order_by(desc(AuditLog.created_at)).limit(20).all(),fraud_summary=fraud_summary)
 
 @bp.route('/admin/capturas')
 @admins.requires(admins.P_CAPTURES)

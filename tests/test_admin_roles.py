@@ -841,10 +841,11 @@ def test_the_menu_of_each_administrative_role_only_offers_what_that_role_can_ope
     pages = {name: world['clients'][name].get('/admin').get_data(as_text=True) for name in ('general', 'admin', 'viewer', 'bare')}
     for name, html in pages.items():
         assert not any(link in html for link in customer_links), name
-        assert 'Navegación administrativa' in html and 'Panel administrativo' in html and 'Banca personal' not in html, name
-    assert '<small>Administrador General</small>' in pages['general'] and '<small>Cliente</small>' not in pages['general']
+        assert 'aria-label="Navegación administrativa"' in html and 'Control de riesgo' in html and 'adm-app' in html, name
+        assert 'Banca personal' not in html and 'intranet-shell' not in html and 'css/intranet.css' not in html and 'css/app.css' not in html, name
+    assert 'adm-user-role">Administrador General<' in pages['general'] and 'Cliente</small>' not in pages['general']
     assert 'href="/admin/cuentas"' in pages['general'] and 'href="/admin/fraude"' in pages['general'] and 'href="/admin/capturas"' in pages['general']
-    assert '<small>Administrador</small>' in pages['admin'] and 'href="/admin/cuentas"' not in pages['admin']                  # solo el general gestiona cuentas
+    assert 'adm-user-role">Administrador<' in pages['admin'] and 'href="/admin/cuentas"' not in pages['admin']                  # solo el general gestiona cuentas
     assert 'href="/admin/fraude"' in pages['viewer'] and 'href="/admin/capturas"' not in pages['viewer']                        # solo lo permitido
     assert 'href="/admin/fraude"' not in pages['bare'] and 'href="/admin/capturas"' not in pages['bare']
     customer = world['clients']['a']

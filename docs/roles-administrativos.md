@@ -92,3 +92,14 @@ Verificada en SQLite (pruebas) y **ensayada en PostgreSQL real** sobre una base 
 * La recuperación de contraseña de un administrador no es autoservicio: depende de «Restablecer acceso» por otro Administrador General (por eso conviene tener al menos dos).
 * Con una sola cuenta de Administrador General activa no hay quien la reactive si se bloquea: por eso se recomienda tener al menos dos y guardar el procedimiento de la sección 4.
 * No hay notificación al propietario de una cuenta cuando se cambian sus permisos o su estado.
+
+## Interfaz del Centro de control (`/admin*`)
+El área administrativa tiene su propio layout y su propia hoja de estilos; no reutiliza la navegación de la banca personal.
+
+* **Layout:** `app/templates/admin_base.html` (extiende `base.html` solo para el `<head>` común). Lo usan el dashboard, fraude, capturas y cuentas administrativas, y también las páginas de error (403/404/500) cuando un administrador está dentro de `/admin*`.
+  Las páginas públicas, el acceso, `/admin/activar/<token>` y toda la banca personal siguen con el armazón de `base.html` (se comprobó que su HTML no cambió).
+* **Estilos y comportamiento:** `app/static/css/admin.css` (tokens `--adm-*`, todo acotado a `.adm-app`; solo se carga en `/admin*`) y `app/static/js/admin.js` (menú móvil accesible y tablas apiladas en pantallas estrechas; sin JavaScript todo sigue funcionando).
+* **Componentes:** `app/templates/partials/admin_sidebar.html` (navegación; cada enlace aparece solo con el permiso que su ruta exige) y `partials/admin_ui.html` (`page_header`, `metric`, `tile`, `badge`).
+* **Datos:** el dashboard no inventa cifras. Reutiliza `metrics.summary(7)` (el mismo resumen de `/admin/fraude`) solo para quien tiene `fraude.consultar`; sin permiso o sin dato muestra «No disponible».
+  «Sesiones registradas» son las 100 más recientes: el sistema no distingue sesiones activas.
+* **Seguridad:** ocultar un enlace no concede ni quita acceso; cada ruta sigue exigiendo su permiso en el servidor. No cambió ninguna ruta, permiso, filtro, CSV ni regla antifraude.

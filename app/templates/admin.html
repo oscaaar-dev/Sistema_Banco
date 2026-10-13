@@ -1,35 +1,78 @@
-{% extends 'base.html' %}
+{% extends 'admin_base.html' %}
+{% from 'partials/admin_ui.html' import page_header, metric, tile %}
+{% block title %}Centro de control · Norte{% endblock %}
 {% block crumb %}Administración{% endblock %}
 {% block content %}
-<div class="eyebrow dark">VISTA GENERAL</div>
-<h1>Administración</h1>
-<p class="muted">Indicadores agregados del entorno académico.</p>
-{% if can('capturas.consultar') %}<p><a class="text-link" href="{{ url_for('main.admin_captures') }}">Ver capturas de seguridad de las operaciones</a></p>{% endif %}
-{% if can('fraude.consultar') %}<p><a class="text-link" href="{{ url_for('main.fraud_dashboard') }}">Detección de fraude: incidentes, restricciones y operaciones retenidas</a></p>{% endif %}
-{% if is_general_admin() %}<p><a class="text-link" href="{{ url_for('main.admin_accounts') }}">Cuentas administrativas: crear, permisos, estados e historial</a></p>{% endif %}
-{% if not can('fraude.consultar') and not can('capturas.consultar') and not is_general_admin() %}<p class="muted fraud-note">Tu cuenta aún no tiene permisos asignados. Pide a un Administrador General que te los conceda.</p>{% endif %}
-<section class="stats-grid">
-  <article class="panel stat-card"><span class="soft-icon"><i class="bi bi-people"></i></span><small>USUARIOS</small><strong>{{ users }}</strong></article>
-  <article class="panel stat-card"><span class="soft-icon"><i class="bi bi-arrow-left-right"></i></span><small>OPERACIONES</small><strong>{{ operations }}</strong></article>
-  <article class="panel stat-card"><span class="soft-icon"><i class="bi bi-clock-history"></i></span><small>SESIONES</small><strong>{{ sessions|length }}</strong></article>
+{% set mode = config.FRAUD_MODE %}
+{% set sees_fraud = can('fraude.consultar') %}
+{% set sees_captures = can('capturas.consultar') %}
+{% set general = is_general_admin() %}
+
+{{ page_header('Vista general', 'Centro de control', 'Administración') }}
+
+{# Estado del motor antifraude: se lee de la configuración real; no se inventan latencias ni disponibilidad. #}
+<section class="adm-mode {% if mode == 'off' %}is-off{% elif mode != 'shadow' %}is-enforce{% endif %}" aria-labelledby="admModeTitle">
+  <span class="adm-mode-label" id="admModeTitle">Modo: {{ mode|upper }}</span>
+  {% if mode == 'shadow' %}
+  <p>El motor <b>observa y evalúa</b> operaciones y registra incidentes, pero este modo <b>no implica por sí mismo la aplicación automática de decisiones antifraude</b>: ninguna medida se aplica sola.</p>
+  {% elif mode == 'off' %}
+  <p>Motor desactivado: solo rigen las restricciones que haya impuesto un administrador.</p>
+  {% else %}
+  <p>Las medidas automáticas están activas.</p>
+  {% endif %}
 </section>
-<article class="panel movements-panel full-panel">
+
+{# Indicadores prioritarios: valores reales del backend; sin permiso o sin dato se dice «No disponible». #}
+{% set open_alerts = fraud_summary.incidents_by_status.get('ABIERTO', 0) if fraud_summary else none %}
+<section class="adm-metrics" aria-label="Indicadores principales">
+  {{ metric('Alertas abiertas', open_alerts, 'Incidentes abiertos creados en los últimos 7 días' if fraud_summary else 'Requiere el permiso de consulta antifraude',
+            'bi-exclamation-octagon', ('is-alert' if open_alerts else 'is-ok') if fraud_summary else '', url_for('main.fraud_dashboard', estado='ABIERTO') if sees_fraud else none,
+            ('Requieren revisión' if open_alerts else 'Sin alertas abiertas') if fraud_summary else none) }}
+  {{ metric('Operaciones retenidas', fraud_summary.held_operations if fraud_summary else none, 'Retenidas y vigentes ahora' if fraud_summary else 'Requiere el permiso de consulta antifraude',
+            'bi-hourglass-split', ('is-warn' if fraud_summary.held_operations else 'is-ok') if fraud_summary else '', url_for('main.fraud_holds') if sees_fraud else none,
+            ('Pendientes de revisión' if fraud_summary.held_operations else 'Ninguna pendiente') if fraud_summary else none) }}
+  {{ metric('Restricciones activas', fraud_summary.active_restrictions if fraud_summary else none, 'Vigentes ahora, todas con vencimiento' if fraud_summary else 'Requiere el permiso de consulta antifraude',
+            'bi-slash-circle', ('is-warn' if fraud_summary.active_restrictions else 'is-ok') if fraud_summary else '', url_for('main.fraud_restrictions') if sees_fraud else none,
+            ('Hay medidas vigentes' if fraud_summary.active_restrictions else 'Ninguna vigente') if fraud_summary else none) }}
+  {{ metric('Sesiones registradas', sessions|length, 'Las más recientes (máximo 100). El sistema no distingue sesiones «activas».', 'bi-clock-history', 'is-info', none, 'Solo informativo') }}
+</section>
+<div class="adm-strip" role="group" aria-label="Resumen del entorno">
+  <div><span>Usuarios</span><strong>{{ users }}</strong></div>
+  <div><span>Operaciones</span><strong>{{ operations }}</strong></div>
+</div>
+
+{# Accesos operativos: solo los que el usuario puede abrir. #}
+<section class="adm-tiles" aria-label="Accesos operativos">
+  {% if sees_fraud %}{{ tile('bi-shield-exclamation', 'Detección de fraude', 'Incidentes, operaciones retenidas, restricciones, modelos e informes del motor antifraude.', url_for('main.fraud_dashboard'), 'Abrir panel') }}{% endif %}
+  {% if sees_captures %}{{ tile('bi-camera', 'Capturas de seguridad', 'Fotos tomadas al confirmar operaciones. Acceso autorizado y auditado.', url_for('main.admin_captures'), 'Ver capturas') }}{% endif %}
+  {% if general %}{{ tile('bi-people', 'Cuentas administrativas', 'Altas, permisos, estados, sesiones e historial de las cuentas de administración.', url_for('main.admin_accounts'), 'Gestionar cuentas') }}{% endif %}
+</section>
+{% if not sees_fraud and not sees_captures and not general %}
+<p class="adm-notice"><strong>Atención.</strong> Tu cuenta aún no tiene permisos asignados. Pide a un Administrador General que te los conceda.</p>
+{% endif %}
+
+<article class="panel">
   <div class="panel-head"><div><div class="eyebrow dark">TRAZABILIDAD</div><h3>Sesiones recientes</h3></div></div>
-  <div class="table-wrap"><table>
+  <div class="table-wrap adm-scroll"><table>
     <thead><tr><th>Usuario</th><th>Operación</th><th>Fecha</th><th>Duración</th><th>Interacción</th><th>Indicador</th></tr></thead>
     <tbody>{% for s in sessions %}
       <tr><td>{{ s.user.username }}</td><td>{{ s.operation_type }}</td><td>{{ s.started_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ s.duration_seconds }} s</td><td>{{ s.ml_result.label if s.ml_result else 'Pendiente' }}</td><td>{% if s.risk_assessment %}{{ s.risk_assessment.level }} · {{ s.risk_assessment.score }}%{% else %}Pendiente{% endif %}</td></tr>
     {% else %}<tr><td colspan="6" class="empty-state">Aún no hay sesiones registradas.</td></tr>{% endfor %}</tbody>
   </table></div>
-  <small>El porcentaje es un puntaje de alerta basado en reglas; no es una probabilidad ni bloquea operaciones.</small>
+  <p class="fraud-note">El porcentaje es un puntaje de alerta basado en reglas; no es una probabilidad ni bloquea operaciones.</p>
 </article>
-<article class="panel movements-panel full-panel">
-  <div class="panel-head"><div><div class="eyebrow dark">SEGURIDAD</div><h3>Auditoría reciente</h3></div></div>
+
+<article class="panel">
+  <div class="panel-head">
+    <div><div class="eyebrow dark">SEGURIDAD</div><h3>Auditoría reciente</h3></div>
+    {% if can('auditoria.consultar') %}<a class="btn btn-small" href="{{ url_for('main.fraud_audit') }}">Auditoría antifraude <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endif %}
+  </div>
   <div class="table-wrap"><table>
     <thead><tr><th>Usuario</th><th>Acción</th><th>Módulo</th><th>Resultado</th><th>Fecha</th></tr></thead>
-    <tbody>{% for l in logs %}
+    <tbody>{% for l in logs[:8] %}
       <tr><td>{{ l.user.username if l.user else 'Sistema' }}</td><td>{{ l.action }}</td><td>{{ l.module }}</td><td>{{ l.result }}</td><td>{{ l.created_at.strftime('%d/%m/%Y %H:%M') }}</td></tr>
     {% else %}<tr><td colspan="5" class="empty-state">No hay registros todavía.</td></tr>{% endfor %}</tbody>
   </table></div>
+  <p class="fraud-note">Vista previa: los {{ [logs|length, 8]|min }} registros más recientes de {{ logs|length }} recientes disponibles. El registro de auditoría completo no se altera; solo se limita lo que muestra esta pantalla.</p>
 </article>
 {% endblock %}
