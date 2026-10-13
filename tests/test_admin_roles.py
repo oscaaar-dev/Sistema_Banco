@@ -833,3 +833,20 @@ def test_the_roles_migration_matches_the_models_defaults_existing_users_to_activ
         command.upgrade(config, 'b6e2a9c15d37')                                                   # y se puede volver a subir
         assert connection.execute(text("select account_status from users where username = 'previo'")).scalar() == 'ACTIVA'
     engine.dispose()
+
+
+def test_the_menu_of_each_administrative_role_only_offers_what_that_role_can_open(world):
+    # el menú de cliente (Resumen, Cuentas, Transferir...) llevaría a un 403 para cualquier administrador: no debe mostrarse
+    customer_links = ('href="/dashboard"', 'href="/accounts"', 'href="/operation/transfer"', 'href="/movements"', 'href="/cards"')
+    pages = {name: world['clients'][name].get('/admin').get_data(as_text=True) for name in ('general', 'admin', 'viewer', 'bare')}
+    for name, html in pages.items():
+        assert not any(link in html for link in customer_links), name
+        assert 'Navegación administrativa' in html and 'Panel administrativo' in html and 'Banca personal' not in html, name
+    assert '<small>Administrador General</small>' in pages['general'] and '<small>Cliente</small>' not in pages['general']
+    assert 'href="/admin/cuentas"' in pages['general'] and 'href="/admin/fraude"' in pages['general'] and 'href="/admin/capturas"' in pages['general']
+    assert '<small>Administrador</small>' in pages['admin'] and 'href="/admin/cuentas"' not in pages['admin']                  # solo el general gestiona cuentas
+    assert 'href="/admin/fraude"' in pages['viewer'] and 'href="/admin/capturas"' not in pages['viewer']                        # solo lo permitido
+    assert 'href="/admin/fraude"' not in pages['bare'] and 'href="/admin/capturas"' not in pages['bare']
+    customer = world['clients']['a']
+    assert 'href="/dashboard"' in customer.get('/dashboard').get_data(as_text=True)                   # el cliente conserva el suyo
+    assert 'Administración' not in customer.get('/dashboard').get_data(as_text=True)

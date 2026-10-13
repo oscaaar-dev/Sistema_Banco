@@ -7,7 +7,7 @@
 <p class="muted fraud-note">La cuenta se crea <b>pendiente</b>. Se envía un enlace al correo indicado para que la propia persona defina su contraseña (tú no la conoces ni la ves).
   Después deberás activar la cuenta. No existe un registro público de administradores y no se promocionan cuentas de clientes.</p>
 <article class="panel full-panel">
-  <form method="post" class="fraud-form" action="{{ url_for('main.admin_account_new') }}" autocomplete="off">
+  <form method="post" class="admin-form" action="{{ url_for('main.admin_account_new') }}" autocomplete="off">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>Nombre completo<input type="text" name="full_name" value="{{ form.get('full_name', '') }}" minlength="2" maxlength="100" required></label>
     <label>Correo (también es la identidad de acceso)<input type="email" name="email" value="{{ form.get('email', '') }}" maxlength="254" required></label>

@@ -41,7 +41,7 @@ test('un cliente y un administrador sin permisos no entran a las cuentas adminis
 test('el Administrador General ve las cuentas, los permisos y el formulario de alta sin desbordes', async ({ page }) => {
   await loginAs(page, 3);
   await page.goto('/admin');
-  await page.getByRole('link', { name: /Cuentas administrativas/ }).click();
+  await page.getByRole('navigation', { name: 'Navegación administrativa' }).getByRole('link', { name: /Cuentas administrativas/ }).click();
   await expect(page).toHaveURL(/\/admin\/cuentas$/);
   await expect(page.getByRole('heading', { name: 'Cuentas administrativas', level: 1 })).toBeVisible();
   for (const username of ['admin', 'e2e_general', 'e2e_sinpermisos', 'e2e_admin']) {

@@ -1,6 +1,7 @@
 {% set is_intranet = current_user.is_authenticated and request.endpoint!='main.index' %}
 {% set auth_endpoints = ('main.login','main.register','main.verify_login','main.forgot_password','main.reset_password','main.admin_activate') %}
 {% set is_auth = request.endpoint in auth_endpoints %}
+{% set is_admin_role = current_user.is_authenticated and current_user.role in ('ADMINISTRADOR','ADMIN_GENERAL') %}
 {% set is_public = not is_intranet and not is_auth %}
 <!doctype html>
 <html lang="es">
@@ -24,7 +25,7 @@
   <link rel="stylesheet" href="{{ url_for('static',filename='css/operation.css',v='consent-2') }}">
   {% endif %}
   {% if is_intranet %}
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/intranet.css',v='shell-7') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/intranet.css',v='shell-8') }}">
   {% endif %}
   {% if request.endpoint=='main.accounts' %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/accounts.css',v='accounts-1') }}">
@@ -47,14 +48,19 @@
     <div class="intranet-audience"><div class="intranet-container"><span>Personas</span><span>Espacio personal</span><span class="intranet-audience-right">{% include 'partials/social_links.html' %}<span><i class="bi bi-shield-check"></i> Proyecto en desarrollo</span></span></div></div>
     <header class="intranet-header">
       <div class="intranet-container intranet-header-main">
-        <a class="intranet-brand" href="{% if current_user.role=='SOPORTE' %}{{ url_for('main.support') }}{% elif current_user.role=='ADMINISTRADOR' %}{{ url_for('main.admin') }}{% else %}{{ url_for('main.dashboard') }}{% endif %}" aria-label="Norte, resumen">
+        <a class="intranet-brand" href="{% if current_user.role=='SOPORTE' %}{{ url_for('main.support') }}{% elif is_admin_role %}{{ url_for('main.admin') }}{% else %}{{ url_for('main.dashboard') }}{% endif %}" aria-label="Norte, resumen">
           <span class="intranet-brand-mark"><img src="{{ url_for('static',filename='brand/norte-favicon.svg') }}" alt=""></span>
           <span>NORTE<span>.</span><small>BANCA DIGITAL</small></span>
         </a>
         <button class="mobile-menu" id="menuToggle" type="button" aria-label="Abrir menú" aria-expanded="false"><i class="bi bi-list"></i></button>
-        <nav class="intranet-nav" id="intranetNav" aria-label="{% if current_user.role=='SOPORTE' %}Navegación de soporte{% else %}Navegación de banca personal{% endif %}">
+        <nav class="intranet-nav" id="intranetNav" aria-label="{% if current_user.role=='SOPORTE' %}Navegación de soporte{% elif is_admin_role %}Navegación administrativa{% else %}Navegación de banca personal{% endif %}">
           {% if current_user.role=='SOPORTE' %}
           <a class="active" href="{{ url_for('main.support') }}"><i class="bi bi-life-preserver"></i>Soporte</a>
+          {% elif is_admin_role %}
+          <a class="{% if request.endpoint=='main.admin' %}active{% endif %}" href="{{ url_for('main.admin') }}"><i class="bi bi-bar-chart"></i>Administración</a>
+          {% if can('fraude.consultar') %}<a class="{% if request.endpoint and request.endpoint.startswith('main.fraud') %}active{% endif %}" href="{{ url_for('main.fraud_dashboard') }}"><i class="bi bi-shield-exclamation"></i>Fraude</a>{% endif %}
+          {% if can('capturas.consultar') %}<a class="{% if request.endpoint=='main.admin_captures' %}active{% endif %}" href="{{ url_for('main.admin_captures') }}"><i class="bi bi-camera"></i>Capturas</a>{% endif %}
+          {% if is_general_admin() %}<a class="{% if request.endpoint and request.endpoint.startswith('main.admin_account') %}active{% endif %}" href="{{ url_for('main.admin_accounts') }}"><i class="bi bi-people"></i>Cuentas administrativas</a>{% endif %}
           {% else %}
           <a class="{% if request.endpoint=='main.dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-1x2"></i>Resumen</a>
           <a class="{% if request.endpoint=='main.accounts' %}active{% endif %}" href="{{ url_for('main.accounts') }}"><i class="bi bi-wallet2"></i>Cuentas</a>
@@ -63,15 +69,12 @@
           <a class="{% if request.endpoint=='main.operation' and request.view_args.kind=='recharge' %}active{% endif %}" href="{{ url_for('main.operation',kind='recharge') }}"><i class="bi bi-phone"></i>Recargar</a>
           <a class="{% if request.endpoint=='main.cards' %}active{% endif %}" href="{{ url_for('main.cards') }}"><i class="bi bi-credit-card-2-front"></i>Tarjetas</a>
           <a class="{% if request.endpoint=='main.movements' %}active{% endif %}" href="{{ url_for('main.movements') }}"><i class="bi bi-clock-history"></i>Movimientos</a>
-          {% if current_user.role=='ADMINISTRADOR' %}
-          <a class="{% if request.endpoint=='main.admin' %}active{% endif %}" href="{{ url_for('main.admin') }}"><i class="bi bi-bar-chart"></i>Administración</a>
-          {% endif %}
           {% endif %}
         </nav>
         <div class="intranet-account">
           <span class="intranet-secure"><i class="bi bi-shield-lock"></i> Acceso verificado</span>
           <span class="intranet-avatar">{{ current_user.full_name[:1]|upper }}</span>
-          <span class="intranet-user">{{ current_user.full_name.split()[0] }}<small>{% if current_user.role=='ADMINISTRADOR' %}Administrador{% elif current_user.role=='SOPORTE' %}Soporte{% else %}Cliente{% endif %}</small></span>
+          <span class="intranet-user">{{ current_user.full_name.split()[0] }}<small>{% if current_user.role=='ADMIN_GENERAL' %}Administrador General{% elif current_user.role=='ADMINISTRADOR' %}Administrador{% elif current_user.role=='SOPORTE' %}Soporte{% else %}Cliente{% endif %}</small></span>
           <form method="post" action="{{ url_for('main.logout') }}" class="intranet-logout-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="intranet-logout" type="submit" aria-label="Cerrar sesión"><i class="bi bi-box-arrow-right"></i></button>
@@ -80,7 +83,7 @@
       </div>
     </header>
   <main class="main-area" id="contenido" tabindex="-1">
-    <div class="intranet-subbar"><div class="intranet-container"><div class="crumb">{% if current_user.role=='SOPORTE' %}Centro de soporte{% else %}Banca personal{% endif %} <span>/</span> {% block crumb %}Resumen{% endblock %}</div>{% if current_user.role=='SOPORTE' %}<span><i class="bi bi-clock-history"></i> Actividad reciente</span>{% else %}<a class="subbar-link" href="{{ url_for('main.movements') }}"><i class="bi bi-clock-history"></i> Actividad reciente</a>{% endif %}</div></div>
+    <div class="intranet-subbar"><div class="intranet-container"><div class="crumb">{% if current_user.role=='SOPORTE' %}Centro de soporte{% elif is_admin_role %}Panel administrativo{% else %}Banca personal{% endif %} <span>/</span> {% block crumb %}Resumen{% endblock %}</div>{% if current_user.role=='SOPORTE' %}<span><i class="bi bi-clock-history"></i> Actividad reciente</span>{% elif is_admin_role %}{% else %}<a class="subbar-link" href="{{ url_for('main.movements') }}"><i class="bi bi-clock-history"></i> Actividad reciente</a>{% endif %}</div></div>
     <div class="page-content">
       {% with messages=get_flashed_messages(with_categories=true) %}
         {% for category,message in messages %}
