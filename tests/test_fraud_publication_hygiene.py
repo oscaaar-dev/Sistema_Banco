@@ -2,6 +2,7 @@
 
 Solo lee archivos del proyecto que se publican; nada toca ``data/``.
 """
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -45,3 +46,15 @@ def test_gitignore_keeps_generated_models_and_local_evidence_out_of_git():
     for expected in ('*.joblib', 'datasets_sinteticos/modelos_candidatos/', 'instance/fraud_models/', 'fraud-e2e-*', '*.log'):
         assert expected in rules, expected
     assert not any('datasets_sinteticos' == rule.strip('/') or rule in ('*.csv', '*.json', '*.md') for rule in rules)      # el CSV y los informes sí se publican
+
+
+def test_gitattributes_keeps_the_csv_byte_for_byte_and_the_file_has_no_carriage_returns():
+    attributes = {line.split()[0]: line.split()[1:] for line in (ROOT / '.gitattributes').read_text(encoding='utf-8').splitlines()
+                  if line.strip() and not line.startswith('#')}
+    assert attributes['datasets_sinteticos/*.csv'] == ['-text'] and attributes['*.joblib'] == ['binary']
+    csv_file = ROOT / 'datasets_sinteticos' / 'dataset_antifraude_completo_12000.csv'
+    if csv_file.is_file():
+        content = csv_file.read_bytes()
+        assert b'\r' not in content                                                                  # solo LF: la huella del manifiesto no depende del sistema operativo
+        manifest = json.loads(csv_file.with_suffix('.manifest.json').read_text(encoding='utf-8'))
+        assert hashlib.sha256(content).hexdigest() == manifest['sha256']

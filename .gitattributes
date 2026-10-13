@@ -1,0 +1,6 @@
+# El dataset sintético se conserva byte a byte: su SHA-256 está en el manifiesto y no debe cambiar por la conversión de saltos
+# de línea de Git en Windows (core.autocrlf=true). El archivo se genera solo con LF.
+datasets_sinteticos/*.csv -text
+
+# Artefactos binarios de modelos (no se versionan; ver .gitignore): que Git nunca los trate como texto.
+*.joblib binary
