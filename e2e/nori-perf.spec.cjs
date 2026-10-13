@@ -49,6 +49,7 @@ test('el widget no retrasa de forma apreciable la primera pintura de la web púb
 });
 
 test('Nori no provoca cambios de diseño (CLS) al cargar, abrirse, responder y desplazarse', async ({ page }) => {
+  test.setTimeout(120_000);                                                   // recorre tres páginas con una conversación en cada una
   await page.addInitScript(() => {
     window.__cls = 0;
     new PerformanceObserver((list) => {

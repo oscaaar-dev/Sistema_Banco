@@ -97,6 +97,7 @@ test('con movimiento reducido Nori sigue visible y usable', async ({ page }) => 
 });
 
 test('al llegar al final de la página Nori no tapa ningún enlace ni texto (escritorio y móvil)', async ({ page }) => {
+  test.setTimeout(120_000);                                                   // 9 cargas con esperas fijas: el límite por defecto (25 s) es muy justo
   // sin el globo de saludo (es temporal): aquí se mide la posición fija de Nori
   await page.addInitScript(() => window.sessionStorage.setItem('nori:v1:tip', '1'));
   const viewports = [{ width: 1280, height: 900 }, { width: 390, height: 844 }, { width: 360, height: 640 }];
