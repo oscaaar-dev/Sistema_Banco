@@ -76,12 +76,13 @@
 <article class="panel" id="incidentes">
   <div class="panel-head"><div><div class="eyebrow dark">INCIDENTES</div><h3>Incidentes de fraude</h3></div></div>
   <div class="table-wrap"><table>
-    <thead><tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Tipo</th><th>Nivel</th><th>Estado</th><th>Resumen</th></tr></thead>
+    <thead><tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Tipo</th><th>Nivel</th><th>Estado</th><th>Resumen</th><th>Acción</th></tr></thead>
     <tbody>{% for i in incidents %}
       <tr><td><a class="text-link" href="{{ url_for('main.fraud_incident', incident_id=i.id) }}">#{{ i.id }}</a></td>
           <td>{{ i.created_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ i.user.username if i.user else '—' }}</td><td>{{ i.category }}</td>
-          <td><span class="fraud-badge fraud-{{ i.level }}">{{ i.level }}</span></td><td><span class="fraud-badge {{ level_tones.get(i.status, '') }}">{{ i.status }}</span></td><td>{{ i.title }}</td></tr>
-    {% else %}<tr><td colspan="7" class="empty-state">No hay incidentes con estos filtros.</td></tr>{% endfor %}</tbody>
+          <td><span class="fraud-badge fraud-{{ i.level }}">{{ i.level }}</span></td><td><span class="fraud-badge {{ level_tones.get(i.status, '') }}">{{ i.status }}</span></td><td>{{ i.title }}</td>
+          <td>{% if i.status in ('ABIERTO', 'EN_INVESTIGACION') and (can('fraude.decidir') or can('fraude.investigar')) %}<a class="btn btn-small btn-primary" href="{{ url_for('main.fraud_incident', incident_id=i.id) }}#decision">{% if can('fraude.decidir') %}Revisar y sancionar{% else %}Revisar{% endif %}</a>{% else %}<a class="btn btn-small" href="{{ url_for('main.fraud_incident', incident_id=i.id) }}">Ver detalle</a>{% endif %}</td></tr>
+    {% else %}<tr><td colspan="8" class="empty-state">{% if filters.estado or filters.nivel or filters.tipo or filters.desde or filters.hasta %}No hay incidentes con estos filtros.{% else %}Todavía no hay incidentes: el motor aún no marcó ninguna operación como sospechosa. Cuando lo haga, aparecerán aquí.{% endif %}</td></tr>{% endfor %}</tbody>
   </table></div>
 </article>
 

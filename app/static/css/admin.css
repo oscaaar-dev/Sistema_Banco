@@ -321,6 +321,10 @@ a.adm-metric:hover { border-color: var(--adm-accent-bright); box-shadow: 0 2px 4
   .adm-metrics, .adm-tiles { grid-template-columns: 1fr; }
 }
 
+/* destino de un enlace interno (p. ej. «Incidentes»): se ve a dónde se llegó aunque la página no se desplace */
+.adm-app [id]:target { scroll-margin-top: 78px; }
+.adm-app .panel:target, .adm-app .adm-details:target { outline: 2px solid var(--adm-accent); outline-offset: 4px; }
+
 /* ───────────── movimiento reducido ───────────── */
 @media (prefers-reduced-motion: reduce) {
   .adm-app *, .adm-app *::before, .adm-app *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
