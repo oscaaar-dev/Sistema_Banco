@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-ds.css',v='ds-5') }}">
   <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-site.css',v='site-4') }}">
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/home.css',v='home-22') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/home.css',v='home-23') }}">
   <link rel="stylesheet" href="{{ url_for('static',filename='css/readability.css',v='readability-1') }}">
   <link rel="stylesheet" href="{{ url_for('static',filename='css/norte-theme.css',v='theme-3') }}">
 </head>
@@ -56,6 +56,9 @@
           <a class="info-card" data-reveal href="{{ card.href }}" aria-label="{{ card.action }}: {{ card.title }}">
             {% if page_key=='personas' and card.image %}
             <figure class="info-card-photo info-card-photo-{{ loop.index }}"><img src="{{ url_for('static',filename=card.image) }}" alt="{{ card.image_alt }}" loading="lazy"><figcaption>Fotografía ilustrativa · {{ card.photo_credit }}</figcaption></figure>
+            {% endif %}
+            {% if page_key=='herramientas' and card.image %}
+            <figure class="info-card-shot"><img src="{{ url_for('static',filename=card.image) }}" alt="{{ card.image_alt }}" width="1254" height="1254" loading="lazy" decoding="async"><figcaption>Imagen ilustrativa · datos ficticios</figcaption></figure>
             {% endif %}
             <span class="info-card-icon"><i class="bi {{ card.icon }}"></i></span>
             {% if page_key=='acerca' %}<span class="info-card-index">0{{ loop.index }}</span>{% endif %}
