@@ -10,7 +10,7 @@ Este documento no contiene secretos: las variables se nombran, nunca se muestran
 | Revisión de Alembic | **`b6e2a9c15d37`** (roles administrativos, cabeza de la rama), aplicada en staging el 2026-10-13 sobre `f7a1c4d9e620` (antifraude, aplicada el mismo día) | No existe base de datos |
 | Esquema | 26 tablas: las 20 originales (sin cambios en sus filas) y las 6 antifraude, vacías | — |
 | Despliegue de `web` | `SUCCESS`, estable | — |
-| `FRAUD_MODE` | `shadow`, explícito | — |
+| `FRAUD_MODE` | **`enforce`** desde el 2026-10-13 (decisión humana expresa de la persona responsable del proyecto; ver «Decisión de pasar a `enforce` en staging») | — |
 | Modelo activo | Ninguno (`sin_modelo_activo`) | — |
 | Python / dependencias | 3.13.15; scikit-learn 1.7.0, numpy 2.2.6, pandas 2.3.0 (las de `requirements.txt`) | — |
 
@@ -25,6 +25,13 @@ la próxima fusión a `main` volverá a desplegar `main` y reemplazará este des
 **Lección (incidente del 2026-10-13):** al fusionarse el PR #7 en `main`, Railway desplegó el código antifraude en staging antes de aplicar la migración. La aplicación, por diseño
 (`_validate_existing_schema`), se detiene al arrancar si faltan tablas o columnas, y `web` quedó en `CRASHED`. Se resolvió aplicando la migración y reiniciando el servicio. **Regla:
 la migración se aplica siempre antes de fusionar a `main`.**
+
+## Decisión de pasar a `enforce` en staging (2026-10-13)
+La persona responsable del proyecto decidió, de forma expresa, usar `FRAUD_MODE=enforce` **solo en el entorno `staging`** de Norte-staging (producción no tiene servicios y no se modificó).
+Consecuencias: una operación `SOSPECHOSA` (transferencia o pago) queda **retenida** hasta que un administrador con el permiso `fraude.resolver_retenciones` la autorice o la rechace (vigencia de 72 h), y un acceso `SOSPECHOSO` genera un bloqueo
+preventivo de 30 minutos con cierre de sesiones. Las sanciones largas siguen siendo decisión humana (máximo 365 días, nunca permanentes).
+**Límites que se mantienen:** los umbrales (25 y 55) son iniciales y **no están validados con datos reales etiquetados**; los datos de entrenamiento son sintéticos; ningún modelo está activo. Una falsa alarma afecta a un cliente de staging.
+**Reversión:** `railway variable set FRAUD_MODE=shadow` (o `off`) en el servicio `web` y reiniciar con `railway redeploy` (sin `--from-source`, para conservar el despliegue actual).
 
 ## 2. Variables de entorno de `web` (solo nombres)
 `APP_ENV`, `SECRET_KEY` (aleatoria, estable y de al menos 32 caracteres), `DATABASE_URL`, `COOKIE_SECURE`, `PUBLIC_BASE_URL`, `EMAIL_TRANSPORT`, `BREVO_API_KEY` y `SMTP_FROM`
