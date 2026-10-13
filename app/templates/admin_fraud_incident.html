@@ -55,9 +55,10 @@
   </table></div>
 </article>
 
-{% if incident.status in ('ABIERTO', 'EN_INVESTIGACION') and not own_user %}
+{% if incident.status in ('ABIERTO', 'EN_INVESTIGACION') and not own_user and (can('fraude.investigar') or can('fraude.decidir')) %}
 <article class="panel full-panel">
   <div class="panel-head"><div><div class="eyebrow dark">DECISIÓN</div><h3>Acciones del administrador</h3></div></div>
+  {% if can('fraude.investigar') %}
   {% if incident.status == 'ABIERTO' %}
   <form method="post" class="fraud-form" action="{{ url_for('main.fraud_incident_investigate', incident_id=incident.id) }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-outline" type="submit">Iniciar investigación</button></form>
@@ -66,6 +67,8 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>Comentario de investigación<textarea name="comentario" maxlength="500" required rows="2"></textarea></label>
     <button class="btn btn-outline" type="submit">Agregar comentario</button></form>
+  {% endif %}
+  {% if can('fraude.decidir') %}
   <form method="post" class="fraud-form" action="{{ url_for('main.fraud_incident_discard', incident_id=incident.id) }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>Descartar como falso positivo (motivo, mínimo 10 caracteres)<textarea name="motivo" maxlength="500" required minlength="10" rows="2"></textarea></label>
@@ -79,6 +82,7 @@
       {% for scope in scopes %}<label class="fraud-check"><input type="checkbox" name="alcance" value="{{ scope }}" {% if scope == 'OPERACIONES' %}checked{% endif %}> {{ scope }}</label>{% endfor %}</fieldset>
     <label>Duración en días<input type="number" name="dias" min="1" max="{{ max_days }}" value="{{ suggested_days }}" required></label>
     <button class="btn btn-primary" type="submit">Confirmar fraude y aplicar sanción</button></form>
+  {% endif %}
 </article>
 {% endif %}
 

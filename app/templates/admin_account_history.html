@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Historial administrativo · Norte{% endblock %}
+{% block crumb %}Administración / Cuentas administrativas / Historial{% endblock %}
+{% block content %}
+<div class="eyebrow dark">SEGURIDAD</div>
+<h1>Historial de cambios y actividad administrativa</h1>
+<p class="muted">Solo lectura: esta interfaz no puede alterar ni borrar registros. No contiene contraseñas, tokens ni códigos.</p>
+<p><a class="text-link" href="{{ url_for('main.admin_accounts') }}">Volver a las cuentas</a></p>
+<article class="panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">CAMBIOS</div><h3>Altas, permisos, estados y sesiones</h3></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>N.º</th><th>Fecha (UTC)</th><th>Quién</th><th>Cuenta afectada</th><th>Acción</th><th>Detalle</th></tr></thead>
+    <tbody>{% for h in changes %}<tr><td>{{ h.id }}</td><td>{{ h.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td><td>{{ h.actor.username if h.actor else 'Sistema' }}</td>
+      <td>{{ h.target.username if h.target else '—' }}</td><td>{{ h.action }}</td>
+      <td>{% for key, value in (h.detail or {}).items() %}{{ key }}: {{ value if value is not iterable or value is string else value|join(', ') }}{% if not loop.last %} · {% endif %}{% endfor %}</td></tr>
+    {% else %}<tr><td colspan="6" class="empty-state">Sin cambios registrados.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</article>
+<article class="panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">ACTIVIDAD</div><h3>Acciones auditadas de las cuentas administrativas</h3></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Fecha (UTC)</th><th>Usuario</th><th>Rol</th><th>Acción</th><th>Módulo</th><th>Resultado</th></tr></thead>
+    <tbody>{% for l in activity %}<tr><td>{{ l.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td><td>{{ l.user.username }}</td><td>{{ l.user.role }}</td><td>{{ l.action }}</td><td>{{ l.module }}</td><td>{{ l.result }}</td></tr>
+    {% else %}<tr><td colspan="6" class="empty-state">Sin actividad registrada.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</article>
+{% endblock %}

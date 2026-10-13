@@ -17,6 +17,7 @@ from flask import current_app
 from sqlalchemy import func
 
 from ..models import AuditLog, FraudIncident, HeldOperation, IncidentEvent, SecurityRestriction, User, db, now_utc
+from ..services import admin_service as admins
 from . import constants as c
 
 
@@ -172,9 +173,10 @@ def mark_executed(hold, transaction):
 
 # ───────── Acciones administrativas ─────────
 
-def _require_admin(actor, subject_user_id=None):
-    if actor is None or getattr(actor, 'role', None) != c.ADMIN_ROLE:
-        raise FraudPermissionError('Solo un administrador puede realizar esta acción.')
+def _require_admin(actor, subject_user_id=None, *, permission):
+    """El actor debe ser un administrador activo con el permiso concreto (ADMIN_GENERAL los tiene todos). Denegar por defecto."""
+    if actor is None or not admins.has_permission(actor, permission):
+        raise FraudPermissionError('No tienes permiso para realizar esta acción.')
     if subject_user_id is not None and actor.id == subject_user_id:
         raise FraudPermissionError('No puedes actuar sobre tu propio usuario.')
 
@@ -194,7 +196,7 @@ def _require_active_incident(incident):
 
 
 def start_investigation(incident, actor):
-    _require_admin(actor, incident.user_id)
+    _require_admin(actor, incident.user_id, permission=admins.P_FRAUD_INVESTIGATE)
     if incident.status != c.INCIDENT_OPEN:
         raise FraudAdminError('Solo se puede iniciar la investigación de un incidente abierto.')
     incident.status = c.INCIDENT_INVESTIGATING
@@ -204,7 +206,7 @@ def start_investigation(incident, actor):
 
 
 def add_comment(incident, actor, text):
-    _require_admin(actor, incident.user_id)
+    _require_admin(actor, incident.user_id, permission=admins.P_FRAUD_INVESTIGATE)
     comment = clean_text(text, minimum=3, maximum=500, label='El comentario')
     incident.updated_at = now_utc()
     add_event(incident, actor, 'COMENTARIO', comment)
@@ -213,7 +215,7 @@ def add_comment(incident, actor, text):
 
 def discard_incident(incident, actor, reason):
     """Descarta el incidente (falso positivo): levanta las restricciones preventivas y autoriza repetir lo retenido."""
-    _require_admin(actor, incident.user_id)
+    _require_admin(actor, incident.user_id, permission=admins.P_FRAUD_DECIDE)
     _require_active_incident(incident)
     reason = clean_text(reason)
     now = now_utc()
@@ -244,7 +246,7 @@ def suggested_sanction_days(user_id, exclude_incident_id=None):
 
 def confirm_fraud(incident, actor, reason, scopes, days):
     """Confirma el fraude (decisión humana) y aplica una sanción **temporal** con alcance y duración definidos."""
-    _require_admin(actor, incident.user_id)
+    _require_admin(actor, incident.user_id, permission=admins.P_FRAUD_DECIDE)
     _require_active_incident(incident)
     reason = clean_text(reason)
     scopes = sorted(set(scopes or ()))
@@ -290,7 +292,7 @@ def _lift(restriction, actor, reason, now=None):
 
 
 def lift_restriction(restriction, actor, reason):
-    _require_admin(actor, restriction.user_id)
+    _require_admin(actor, restriction.user_id, permission=admins.P_FRAUD_RESTRICTIONS)
     if restriction.status != c.RESTRICTION_ACTIVE:
         raise FraudAdminError('La restricción ya no está activa.')
     _lift(restriction, actor, clean_text(reason, maximum=300))
@@ -299,7 +301,7 @@ def lift_restriction(restriction, actor, reason):
 
 def review_hold(hold, actor, reason, *, authorize):
     """Autoriza (el cliente podrá repetir la operación con todas sus validaciones) o rechaza una operación retenida."""
-    _require_admin(actor, hold.user_id)
+    _require_admin(actor, hold.user_id, permission=admins.P_FRAUD_HOLDS)
     if hold.status != c.HOLD_HELD:
         raise FraudAdminError('Esta retención ya fue revisada o venció.')
     now = now_utc()

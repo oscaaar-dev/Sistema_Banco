@@ -31,7 +31,7 @@ def _parse_date_argument(name):
 
 
 def _client_access_denied():
-    if current_user.role not in ('CLIENTE','ADMINISTRADOR'):
+    if current_user.role not in ('CLIENTE','ADMINISTRADOR','ADMIN_GENERAL'):
         return _json({'error':'Este recurso está disponible únicamente para cuentas de cliente.'},403)
 
 

@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Cuentas administrativas · Norte{% endblock %}
+{% block crumb %}Administración / Cuentas administrativas{% endblock %}
+{% block content %}
+<div class="eyebrow dark">SEGURIDAD</div>
+<h1>Cuentas administrativas</h1>
+<p class="muted">Solo el Administrador General gestiona estas cuentas. Ningún cliente se promociona automáticamente: las cuentas nuevas las crea un Administrador General y la propia persona define su contraseña.</p>
+<p><a class="btn btn-primary" href="{{ url_for('main.admin_account_new') }}">Crear cuenta ADMINISTRADOR</a> ·
+   <a class="text-link" href="{{ url_for('main.admin_account_history') }}">Historial de cambios y actividad</a> ·
+   <a class="text-link" href="{{ url_for('main.admin') }}">Volver a administración</a></p>
+<article class="panel full-panel"><div class="table-wrap"><table>
+  <thead><tr><th>Usuario</th><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Permisos</th><th>Creada</th><th></th></tr></thead>
+  <tbody>{% for a in accounts %}
+    <tr><td>{{ a.username }}{% if a.id == current_user.id %} <small>(tú)</small>{% endif %}</td><td>{{ a.full_name }}</td><td>{{ a.email or '—' }}</td>
+      <td>{{ 'Administrador General' if a.role == 'ADMIN_GENERAL' else 'Administrador' }}</td>
+      <td><span class="fraud-badge{% if a.account_status != 'ACTIVA' %} fraud-INTERMEDIO{% endif %}">{{ a.account_status }}</span></td>
+      <td>{% if a.role == 'ADMIN_GENERAL' %}Todos{% else %}{{ permissions[a.id]|length }} de {{ catalog|length }}{% endif %}</td>
+      <td>{{ a.created_at.strftime('%d/%m/%Y') }}</td>
+      <td><a class="text-link" href="{{ url_for('main.admin_account_detail', user_id=a.id) }}">Ver</a></td></tr>
+  {% else %}<tr><td colspan="8" class="empty-state">No hay cuentas administrativas.</td></tr>{% endfor %}</tbody>
+</table></div></article>
+{% endblock %}

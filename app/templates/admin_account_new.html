@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Nueva cuenta administrativa · Norte{% endblock %}
+{% block crumb %}Administración / Cuentas administrativas / Nueva{% endblock %}
+{% block content %}
+<div class="eyebrow dark">SEGURIDAD</div>
+<h1>Crear cuenta ADMINISTRADOR</h1>
+<p class="muted fraud-note">La cuenta se crea <b>pendiente</b>. Se envía un enlace al correo indicado para que la propia persona defina su contraseña (tú no la conoces ni la ves).
+  Después deberás activar la cuenta. No existe un registro público de administradores y no se promocionan cuentas de clientes.</p>
+<article class="panel full-panel">
+  <form method="post" class="fraud-form" action="{{ url_for('main.admin_account_new') }}" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Nombre completo<input type="text" name="full_name" value="{{ form.get('full_name', '') }}" minlength="2" maxlength="100" required></label>
+    <label>Correo (también es la identidad de acceso)<input type="email" name="email" value="{{ form.get('email', '') }}" maxlength="254" required></label>
+    <fieldset><legend>Permisos iniciales (puedes cambiarlos después; sin permisos solo ve la vista general)</legend>
+      {% for code, label in catalog.items() %}<label class="fraud-check"><input type="checkbox" name="permisos" value="{{ code }}" {% if code in form.get('permisos', []) %}checked{% endif %}> {{ label }}</label><br>{% endfor %}
+    </fieldset>
+    <fieldset class="fraud-danger"><legend>Confirmación reforzada</legend>
+      <label>Tu contraseña<input type="password" name="password" autocomplete="current-password" required></label>
+      <label>Escribe el correo de la cuenta para confirmar<input type="text" name="confirmacion" autocomplete="off" required></label>
+    </fieldset>
+    <button class="btn btn-primary" type="submit">Crear y enviar enlace</button>
+    <a class="text-link" href="{{ url_for('main.admin_accounts') }}">Cancelar</a>
+  </form>
+</article>
+{% endblock %}

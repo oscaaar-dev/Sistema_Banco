@@ -11,6 +11,7 @@ from sqlalchemy import desc, func, or_
 from sqlalchemy.exc import IntegrityError
 from .. import fraud
 from ..models import db, User, LoginChallenge, LoginAttemptLimit, OperationChallenge, Account, BankCard, Beneficiary, Transaction, InteractionSession, OperationCapture, AuditLog, now_utc
+from ..services import admin_service as admins
 from ..services.banking_service import account_for, process_operation, process_internal_transfer, log, operation_risk_for
 from ..services.statement_service import MOVEMENT_TYPES, account_statement_pdf
 from ..services.email_service import EmailDeliveryError, send_login_code, send_operation_code
@@ -31,7 +32,7 @@ CAMERA_CONSENT_VERSION='2026-10-v2'
 CAMERA_KINDS=('transfer','payment','recharge','internal')
 
 def _home_for_role(user):
-    if user.role=='ADMINISTRADOR':
+    if user.role in admins.ADMIN_ROLES:
         return url_for('main.admin')
     if user.role=='SOPORTE':
         return url_for('main.support')
@@ -40,6 +41,15 @@ def _home_for_role(user):
 def _require_client():
     if current_user.role!='CLIENTE':
         abort(403)
+
+@bp.app_template_global('can')
+def _can(permission):
+    """Solo para mostrar u ocultar controles: la autorización real se vuelve a comprobar en el servidor en cada ruta."""
+    return current_user.is_authenticated and admins.has_permission(current_user,permission)
+
+@bp.app_template_global('is_general_admin')
+def _is_general_admin():
+    return current_user.is_authenticated and admins.is_general(current_user)
 
 def _camera_receipt_ok(kind,operation_key):
     """La cámara es obligatoria: hace falta haber aceptado el aviso vigente para esta operación concreta."""
@@ -329,6 +339,11 @@ def login():
         )).first()
         if user and user.check_password(request.form.get('password','')):
             _clear_login_failures(identifier)
+            if user.account_status!=admins.STATUS_ACTIVE:
+                log(user,'LOGIN_BLOCKED_BY_ACCOUNT_STATUS','SEGURIDAD',result='RECHAZADA')
+                db.session.commit()
+                flash('Esta cuenta no está habilitada. Contacta a la administración.','error')
+                return render_template('login.html'),403
             if fraud.access_restriction(user):
                 log(user,'LOGIN_BLOCKED_BY_RESTRICTION','SEGURIDAD',result='RECHAZADA')
                 db.session.commit()
@@ -463,6 +478,12 @@ def verify_login():
         else:
             db.session.delete(challenge)
             db.session.commit()
+            if user.account_status!=admins.STATUS_ACTIVE:          # pudo suspenderse mientras tenía un código pendiente
+                session.clear()
+                log(user,'LOGIN_BLOCKED_BY_ACCOUNT_STATUS','SEGURIDAD',result='RECHAZADA')
+                db.session.commit()
+                flash('Esta cuenta no está habilitada. Contacta a la administración.','error')
+                return redirect(url_for('main.login'))
             fraud.evaluate_access(user,fraud.EVENT_LOGIN_SUCCESS,ip_hash=_request_ip_hash('login-otp-ip'))
             if fraud.access_restriction(user):
                 session.clear()
@@ -1184,16 +1205,14 @@ def receipt(transaction_id):
     tx=Transaction.query.join(Account).filter(Transaction.id==transaction_id,Account.user_id==current_user.id).first_or_404()
     return render_template('receipt.html',tx=tx)
 @bp.route('/admin')
-@login_required
+@admins.requires()
 def admin():
-    if current_user.role!='ADMINISTRADOR': abort(403)
     sessions=InteractionSession.query.order_by(desc(InteractionSession.started_at)).limit(100).all()
     return render_template('admin.html',users=User.query.count(),operations=Transaction.query.count(),sessions=sessions,logs=AuditLog.query.order_by(desc(AuditLog.created_at)).limit(20).all())
 
 @bp.route('/admin/capturas')
-@login_required
+@admins.requires(admins.P_CAPTURES)
 def admin_captures():
-    if current_user.role!='ADMINISTRADOR': abort(403)
     captures=OperationCapture.query.order_by(desc(OperationCapture.created_at)).limit(100).all()
     log(current_user,'CAPTURE_LIST_VIEWED','PRIVACIDAD')
     db.session.commit()
@@ -1201,10 +1220,9 @@ def admin_captures():
     return Response(page,mimetype='text/html',headers={'Cache-Control':'no-store'})
 
 @bp.route('/admin/capturas/<int:capture_id>/imagen')
-@login_required
+@admins.requires(admins.P_CAPTURES)
 def admin_capture_image(capture_id):
-    # Las imágenes nunca tienen URL pública: solo se sirven a un administrador con sesión y quedan en la auditoría.
-    if current_user.role!='ADMINISTRADOR': abort(403)
+    # Las imágenes nunca tienen URL pública: solo se sirven a un administrador con sesión y permiso, y quedan en la auditoría.
     capture=db.session.get(OperationCapture,capture_id)
     if capture is None: abort(404)
     log(current_user,'CAPTURE_IMAGE_VIEWED','PRIVACIDAD')
@@ -1224,3 +1242,4 @@ def support():
 
 importlib.import_module('.recovery',__package__)  # registra /recuperar sobre este blueprint
 importlib.import_module('.fraud_admin',__package__)  # registra /admin/fraude sobre este blueprint
+importlib.import_module('.admin_accounts',__package__)  # registra /admin/cuentas y /admin/activar sobre este blueprint

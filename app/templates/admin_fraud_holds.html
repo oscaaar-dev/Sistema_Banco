@@ -12,7 +12,7 @@
     <tr><td>{{ h.id }}{% if h.incident_id %} · <a class="text-link" href="{{ url_for('main.fraud_incident', incident_id=h.incident_id) }}">incidente #{{ h.incident_id }}</a>{% endif %}</td>
       <td>{{ h.created_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ h.user.username if h.user else '—' }}</td><td>{{ h.kind }}</td><td>S/ {{ '{:,.2f}'.format(h.amount|float) }}</td>
       <td>{{ h.status }}</td><td>{{ h.expires_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ h.reason }}{% if h.review_reason %}<br><small>{{ h.review_reason }}</small>{% endif %}</td>
-      <td>{% if h.status == 'RETENIDA' and h.expires_at > now and h.user_id != current_user.id %}
+      <td>{% if h.status == 'RETENIDA' and h.expires_at > now and h.user_id != current_user.id and can('fraude.resolver_retenciones') %}
         <form method="post" class="fraud-form" action="{{ url_for('main.fraud_hold_authorize', hold_id=h.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="text" name="motivo" minlength="10" maxlength="300" required placeholder="Motivo (mín. 10)">
           <button class="btn btn-outline" type="submit">Autorizar</button></form>

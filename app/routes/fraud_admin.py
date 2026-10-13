@@ -2,7 +2,8 @@
 
 Seguridad (se comprueba en el servidor, no solo ocultando botones):
 
-* Solo el rol ``ADMINISTRADOR`` entra a cualquier ruta de este módulo (``SOPORTE`` y ``CLIENTE`` reciben 403, también en los POST).
+* Cada ruta exige un **permiso concreto** (``admins.requires``): ``ADMIN_GENERAL`` los tiene todos y un ``ADMINISTRADOR`` solo los que se le concedieron
+  (denegar por defecto). ``SOPORTE`` y ``CLIENTE`` reciben 403, también en los POST.
 * Todos los POST llevan CSRF (``CSRFProtect`` global) y se auditan; el servicio vuelve a comprobar el rol y que el administrador
   no actúe sobre su propio usuario.
 * Un cliente nunca ve ni modifica su nivel de riesgo, sus incidentes ni sus restricciones.
@@ -10,29 +11,18 @@ Seguridad (se comprueba en el servidor, no solo ocultando botones):
 """
 import re
 from datetime import date, datetime, time, timedelta
-from functools import wraps
 
 from flask import Response, abort, current_app, flash, redirect, render_template, request, url_for
-from flask_login import current_user, login_required
+from flask_login import current_user
 from sqlalchemy import desc
 
 from . import bp
 from ..fraud import anomaly, constants as c, export, metrics, service
+from ..services import admin_service as admins
 from ..fraud.service import FraudAdminError, FraudPermissionError
 from ..models import AuditLog, FraudIncident, FraudModelVersion, HeldOperation, RiskEvaluation, SecurityRestriction, db, now_utc
 
 PAGE_LIMIT = 100
-
-
-def admin_only(view):
-    """Exige sesión y rol ADMINISTRADOR. Se comprueba en cada petición, GET o POST."""
-    @wraps(view)
-    @login_required
-    def wrapper(*args, **kwargs):
-        if current_user.role != c.ADMIN_ROLE:
-            abort(403)
-        return view(*args, **kwargs)
-    return wrapper
 
 
 def _date_arg(name):
@@ -61,7 +51,7 @@ def _run(action, redirect_to):
 
 
 @bp.route('/admin/fraude')
-@admin_only
+@admins.requires(admins.P_FRAUD_VIEW)
 def fraud_dashboard():
     service.expire_stale()
     db.session.commit()
@@ -96,7 +86,7 @@ def fraud_dashboard():
 
 
 @bp.route('/admin/fraude/incidentes/<int:incident_id>')
-@admin_only
+@admins.requires(admins.P_FRAUD_VIEW)
 def fraud_incident(incident_id):
     incident = db.session.get(FraudIncident, incident_id) or abort(404)
     restrictions = (SecurityRestriction.query.filter_by(incident_id=incident.id)
@@ -115,7 +105,7 @@ def _incident_for_update(incident_id):
 
 
 @bp.route('/admin/fraude/incidentes/<int:incident_id>/investigar', methods=['POST'])
-@admin_only
+@admins.requires(admins.P_FRAUD_INVESTIGATE)
 def fraud_incident_investigate(incident_id):
     incident = _incident_for_update(incident_id)
     return _run(lambda: service.start_investigation(incident, current_user), url_for('main.fraud_incident', incident_id=incident_id)) \
@@ -123,7 +113,7 @@ def fraud_incident_investigate(incident_id):
 
 
 @bp.route('/admin/fraude/incidentes/<int:incident_id>/comentar', methods=['POST'])
-@admin_only
+@admins.requires(admins.P_FRAUD_INVESTIGATE)
 def fraud_incident_comment(incident_id):
     incident = _incident_for_update(incident_id)
     return _run(lambda: service.add_comment(incident, current_user, request.form.get('comentario')),
@@ -131,7 +121,7 @@ def fraud_incident_comment(incident_id):
 
 
 @bp.route('/admin/fraude/incidentes/<int:incident_id>/descartar', methods=['POST'])
-@admin_only
+@admins.requires(admins.P_FRAUD_DECIDE)
 def fraud_incident_discard(incident_id):
     incident = _incident_for_update(incident_id)
     outcome = _run(lambda: service.discard_incident(incident, current_user, request.form.get('motivo')),
@@ -142,7 +132,7 @@ def fraud_incident_discard(incident_id):
 
 
 @bp.route('/admin/fraude/incidentes/<int:incident_id>/confirmar', methods=['POST'])
-@admin_only
+@admins.requires(admins.P_FRAUD_DECIDE)
 def fraud_incident_confirm(incident_id):
     incident = _incident_for_update(incident_id)
     outcome = _run(lambda: service.confirm_fraud(incident, current_user, request.form.get('motivo'),
@@ -154,7 +144,7 @@ def fraud_incident_confirm(incident_id):
 
 
 @bp.route('/admin/fraude/restricciones')
-@admin_only
+@admins.requires(admins.P_FRAUD_VIEW)
 def fraud_restrictions():
     service.expire_stale()
     db.session.commit()
@@ -172,7 +162,7 @@ def fraud_restrictions():
 
 
 @bp.route('/admin/fraude/restricciones/<int:restriction_id>/levantar', methods=['POST'])
-@admin_only
+@admins.requires(admins.P_FRAUD_RESTRICTIONS)
 def fraud_restriction_lift(restriction_id):
     restriction = (SecurityRestriction.query.filter_by(id=restriction_id).with_for_update().first()) or abort(404)
     target = url_for('main.fraud_restrictions')
@@ -183,7 +173,7 @@ def fraud_restriction_lift(restriction_id):
 
 
 @bp.route('/admin/fraude/retenciones')
-@admin_only
+@admins.requires(admins.P_FRAUD_VIEW)
 def fraud_holds():
     service.expire_stale()
     db.session.commit()
@@ -201,23 +191,25 @@ def _review(hold_id, authorize):
 
 
 @bp.route('/admin/fraude/retenciones/<int:hold_id>/autorizar', methods=['POST'])
-@admin_only
+@admins.requires(admins.P_FRAUD_HOLDS)
 def fraud_hold_authorize(hold_id):
     return _review(hold_id, True)
 
 
 @bp.route('/admin/fraude/retenciones/<int:hold_id>/rechazar', methods=['POST'])
-@admin_only
+@admins.requires(admins.P_FRAUD_HOLDS)
 def fraud_hold_reject(hold_id):
     return _review(hold_id, False)
 
 
 @bp.route('/admin/fraude/exportar/<dataset>.csv')
-@admin_only
+@admins.requires(admins.P_FRAUD_EXPORT)
 def fraud_export(dataset):
-    """Descarga CSV (solo ADMINISTRADOR). Es de solo lectura sobre los datos, pero cada descarga queda auditada."""
+    """Descarga CSV (requiere ``fraude.exportar``; la auditoría exige además ``auditoria.consultar``). Cada descarga queda auditada."""
     if dataset not in export.DATASETS:
         abort(404)
+    if dataset == 'auditoria' and not admins.has_permission(current_user, admins.P_AUDIT):
+        abort(403)
     try:
         body, rows, truncated = export.build(dataset, request.args)
     except ValueError:
@@ -235,7 +227,7 @@ def fraud_export(dataset):
 
 
 @bp.route('/admin/fraude/modelos/<version>')
-@admin_only
+@admins.requires(admins.P_FRAUD_VIEW)
 def fraud_model(version):
     """Resultados de evaluación y trazabilidad de una versión del detector (solo lectura: la activación se hace por línea de órdenes)."""
     if not re.fullmatch(r'iforest(?:-[a-z]+)?-\d{14,20}', version):
@@ -245,7 +237,7 @@ def fraud_model(version):
 
 
 @bp.route('/admin/fraude/auditoria')
-@admin_only
+@admins.requires(admins.P_AUDIT)
 def fraud_audit():
     """Registro de auditoría de las acciones antifraude (decisiones, retenciones, modelos y descargas)."""
     start, end = _date_arg('desde'), _date_arg('hasta')

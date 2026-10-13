@@ -12,7 +12,7 @@
   <tbody>{% for r in restrictions %}
     <tr><td>{{ r.id }}</td><td>{{ r.user.username if r.user else '—' }}</td><td>{{ r.scope }}</td><td>{{ r.origin }}</td><td>{{ r.status }}</td>
       <td>{{ r.starts_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ r.expires_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ r.reason }}{% if r.lift_reason %}<br><small>Levantada: {{ r.lift_reason }}</small>{% endif %}</td>
-      <td>{% if r.status == 'ACTIVA' and r.expires_at > now and r.user_id != current_user.id %}
+      <td>{% if r.status == 'ACTIVA' and r.expires_at > now and r.user_id != current_user.id and can('fraude.gestionar_restricciones') %}
         <form method="post" class="fraud-form" action="{{ url_for('main.fraud_restriction_lift', restriction_id=r.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="text" name="motivo" minlength="10" maxlength="300" required placeholder="Motivo (mín. 10)">

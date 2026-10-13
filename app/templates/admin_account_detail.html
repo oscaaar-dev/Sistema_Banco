@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}{{ target.username }} · Norte{% endblock %}
+{% block crumb %}Administración / Cuentas administrativas / {{ target.username }}{% endblock %}
+{% block content %}
+<div class="eyebrow dark">SEGURIDAD</div>
+<h1>{{ target.full_name }}</h1>
+<p class="muted">Usuario <b>{{ target.username }}</b> · {{ target.email or '—' }} · Rol: <b>{{ 'Administrador General' if target.role == 'ADMIN_GENERAL' else 'Administrador' }}</b> ·
+  Estado: <span class="fraud-badge{% if target.account_status != 'ACTIVA' %} fraud-INTERMEDIO{% endif %}">{{ target.account_status }}</span>
+  {% if target.account_status == 'PENDIENTE' %}· Contraseña definida por la persona: <b>{{ 'sí' if target.password_changed_at else 'no todavía' }}</b>{% endif %}</p>
+<p><a class="text-link" href="{{ url_for('main.admin_accounts') }}">Volver a las cuentas</a></p>
+
+{% if is_self %}
+<p class="muted fraud-note">Esta es tu propia cuenta: no puedes cambiar tus permisos, tu estado ni revocar tus sesiones desde aquí (otro Administrador General debe hacerlo).</p>
+{% else %}
+<article class="panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">PERMISOS</div><h3>Qué puede hacer</h3></div></div>
+  {% if target.role == 'ADMIN_GENERAL' %}
+  <p>El Administrador General tiene todos los permisos por definición del rol.</p>
+  {% else %}
+  <form method="post" class="fraud-form" action="{{ url_for('main.admin_account_permissions', user_id=target.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <fieldset><legend>Permisos (denegar por defecto: lo no marcado no se puede hacer)</legend>
+      {% for code, label in catalog.items() %}<label class="fraud-check"><input type="checkbox" name="permisos" value="{{ code }}" {% if code in granted %}checked{% endif %}> {{ label }}</label><br>{% endfor %}
+    </fieldset>
+    <fieldset class="fraud-danger"><legend>Confirmación reforzada</legend>
+      <label>Tu contraseña<input type="password" name="password" autocomplete="current-password" required></label>
+      <label>Escribe «{{ target.username }}» para confirmar<input type="text" name="confirmacion" autocomplete="off" required></label>
+    </fieldset>
+    <button class="btn btn-outline" type="submit">Guardar permisos</button>
+  </form>
+  {% endif %}
+</article>
+
+<article class="panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">ESTADO Y SESIONES</div><h3>Activar, suspender o desactivar</h3></div></div>
+  <p class="muted fraud-note">Suspender o desactivar revoca de inmediato las sesiones abiertas. Desactivar es definitivo: para volver a dar acceso se crea una cuenta nueva. No se puede suspender ni desactivar al último Administrador General activo.</p>
+  <form method="post" class="fraud-form" action="{{ url_for('main.admin_account_status', user_id=target.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Acción<select name="accion" required>
+      {% for name, rule in actions.items() %}{% if target.account_status in rule[0] %}<option value="{{ name }}">{{ name.capitalize() }}</option>{% endif %}{% endfor %}
+    </select></label>
+    <label>Tu contraseña<input type="password" name="password" autocomplete="current-password" required></label>
+    <label>Escribe «{{ target.username }}»<input type="text" name="confirmacion" autocomplete="off" required></label>
+    <button class="btn btn-outline" type="submit">Aplicar</button>
+  </form>
+  <form method="post" class="fraud-form" action="{{ url_for('main.admin_account_sessions', user_id=target.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Tu contraseña<input type="password" name="password" autocomplete="current-password" required></label>
+    <label>Escribe «{{ target.username }}»<input type="text" name="confirmacion" autocomplete="off" required></label>
+    <button class="btn btn-outline" type="submit">Revocar todas las sesiones</button>
+  </form>
+  {% if target.account_status in ('ACTIVA', 'SUSPENDIDA') %}
+  <form method="post" class="fraud-form fraud-danger" action="{{ url_for('main.admin_account_reset', user_id=target.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <p class="muted fraud-note">Contraseña olvidada o cuenta comprometida: la cuenta pasa a pendiente, la contraseña anterior deja de servir, se cierran sus sesiones y la persona define una nueva desde un enlace por correo. Después debes activarla de nuevo.</p>
+    <label>Tu contraseña<input type="password" name="password" autocomplete="current-password" required></label>
+    <label>Escribe «{{ target.username }}»<input type="text" name="confirmacion" autocomplete="off" required></label>
+    <button class="btn btn-outline" type="submit">Restablecer acceso</button>
+  </form>
+  {% endif %}
+  {% if target.account_status == 'PENDIENTE' %}
+  <form method="post" class="fraud-form" action="{{ url_for('main.admin_account_resend', user_id=target.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Tu contraseña<input type="password" name="password" autocomplete="current-password" required></label>
+    <label>Escribe «{{ target.username }}»<input type="text" name="confirmacion" autocomplete="off" required></label>
+    <button class="btn btn-outline" type="submit">Reenviar enlace de activación</button>
+  </form>
+  {% endif %}
+</article>
+{% endif %}
+
+<article class="panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">HISTORIAL</div><h3>Cambios de esta cuenta</h3></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Fecha (UTC)</th><th>Quién</th><th>Acción</th><th>Detalle</th></tr></thead>
+    <tbody>{% for h in history %}<tr><td>{{ h.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td><td>{{ h.actor.username if h.actor else 'Sistema' }}</td><td>{{ h.action }}</td>
+      <td>{% for key, value in (h.detail or {}).items() %}{{ key }}: {{ value if value is not iterable or value is string else value|join(', ') }}{% if not loop.last %} · {% endif %}{% endfor %}</td></tr>
+    {% else %}<tr><td colspan="4" class="empty-state">Sin cambios registrados.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</article>
+{% endblock %}

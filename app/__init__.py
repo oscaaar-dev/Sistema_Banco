@@ -106,6 +106,11 @@ def create_app(config_overrides=None):
 
     @app.before_request
     def require_email_second_factor():
+        if current_user.is_authenticated and not current_user.is_active:
+            logout_user()
+            session.clear()
+            flash('Esta cuenta no está habilitada. Contacta a la administración.','error')
+            return redirect(url_for('main.login'))
         if current_user.is_authenticated and session.get('pwd_stamp','0')!=current_user.session_stamp():
             logout_user()
             session.clear()

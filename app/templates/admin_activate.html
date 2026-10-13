@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Activar cuenta administrativa · Norte{% endblock %}
+{% block auth_content %}
+{% include 'auth_header.html' %}
+{% from 'partials/auth_hero.html' import auth_hero %}
+{% from 'partials/password_fields.html' import password_block %}
+<main class="login-screen auth-login-screen">
+  {{ auth_hero('CUENTA ADMINISTRATIVA', 'Define tu<br>contraseña.', 'Usa 8 a 10 caracteres con mayúscula, minúscula, número y punto.') }}
+  <section class="login-panel auth-panel">
+    <div class="login-box">
+      <div class="login-mobile-brand"><span class="brand-mark">n</span> norte.</div>
+      {% if invalid %}
+      <div class="auth-form-heading"><span class="eyebrow dark">ENLACE NO DISPONIBLE</span><h2>No pudimos validar el enlace</h2><p class="muted">El enlace no es válido, ya se usó o venció. Pide a un Administrador General que te envíe uno nuevo.</p></div>
+      {% else %}
+      <div class="auth-form-heading"><span class="eyebrow dark">ACTIVACIÓN</span><h2>Elige tu contraseña</h2><p class="muted">Solo tú la conocerás. Para entrar necesitarás además el código que enviamos a tu correo.</p></div>
+      {% with messages=get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+      <form method="post" class="form-stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ password_block('adminact', password_failed) }}
+        <button class="btn btn-primary btn-full" type="submit">Guardar contraseña <i class="bi bi-arrow-right"></i></button>
+      </form>
+      {% endif %}
+      <p class="login-legal"><a class="text-link" href="{{ url_for('main.login') }}">Volver al inicio de sesión</a></p>
+    </div>
+  </section>
+</main>
+{% include 'partials/site_footer.html' %}
+{% endblock %}
