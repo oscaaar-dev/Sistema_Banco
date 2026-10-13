@@ -91,6 +91,14 @@ def _int_env(name, default, minimum=1):
         return default
 
 
+FRAUD_MODES=('off','shadow','enforce')
+
+def _fraud_mode():
+    """Modo del sistema de fraude. Cualquier valor desconocido se trata como «shadow» (observación): nunca activa medidas."""
+    value=os.getenv('FRAUD_MODE','shadow').strip().lower()
+    return value if value in FRAUD_MODES else 'shadow'
+
+
 class Config:
     APP_ENV=APP_ENV
     SECRET_KEY=SECRET_KEY or secrets.token_hex(32)
@@ -144,6 +152,24 @@ class Config:
     CONTACT_LOOKUP_RATE_LIMIT_USER=8
     CONTACT_LOOKUP_RATE_LIMIT_IP=20
     CONTACT_LOOKUP_RATE_LIMIT_WINDOW_SECONDS=600
+    # Detección de fraude (ver docs/fraude.md). «shadow» solo registra; «enforce» aplica medidas automáticas y hay que
+    # activarlo expresamente. Los umbrales son iniciales y NO están calibrados con datos reales etiquetados.
+    FRAUD_MODE=_fraud_mode()
+    FRAUD_RULES_VERSION='reglas-1.0'
+    FRAUD_LEVEL_INTERMEDIO=25              # puntuación a partir de la cual el nivel es INTERMEDIO
+    FRAUD_LEVEL_SOSPECHOSO=55              # ... y SOSPECHOSO (además exige al menos dos grupos de señales independientes)
+    FRAUD_LEVEL_SOSPECHOSO_LOW_CONFIDENCE=65   # con historial insuficiente se exige más para llegar a SOSPECHOSO
+    FRAUD_MIN_HISTORY=3                    # operaciones comparables mínimas para usar reglas basadas en el historial
+    FRAUD_FAILSAFE_MAX_AMOUNT=500          # si la evaluación falla en modo enforce, solo continúan operaciones hasta este monto (S/)
+    FRAUD_PREVENTIVE_ACCESS_MINUTES=30     # duración del bloqueo preventivo de acceso (siempre temporal)
+    FRAUD_HOLD_TTL_HOURS=72                # vigencia de una retención y de su autorización
+    FRAUD_MAX_SANCTION_DAYS=365            # una sanción administrativa nunca es permanente
+    FRAUD_SANCTION_DAYS_BY_RECIDIVISM=(7,30,90)   # sugerencia según incidentes CONFIRMADOS previos (las alertas no cuentan)
+    FRAUD_EVALUATION_RETENTION_DAYS=180
+    FRAUD_MODEL_ENABLED=True               # inferencia del detector de anomalías (solo observación; sin artefacto no hace nada)
+    FRAUD_MODEL_DIR=str(BASE_DIR/'instance'/'fraud_models')
+    FRAUD_MODEL_MIN_SAMPLES=200
+    INTERACTION_CLUSTER_MAX_SESSIONS=300   # K-Means exploratorio: solo las sesiones más recientes (antes se reprocesaban todas)
     # Nori (asistente de la web pública): sin servicios externos; límites por conexión (IP con hash).
     NORI_MAX_MESSAGE_CHARS=500
     NORI_RATE_LIMIT_MESSAGES=_int_env('NORI_RATE_LIMIT_MESSAGES',20)

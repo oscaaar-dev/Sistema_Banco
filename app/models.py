@@ -24,14 +24,21 @@ class User(UserMixin, db.Model):
     role=db.Column(db.String(20),nullable=False,default='CLIENTE')
     created_at=db.Column(db.DateTime,nullable=False,default=now_utc)
     password_changed_at=db.Column(db.DateTime,nullable=True)
+    sessions_revoked_at=db.Column(db.DateTime,nullable=True)
     accounts=db.relationship('Account',backref='owner',lazy=True,cascade='all, delete-orphan')
     beneficiaries=db.relationship('Beneficiary',backref='owner',lazy=True,cascade='all, delete-orphan')
     cards=db.relationship('BankCard',backref='holder',lazy=True,cascade='all, delete-orphan')
     def set_password(self,password): self.password_hash=generate_password_hash(password)
     def check_password(self,password): return check_password_hash(self.password_hash,password)
     def session_stamp(self):
-        """Marca de las credenciales vigentes; si cambia, las sesiones anteriores dejan de ser válidas."""
-        return self.password_changed_at.isoformat() if self.password_changed_at else '0'
+        """Marca de las credenciales vigentes; si cambia, las sesiones anteriores dejan de ser válidas.
+
+        Una revocación de sesiones por seguridad (``sessions_revoked_at``) añade un sufijo; mientras no exista, el sello es
+        idéntico al anterior y las sesiones ya emitidas siguen siendo válidas."""
+        stamp=self.password_changed_at.isoformat() if self.password_changed_at else '0'
+        if self.sessions_revoked_at:
+            stamp+='|r'+self.sessions_revoked_at.isoformat()
+        return stamp
 
 class LoginChallenge(db.Model):
     __tablename__='login_challenges'
@@ -239,6 +246,145 @@ class OperationRiskAssessment(db.Model):
     reasons=db.Column(db.JSON,nullable=False,default=list)
     method=db.Column(db.String(80),nullable=False,default='Reglas transparentes (no probabilidad)')
     created_at=db.Column(db.DateTime,nullable=False,default=now_utc)
+
+class RiskEvaluation(db.Model):
+    """Resultado de evaluar una operación o un evento de acceso. Es una **evaluación**, no un fraude ni una sanción.
+
+    ``level`` toma NORMAL, INTERMEDIO o SOSPECHOSO (o NO_EVALUADO si la evaluación falló). El motor nunca asigna FRAUDE: ese
+    nivel solo existe en un incidente confirmado por un administrador.
+    """
+    __tablename__='risk_evaluations'
+    id=db.Column(db.Integer,primary_key=True)
+    user_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True,index=True)
+    account_id=db.Column(db.Integer,db.ForeignKey('accounts.id',ondelete='SET NULL'),nullable=True)
+    transaction_id=db.Column(db.Integer,db.ForeignKey('transactions.id',ondelete='SET NULL'),nullable=True)
+    context=db.Column(db.String(20),nullable=False)           # TRANSFERENCIA, PAGO, RECARGA, TRASLADO_PROPIO o ACCESO
+    event=db.Column(db.String(30),nullable=False)             # OPERACION, LOGIN_FAILURE, LOGIN_OTP_FAILURE, LOGIN_SUCCESS
+    level=db.Column(db.String(14),nullable=False,index=True)
+    score=db.Column(db.Integer,nullable=False,default=0)
+    confidence=db.Column(db.String(12),nullable=False,default='SUFICIENTE')
+    signals=db.Column(db.JSON,nullable=False,default=list)
+    rules_version=db.Column(db.String(30),nullable=False)
+    model_version=db.Column(db.String(60),nullable=True)
+    model_score=db.Column(db.Float,nullable=True)
+    mode=db.Column(db.String(10),nullable=False)
+    recommended_action=db.Column(db.String(40),nullable=False)
+    applied_action=db.Column(db.String(40),nullable=False)
+    status=db.Column(db.String(10),nullable=False,default='OK')
+    error_code=db.Column(db.String(60),nullable=True)
+    duration_ms=db.Column(db.Float,nullable=True)
+    created_at=db.Column(db.DateTime,nullable=False,default=now_utc,index=True)
+    user=db.relationship('User')
+
+class FraudIncident(db.Model):
+    """Incidente investigable. ``status`` distingue abierto, en investigación, descartado y fraude confirmado."""
+    __tablename__='fraud_incidents'
+    id=db.Column(db.Integer,primary_key=True)
+    user_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True,index=True)
+    account_id=db.Column(db.Integer,db.ForeignKey('accounts.id',ondelete='SET NULL'),nullable=True)
+    evaluation_id=db.Column(db.Integer,db.ForeignKey('risk_evaluations.id',ondelete='SET NULL'),nullable=True)
+    origin=db.Column(db.String(12),nullable=False,default='AUTOMATICO')    # AUTOMATICO o MANUAL
+    category=db.Column(db.String(14),nullable=False)                       # TRANSACCIONAL o ACCESO
+    status=db.Column(db.String(16),nullable=False,default='ABIERTO',index=True)
+    level=db.Column(db.String(14),nullable=False,default='SOSPECHOSO')     # SOSPECHOSO o FRAUDE (solo si fue confirmado)
+    title=db.Column(db.String(200),nullable=False)
+    created_at=db.Column(db.DateTime,nullable=False,default=now_utc,index=True)
+    updated_at=db.Column(db.DateTime,nullable=False,default=now_utc)
+    confirmed_at=db.Column(db.DateTime,nullable=True)
+    confirmed_by_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True)
+    confirmation_reason=db.Column(db.String(500),nullable=True)
+    closed_at=db.Column(db.DateTime,nullable=True)
+    closed_by_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True)
+    closure_reason=db.Column(db.String(500),nullable=True)
+    user=db.relationship('User',foreign_keys=[user_id])
+    evaluation=db.relationship('RiskEvaluation')
+    events=db.relationship('IncidentEvent',backref='incident',lazy=True,cascade='all, delete-orphan',order_by='IncidentEvent.id')
+
+class IncidentEvent(db.Model):
+    """Historial inmutable de un incidente (quién hizo qué y cuándo). ``actor_id`` vacío significa «el sistema»."""
+    __tablename__='incident_events'
+    id=db.Column(db.Integer,primary_key=True)
+    incident_id=db.Column(db.Integer,db.ForeignKey('fraud_incidents.id',ondelete='CASCADE'),nullable=False,index=True)
+    actor_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True)
+    event_type=db.Column(db.String(40),nullable=False)
+    detail=db.Column(db.String(500),nullable=False,default='')
+    created_at=db.Column(db.DateTime,nullable=False,default=now_utc)
+    actor=db.relationship('User',foreign_keys=[actor_id])
+
+class SecurityRestriction(db.Model):
+    """Restricción con alcance y duración definidos. Nunca es permanente: ``expires_at`` es obligatorio."""
+    __tablename__='security_restrictions'
+    __table_args__=(db.Index('ix_security_restrictions_active','user_id','status','expires_at'),)
+    id=db.Column(db.Integer,primary_key=True)
+    user_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='CASCADE'),nullable=False)
+    incident_id=db.Column(db.Integer,db.ForeignKey('fraud_incidents.id',ondelete='SET NULL'),nullable=True)
+    scope=db.Column(db.String(14),nullable=False)                          # OPERACIONES o ACCESO
+    origin=db.Column(db.String(12),nullable=False)                         # PREVENTIVA (automática) o SANCION (administrativa)
+    status=db.Column(db.String(10),nullable=False,default='ACTIVA')       # ACTIVA, LEVANTADA o EXPIRADA
+    reason=db.Column(db.String(300),nullable=False)
+    starts_at=db.Column(db.DateTime,nullable=False,default=now_utc)
+    expires_at=db.Column(db.DateTime,nullable=False)
+    created_by_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True)
+    lifted_by_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True)
+    lifted_at=db.Column(db.DateTime,nullable=True)
+    lift_reason=db.Column(db.String(300),nullable=True)
+    rules_version=db.Column(db.String(30),nullable=True)
+    created_at=db.Column(db.DateTime,nullable=False,default=now_utc)
+    user=db.relationship('User',foreign_keys=[user_id])
+    created_by=db.relationship('User',foreign_keys=[created_by_id])
+    lifted_by=db.relationship('User',foreign_keys=[lifted_by_id])
+
+class HeldOperation(db.Model):
+    """Operación retenida **antes** de ejecutarse: no modifica saldos ni crea movimientos.
+
+    Si un administrador la autoriza, el cliente puede volver a confirmarla (con todas sus validaciones, OTP y cámara) y la
+    autorización se consume una sola vez.
+    """
+    __tablename__='held_operations'
+    id=db.Column(db.Integer,primary_key=True)
+    user_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='CASCADE'),nullable=False,index=True)
+    account_id=db.Column(db.Integer,db.ForeignKey('accounts.id',ondelete='CASCADE'),nullable=False)
+    evaluation_id=db.Column(db.Integer,db.ForeignKey('risk_evaluations.id',ondelete='SET NULL'),nullable=True)
+    incident_id=db.Column(db.Integer,db.ForeignKey('fraud_incidents.id',ondelete='SET NULL'),nullable=True)
+    kind=db.Column(db.String(20),nullable=False)
+    amount=db.Column(db.Numeric(12,2),nullable=False)
+    fingerprint=db.Column(db.String(64),nullable=False,index=True)         # HMAC de los datos de la operación (no la identifica fuera del sistema)
+    reason=db.Column(db.String(300),nullable=False)
+    status=db.Column(db.String(12),nullable=False,default='RETENIDA',index=True)   # RETENIDA, AUTORIZADA, RECHAZADA, EJECUTADA o EXPIRADA
+    created_at=db.Column(db.DateTime,nullable=False,default=now_utc,index=True)
+    expires_at=db.Column(db.DateTime,nullable=False)
+    reviewed_by_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True)
+    reviewed_at=db.Column(db.DateTime,nullable=True)
+    review_reason=db.Column(db.String(300),nullable=True)
+    transaction_id=db.Column(db.Integer,db.ForeignKey('transactions.id',ondelete='SET NULL'),nullable=True)
+    user=db.relationship('User',foreign_keys=[user_id])
+    reviewed_by=db.relationship('User',foreign_keys=[reviewed_by_id])
+
+class FraudModelVersion(db.Model):
+    """Registro de cada versión del detector de anomalías: origen, datos usados, métricas y estado.
+
+    Un entrenamiento siempre crea un ``CANDIDATO``. Pasa a ``ACTIVO`` solo con una activación explícita y validada; el CSV de
+    entrenamiento no se guarda aquí (solo su huella SHA-256 y los conteos), y nunca sustituye al modelo activo por sí mismo.
+    """
+    __tablename__='fraud_model_versions'
+    id=db.Column(db.Integer,primary_key=True)
+    version=db.Column(db.String(60),nullable=False,unique=True)
+    algorithm=db.Column(db.String(40),nullable=False,default='IsolationForest')
+    source=db.Column(db.String(20),nullable=False)                       # CSV o BASE_DE_DATOS
+    status=db.Column(db.String(12),nullable=False,default='CANDIDATO',index=True)   # CANDIDATO, ACTIVO, ARCHIVADO o RECHAZADO
+    trained_at=db.Column(db.DateTime,nullable=False,default=now_utc)
+    n_train=db.Column(db.Integer,nullable=False,default=0)
+    n_eval=db.Column(db.Integer,nullable=False,default=0)
+    features=db.Column(db.JSON,nullable=False,default=list)
+    metrics=db.Column(db.JSON,nullable=False,default=dict)
+    validation=db.Column(db.JSON,nullable=False,default=dict)             # informe de validación de los datos de entrada
+    data_sha256=db.Column(db.String(64),nullable=True)
+    sklearn_version=db.Column(db.String(20),nullable=False)
+    python_version=db.Column(db.String(10),nullable=False)
+    created_by_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True)
+    activated_at=db.Column(db.DateTime,nullable=True)
+    activated_by_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True)
+    notes=db.Column(db.String(300),nullable=True)
 
 class Report(db.Model):
     __tablename__='reports'

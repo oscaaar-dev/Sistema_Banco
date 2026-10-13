@@ -9,6 +9,7 @@ from flask import Blueprint, Response, current_app, render_template, request, re
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import desc, func, or_
 from sqlalchemy.exc import IntegrityError
+from .. import fraud
 from ..models import db, User, LoginChallenge, LoginAttemptLimit, OperationChallenge, Account, BankCard, Beneficiary, Transaction, InteractionSession, OperationCapture, AuditLog, now_utc
 from ..services.banking_service import account_for, process_operation, process_internal_transfer, log, operation_risk_for
 from ..services.statement_service import MOVEMENT_TYPES, account_statement_pdf
@@ -99,7 +100,7 @@ def _login_is_blocked(identifier):
         db.session.commit()
     return False
 
-def _record_failed_login(identifier):
+def _record_failed_login(identifier,user=None):
     key=_login_attempt_hash(identifier)
     now=now_utc()
     for _ in range(2):
@@ -115,7 +116,7 @@ def _record_failed_login(identifier):
             attempt.failure_count+=1
         if attempt.failure_count>=LOGIN_FAILURE_LIMIT:
             attempt.locked_until=now+LOGIN_LOCK_DURATION
-        log(None,'LOGIN_FAILURE','SEGURIDAD',result='RECHAZADA')
+        log(user,'LOGIN_FAILURE','SEGURIDAD',result='RECHAZADA')    # con usuario cuando el identificador existe
         try:
             db.session.commit()
             return
@@ -328,6 +329,12 @@ def login():
         )).first()
         if user and user.check_password(request.form.get('password','')):
             _clear_login_failures(identifier)
+            if fraud.access_restriction(user):
+                log(user,'LOGIN_BLOCKED_BY_RESTRICTION','SEGURIDAD',result='RECHAZADA')
+                db.session.commit()
+                flash('Tu acceso está restringido temporalmente por seguridad. Intenta más tarde o contacta a soporte. '
+                      'Puedes recuperar tu contraseña desde «¿Olvidaste tu contraseña?».','error')
+                return render_template('login.html'),403
             if not user.email:
                 flash('Esta cuenta no tiene un correo de seguridad configurado. Contacta a la administración.','error')
                 return redirect(url_for('main.login'))
@@ -343,7 +350,8 @@ def login():
             else:
                 flash('Enviamos un código de seguridad al correo registrado.','success')
             return redirect(url_for('main.verify_login'))
-        _record_failed_login(identifier)
+        _record_failed_login(identifier,user)
+        fraud.evaluate_access(user,fraud.EVENT_LOGIN_FAILURE,ip_hash=_request_ip_hash('login-otp-ip'))
         flash('Usuario o clave incorrectos.','error')
     return render_template('login.html')
 
@@ -440,18 +448,26 @@ def verify_login():
             challenge.code_hash,_login_code_hash(user.id,code)
         ):
             challenge.attempts+=1
+            log(user,'LOGIN_OTP_FAILURE','SEGURIDAD',result='RECHAZADA')      # antes solo se contaba, sin dejar registro
             attempts_left=max(0,current_app.config['LOGIN_CODE_MAX_ATTEMPTS']-challenge.attempts)
             if attempts_left==0:
                 db.session.delete(challenge)
                 db.session.commit()
+                fraud.evaluate_access(user,fraud.EVENT_LOGIN_OTP_FAILURE,ip_hash=_request_ip_hash('login-otp-ip'))
                 session.pop('pending_login_user_id',None)
                 flash('Se agotaron los intentos. Vuelve a ingresar tus credenciales para solicitar otro código.','error')
                 return redirect(url_for('main.login'))
             db.session.commit()
+            fraud.evaluate_access(user,fraud.EVENT_LOGIN_OTP_FAILURE,ip_hash=_request_ip_hash('login-otp-ip'))
             flash(f'Código incorrecto. Te quedan {attempts_left} intentos.','error')
         else:
             db.session.delete(challenge)
             db.session.commit()
+            fraud.evaluate_access(user,fraud.EVENT_LOGIN_SUCCESS,ip_hash=_request_ip_hash('login-otp-ip'))
+            if fraud.access_restriction(user):
+                session.clear()
+                flash('Tu acceso está restringido temporalmente por seguridad. Intenta más tarde o contacta a soporte.','error')
+                return redirect(url_for('main.login'))
             session.clear()
             login_user(user)
             session.permanent=True
@@ -568,6 +584,7 @@ def deposit(account_id):
              .with_for_update().first_or_404())
     key=request.form.get('idempotency_key','').strip()
     try:
+        fraud.guard_operations(current_user)
         if not re.fullmatch(DEPOSIT_KEY_PATTERN,key):
             raise ValueError('El formulario venció. Recarga la página e inténtalo de nuevo.')
         previous=Transaction.query.filter_by(account_id=account.id,idempotency_key=key).first()
@@ -1206,3 +1223,4 @@ def support():
     return render_template('support.html',accounts=Account.query.count(),operations=Transaction.query.count(),events=events)
 
 importlib.import_module('.recovery',__package__)  # registra /recuperar sobre este blueprint
+importlib.import_module('.fraud_admin',__package__)  # registra /admin/fraude sobre este blueprint
