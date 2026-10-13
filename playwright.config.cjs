@@ -26,7 +26,8 @@ module.exports = defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: `${python} run.py`,
+    // Igual que run.py, más cuentas administrativas de PRUEBA en la base en memoria (e2e/support/serve_e2e.py).
+    command: `${python} e2e/support/serve_e2e.py`,
     env: {
       ...process.env,
       APP_ENV: 'testing',

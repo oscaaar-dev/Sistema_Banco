@@ -2,17 +2,24 @@
 from datetime import timedelta
 from decimal import Decimal
 
-from app.models import Account, AuditLog, Beneficiary, Transaction, User, db, now_utc
+from app.models import Account, AdminPermission, AuditLog, Beneficiary, Transaction, User, db, now_utc
+from app.services.admin_service import PERMISSIONS
 
 PASSWORD = 'Clave-De-Prueba-1!'
 
 
-def make_client(username, dni, number, balance='1000.00', role='CLIENTE', email=None):
-    """Crea un usuario con una cuenta activa. Devuelve (user_id, account_id)."""
-    user = User(username=username, full_name=f'Cliente {username}', dni=dni, email=email or f'{username}@example.test', role=role)
+def make_client(username, dni, number, balance='1000.00', role='CLIENTE', email=None, permissions=None, status='ACTIVA'):
+    """Crea un usuario con una cuenta activa. Devuelve (user_id, account_id).
+
+    Un ADMINISTRADOR recibe **todos** los permisos por defecto (así las pruebas antifraude existentes siguen cubriendo el flujo completo);
+    ``permissions=()`` crea uno sin permisos y ``permissions=(...)`` uno con permisos concretos. ADMIN_GENERAL no necesita filas."""
+    user = User(username=username, full_name=f'Cliente {username}', dni=dni, email=email or f'{username}@example.test', role=role, account_status=status)
     user.set_password(PASSWORD)
     db.session.add(user)
     db.session.flush()
+    if role == 'ADMINISTRADOR':
+        for code in (PERMISSIONS if permissions is None else permissions):
+            db.session.add(AdminPermission(user_id=user.id, permission=code))
     account = Account(user_id=user.id, account_type='Cuenta de ahorros', number=number, balance=Decimal(balance))
     db.session.add(account)
     db.session.commit()

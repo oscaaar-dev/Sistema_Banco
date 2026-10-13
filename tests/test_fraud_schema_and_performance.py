@@ -60,10 +60,12 @@ def test_the_migration_is_additive_and_has_a_single_head():
     config = Config(str(root / 'alembic.ini'))
     config.set_main_option('script_location', str(root / 'migrations'))
     script = ScriptDirectory.from_config(config)
-    assert script.get_heads() == ['f7a1c4d9e620']
-    source = (root / 'migrations' / 'versions' / 'f7a1c4d9e620_add_fraud_detection.py').read_text(encoding='utf-8')
-    upgrade = source.split('def upgrade')[1].split('def downgrade')[0]
-    assert 'drop_' not in upgrade and 'alter_column' not in upgrade and 'execute(' not in upgrade     # nada destructivo ni de datos
+    assert script.get_heads() == ['b6e2a9c15d37']                   # la cabeza actual es la de roles administrativos (encadenada tras la antifraude)
+    assert script.get_revision('b6e2a9c15d37').down_revision == 'f7a1c4d9e620'
+    for name in ('f7a1c4d9e620_add_fraud_detection.py', 'b6e2a9c15d37_add_admin_roles.py'):
+        source = (root / 'migrations' / 'versions' / name).read_text(encoding='utf-8')
+        upgrade = source.split('def upgrade')[1].split('def downgrade')[0]
+        assert 'drop_' not in upgrade and 'alter_column' not in upgrade and 'execute(' not in upgrade     # nada destructivo ni de datos
 
 
 # ───────── Rendimiento acotado ─────────
