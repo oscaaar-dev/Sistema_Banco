@@ -778,3 +778,53 @@ def test_a_failed_reset_email_changes_nothing(world, monkeypatch):
         target = user(world, 'admin')
         assert target.account_status == 'ACTIVA' and target.check_password(PASSWORD) and AdminChangeLog.query.filter_by(action='ACCESO_RESTABLECIDO').count() == 0
     assert world['clients']['admin'].get('/admin').status_code == 200                                                    # su sesión sigue valiendo
+
+
+# ───────── 14. La migración corresponde al código ─────────
+
+ROLE_TABLES = ('admin_permissions', 'admin_change_log', 'admin_activation_tokens')
+
+
+def test_the_roles_migration_matches_the_models_defaults_existing_users_to_active_and_reverts_cleanly(monkeypatch):
+    """Migración frente a modelos (estructura exacta), usuarios previos y reversibilidad, en una base desechable en memoria."""
+    from pathlib import Path
+    from alembic import command
+    from alembic.config import Config
+    from sqlalchemy import create_engine, inspect, text
+    monkeypatch.setenv('APP_ENV', 'testing')
+    monkeypatch.setenv('MIGRATION_DATABASE_URL', 'sqlite:///:memory:')
+    root = Path(__file__).resolve().parents[1]
+    config = Config(str(root / 'alembic.ini'))
+    config.set_main_option('script_location', str(root / 'migrations'))
+    engine = create_engine('sqlite:///:memory:')
+    with engine.begin() as connection:
+        config.attributes['connection'] = connection
+        command.upgrade(config, 'f7a1c4d9e620')                                                 # estado de staging antes de esta migración
+        connection.execute(text("insert into users (username, full_name, password_hash, role, created_at, is_seed) values ('previo', 'Usuario Previo', 'x', 'CLIENTE', '2026-01-01 00:00:00', 0)"))
+        command.upgrade(config, 'b6e2a9c15d37')
+        inspector = inspect(connection)
+        assert connection.execute(text("select account_status from users where username = 'previo'")).scalar() == 'ACTIVA'      # nadie queda sin acceso ni se promociona
+        assert connection.execute(text("select role from users where username = 'previo'")).scalar() == 'CLIENTE'
+        for name in ROLE_TABLES:
+            table = db.metadata.tables[name]
+            migrated = {column['name']: column for column in inspector.get_columns(name)}
+            assert set(migrated) == {column.name for column in table.columns}, name
+            for column in table.columns:
+                assert migrated[column.name]['nullable'] == column.nullable, (name, column.name)
+            indexed = {tuple(index['column_names']) for index in inspector.get_indexes(name)}
+            assert all(tuple(column.name for column in index.columns) in indexed for index in table.indexes), name
+            uniques = {tuple(unique['column_names']) for unique in inspector.get_unique_constraints(name)}
+            assert all(tuple(column.name for column in constraint.columns) in uniques for constraint in table.constraints if constraint.__class__.__name__ == 'UniqueConstraint'), name
+            foreign = {(tuple(fk['constrained_columns']), fk['referred_table'], (fk.get('options') or {}).get('ondelete')) for fk in inspector.get_foreign_keys(name)}
+            assert all((tuple(column.name for column in fk.columns), list(fk.elements)[0].column.table.name, fk.ondelete) in foreign for fk in table.foreign_key_constraints), name
+        status = {column['name']: column for column in inspector.get_columns('users')}['account_status']
+        assert status['nullable'] is False
+        command.downgrade(config, 'f7a1c4d9e620')                                                 # reversible: solo deshace lo de roles
+        inspector = inspect(connection)
+        assert not set(ROLE_TABLES) & set(inspector.get_table_names())
+        assert 'account_status' not in {column['name'] for column in inspector.get_columns('users')}
+        assert 'risk_evaluations' in inspector.get_table_names() and 'fraud_incidents' in inspector.get_table_names()         # el antifraude queda intacto
+        assert connection.execute(text("select count(*) from users where username = 'previo'")).scalar() == 1               # los datos previos se conservan
+        command.upgrade(config, 'b6e2a9c15d37')                                                   # y se puede volver a subir
+        assert connection.execute(text("select account_status from users where username = 'previo'")).scalar() == 'ACTIVA'
+    engine.dispose()
