@@ -3,9 +3,14 @@
 Fecha de cierre: 2026-10-12. Rama local `feature/fraude-detector` (worktree `fraud-worktree`), `HEAD` = `origin/main` (`a6d3dd1`), **sin commits**.
 Todos los datos y etiquetas son **sintéticos**: ninguna cifra de este informe demuestra eficacia contra fraude bancario real.
 
+> **Actualización del 2026-10-13.** Este informe describe el cierre del 2026-10-12, previo a la publicación. Desde entonces: el trabajo se publicó en la rama `feature/fraude-detector` (commit `18519ea`) y el PR #7 se fusionó en
+> `main` (`3e47b6c`); Railway desplegó staging automáticamente y `web` quedó caído porque faltaba la migración; se aplicó `f7a1c4d9e620` en staging con copia de seguridad previa y el servicio volvió a responder.
+> **Producción no se ha tocado.** El estado vigente por entorno está en `docs/despliegue-antifraude.md` y en el apartado 14 de `docs/fraude.md`. Donde este informe diga «nada desplegado» o
+> «migración sin aplicar», se refiere al 2026-10-12.
+
 ## 1. Estado en una línea
 Dataset, tres modelos candidatos, informes, panel, exportaciones y documentación entregados y verificados. **No existe ningún modelo activo y el sistema permanece
-en modo `shadow`.** Nada publicado, nada desplegado, ninguna migración aplicada.
+en modo `shadow`.** A fecha 2026-10-12: nada publicado, nada desplegado, ninguna migración aplicada (ver la actualización anterior).
 
 ## 2. Archivos generados (rutas exactas)
 Base: la raíz del worktree `fraud-worktree`. Todas las rutas de este informe son relativas a ella, salvo las evidencias E2E, que están fuera del repositorio.
@@ -64,7 +69,7 @@ Cambios en pruebas ajenas al antifraude: únicamente un tiempo límite explícit
 ## 7. Restricciones cumplidas
 * `data/` no inspeccionada ni modificada (ningún comando se ejecutó contra ella; el código rechaza esa ruta y hay pruebas que lo verifican).
 * Sin commits, push, merge, publicación ni despliegues. Única consulta externa: `git ls-remote` de solo lectura para comprobar que no existe rama remota de fraude.
-* Sin migraciones sobre bases existentes o compartidas (SQLite en memoria o bases temporales nuevas). La migración `f7a1c4d9e620` sigue sin aplicarse en ningún entorno.
+* Sin migraciones sobre bases existentes o compartidas (SQLite en memoria o bases temporales nuevas). A fecha 2026-10-12 la migración `f7a1c4d9e620` no estaba aplicada en ningún entorno (ya lo está en staging; ver la actualización del 2026-10-13).
 * Sin datos bancarios reales. Sin sanciones permanentes automáticas. `.gitignore` y `.railwayignore` sin tocar.
 * Cambios existentes conservados: 13 archivos modificados y 29 elementos sin seguimiento; `git diff --check` limpio.
 * Nota: el reflog del worktree contiene una entrada `reset: moving to HEAD` cuyo origen no he podido atribuir; no es un commit y todos los cambios siguen presentes.

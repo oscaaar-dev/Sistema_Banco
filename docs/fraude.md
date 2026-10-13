@@ -310,25 +310,31 @@ mínimos), `test_fraud_model.py` (validación del CSV, división temporal, etiqu
 (flujo real con OTP y cámara) `test_fraud_schema_and_performance.py` (migración frente a modelos y coste acotado), `test_fraud_events_dataset.py` (generación, esquema, cada validación del dataset, no sobrescritura), `test_fraud_event_training.py` (esquema estricto, división cronológica, ausencia de fugas, métricas indefinidas, reproducibilidad, carga de candidatos, CLI), `test_fraud_panel_models_audit.py` (detalle de modelo y auditoría: permisos, filtros, escape) y `test_fraud_robustness.py` (puntuaciones no finitas, modelo roto, datos extremos o ausentes, el modelo nunca decide solo, conciliación contable en `off`, `shadow` y `enforce`). Todas con SQLite en memoria o archivos
 temporales y datos sintéticos.
 
-## 14. Pasos manuales pendientes antes de un despliegue (nada de esto se ha hecho)
-**Estado actual, verificado solo en local:**
-* **Ningún modelo está activo.** Los tres candidatos (`iforest-tx-…`, `iforest-acc-…` e `iforest-…`) están registrados como candidatos y sin activar; el detector responde
-  `sin_modelo_activo` y no existe ningún puntero `current.txt`. Los dos candidatos por tipo de evento ni siquiera superan la puerta de características; el clásico las supera,
-  pero la activación solo se hace por orden expresa de una persona.
-* **El modo por defecto en local es `shadow`** (`config.py`: cualquier valor ausente o desconocido de `FRAUD_MODE` se trata como `shadow`).
-* **La variable `FRAUD_MODE` de Railway NO se ha verificado**: no se accedió a Railway ni a ninguna variable remota. Hasta comprobarla, no debe asumirse el modo de staging.
-* La migración `f7a1c4d9e620` no se ha aplicado en ningún entorno.
+## 14. Estado por entorno y pasos pendientes (detalle y procedimiento en `docs/despliegue-antifraude.md`)
+**Estado verificado el 2026-10-13:**
+* **Staging (Railway, proyecto `Norte-staging`, entorno `staging`):** la migración `f7a1c4d9e620` **está aplicada** (Alembic `e5b2c7d91a40` → `f7a1c4d9e620`, 26 tablas) y
+  `web` responde (despliegue en `SUCCESS`). `FRAUD_MODE=shadow` está configurado de forma explícita. Fue necesario aplicarla *después* del despliegue automático, que
+  había dejado `web` caído: ver «Lección» en `docs/despliegue-antifraude.md`.
+* **Producción:** el entorno `production` del proyecto no tiene servicios. **No se ha aplicado ninguna migración ni se ha desplegado nada.**
+* **Ningún modelo está activo** en ningún entorno. Los tres candidatos están registrados como candidatos y sin activar; el detector responde `sin_modelo_activo`. Los dos
+  candidatos por tipo de evento no superan la puerta de características; el clásico las supera, pero la activación solo se hace por orden expresa de una persona.
+* **Modo efectivo:** `shadow` (local por defecto, y explícito en staging).
+* **Compatibilidad con Railway:** el entrenamiento se ejecutó dentro del contenedor de staging (Python 3.13.15, scikit-learn 1.7.0, numpy 2.2.6, pandas 2.3.0) y dio las mismas
+  matrices de confusión y la misma huella de resultados (`a563e7f7…`) que en local con Python 3.12. Los artefactos `.joblib` entrenados con 3.12 **no** se aceptan en 3.13 (la
+  puerta de activación lo impide), por eso **no se versionan**: se reentrenan en el entorno de destino con `fraud-train-events`.
 
-1. **Revisar y aplicar la migración `f7a1c4d9e620` a la base de Railway staging con autorización expresa**, *antes* de desplegar el código: la aplicación se
-   detiene al arrancar si el esquema no coincide. Fusionar a `main` despliega solo en staging, así que la migración debe ir primero. Es aditiva y reversible.
+**Pasos pendientes:**
+1. **Producción:** aplicar la migración `f7a1c4d9e620` con autorización expresa, **antes** de fusionar o desplegar nada que la necesite: `web` se despliega solo al fusionar a `main`
+   (en staging ya ocurre así, sin esperar a CI) y se detiene al arrancar si el esquema no coincide. La migración es aditiva y reversible; ver el procedimiento y la reversión.
 2. Verificar en Railway: `APP_ENV`, `SECRET_KEY` estable y compartida entre workers, y la confianza en `X-Real-IP` (apartado 9 de `docs/seguridad-arquitectura.md`).
 3. Desplegar con `FRAUD_MODE=shadow` (el valor por defecto) y observar. El sistema de archivos de Railway es efímero: `instance/fraud_models` se pierde al
    redeplegar; el modelo se vuelve a entrenar y activar con los comandos (sin modelo, el motor funciona solo con reglas). Entrenar en el mismo entorno (Python 3.13).
 4. Probar con Gunicorn y dos workers: cada proceso carga su copia del modelo y mantiene su propia caché; el estado de restricciones y retenciones vive en la base.
 5. Decidir con evidencia la salida del modo de observación antes de activar `enforce`. Mantener la reversión: `FRAUD_MODE=shadow` y `fraud-model-deactivate`.
 6. Sin notificaciones al cliente: no hay aviso por correo cuando se retiene una operación o se restringe el acceso (el mensaje solo se muestra en pantalla).
-7. Decidir si `datasets_sinteticos/` (dataset, informe y artefactos `joblib` de los candidatos) se versiona o se conserva fuera de Git; hoy son archivos sin seguimiento
-   y no se ha tocado `.gitignore`. Los artefactos no se reutilizan en otro entorno: se reentrenan allí.
+7. `datasets_sinteticos/` se versiona solo en parte: el CSV, su manifiesto y los informes de evaluación (con la ruta local redactada) están en Git; los artefactos `joblib` y
+   sus metadatos **no** (`.gitignore`), porque dependen de la versión de Python y scikit-learn y no se reutilizan en otro entorno: se reentrenan allí. `.gitattributes`
+   conserva el CSV byte a byte en Windows para que su SHA-256 no cambie.
 8. Para poder activar un modelo por tipo de evento hay que ampliar antes la inferencia (`anomaly.vector_from_features`) con las mismas variables y volver a evaluar.
 
 ## 15. Limitaciones conocidas
