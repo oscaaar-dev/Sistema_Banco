@@ -5,12 +5,10 @@
 #}
 {% extends 'base.html' %}
 {% block head_css %}
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/admin.css',v='admin-3') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/admin.css',v='admin-6') }}">
 {% endblock %}
 {% block head_extra %}
   <meta name="robots" content="noindex,nofollow">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&display=swap" rel="stylesheet">
 {% endblock %}
 {% block body_class %}adm-body{% endblock %}
 {% block shell %}
@@ -25,9 +23,16 @@
   {% include 'partials/admin_sidebar.html' %}
   <div class="adm-overlay" data-adm-overlay aria-hidden="true"></div>
   <main class="adm-main" id="contenido" tabindex="-1">
-    <nav class="adm-crumb" aria-label="Ruta de navegación">
-      <ol><li>Norte</li><li aria-current="page">{% block crumb %}Administración{% endblock %}</li></ol>
-    </nav>
+    <div class="adm-topline">
+      <nav class="adm-crumb" aria-label="Ruta de navegación">
+        <ol><li>Norte</li><li aria-current="page">{% block crumb %}Administración{% endblock %}</li></ol>
+      </nav>
+      <div class="adm-whoami">
+        <span class="adm-chip {% if config.FRAUD_MODE == 'off' %}is-off{% elif config.FRAUD_MODE != 'shadow' %}is-enforce{% endif %}">Motor en modo {{ config.FRAUD_MODE }}</span>
+        <span class="adm-avatar" aria-hidden="true">{{ current_user.full_name[:1]|upper }}</span>
+        <span class="adm-whoami-text" aria-hidden="true"><strong>{{ current_user.full_name }}</strong><span>{% if current_user.role == 'ADMIN_GENERAL' %}Administrador General{% else %}Administrador{% endif %}</span></span>
+      </div>
+    </div>
     {% with messages=get_flashed_messages(with_categories=true) %}
       {% if messages %}<div class="adm-flashes">{% for category,message in messages %}<div class="flash {{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</div>{% endfor %}</div>{% endif %}
     {% endwith %}

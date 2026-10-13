@@ -98,7 +98,7 @@ El área administrativa tiene su propio layout y su propia hoja de estilos; no r
 
 * **Layout:** `app/templates/admin_base.html` (extiende `base.html` solo para el `<head>` común). Lo usan el dashboard, fraude, capturas y cuentas administrativas, y también las páginas de error (403/404/500) cuando un administrador está dentro de `/admin*`.
   Las páginas públicas, el acceso, `/admin/activar/<token>` y toda la banca personal siguen con el armazón de `base.html` (se comprobó que su HTML no cambió).
-* **Estilos y comportamiento:** `app/static/css/admin.css` (tokens `--adm-*`, todo acotado a `.adm-app`; solo se carga en `/admin*`) y `app/static/js/admin.js` (menú móvil accesible y tablas apiladas en pantallas estrechas; sin JavaScript todo sigue funcionando).
+* **Estilos y comportamiento:** `app/static/css/admin.css` (estilo clásico y minimalista con la paleta de marca de Norte: tinta `#0c0818`, violeta `#6d3bd2`, lila `#e4dcf8`, lienzo `#f4f2f9`; tipografías Poppins e Inter ya cargadas por el proyecto; tokens `--adm-*`, todo acotado a `.adm-app`; solo se carga en `/admin*`) y `app/static/js/admin.js` (menú móvil accesible y tablas apiladas en pantallas estrechas; sin JavaScript todo sigue funcionando).
 * **Componentes:** `app/templates/partials/admin_sidebar.html` (navegación; cada enlace aparece solo con el permiso que su ruta exige) y `partials/admin_ui.html` (`page_header`, `metric`, `tile`, `badge`).
 * **Datos:** el dashboard no inventa cifras. Reutiliza `metrics.summary(7)` (el mismo resumen de `/admin/fraude`) solo para quien tiene `fraude.consultar`; sin permiso o sin dato muestra «No disponible».
   «Sesiones registradas» son las 100 más recientes: el sistema no distingue sesiones activas.

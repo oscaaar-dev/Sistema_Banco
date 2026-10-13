@@ -1,5 +1,5 @@
 {% extends 'admin_base.html' %}
-{% from 'partials/admin_ui.html' import page_header, metric, tile %}
+{% from 'partials/admin_ui.html' import page_header, metric, tile, bars %}
 {% block title %}Centro de control · Norte{% endblock %}
 {% block crumb %}Administración{% endblock %}
 {% block content %}
@@ -40,6 +40,24 @@
   <div><span>Usuarios</span><strong>{{ users }}</strong></div>
   <div><span>Operaciones</span><strong>{{ operations }}</strong></div>
 </div>
+
+{# Distribuciones de los últimos 7 días: mismos datos del resumen antifraude; solo se muestran a quien puede consultarlos. #}
+{% if fraud_summary %}
+{% set lv = fraud_summary.by_level %}{% set st = fraud_summary.incidents_by_status %}
+<section class="adm-split" aria-label="Distribución de los últimos {{ fraud_summary.days }} días">
+  <article class="panel">
+    <div class="panel-head"><div><div class="eyebrow dark">ÚLTIMOS {{ fraud_summary.days }} DÍAS</div><h3>Evaluaciones por nivel</h3></div></div>
+    {% if fraud_summary.total %}{{ bars([('Normal', lv.get('NORMAL', 0), 'is-ok'), ('Intermedio', lv.get('INTERMEDIO', 0), 'is-warn'), ('Sospechoso', lv.get('SOSPECHOSO', 0), 'is-alert'), ('Fraude', lv.get('FRAUDE', 0), 'is-alert'), ('No evaluadas', lv.get('NO_EVALUADO', 0), 'is-info')], fraud_summary.total) }}
+    {% else %}<p class="empty-state">Todavía no hay evaluaciones en este periodo.</p>{% endif %}
+  </article>
+  <article class="panel">
+    <div class="panel-head"><div><div class="eyebrow dark">ÚLTIMOS {{ fraud_summary.days }} DÍAS</div><h3>Incidentes por estado</h3></div></div>
+    {% set st_total = st.values()|sum %}
+    {% if st_total %}{{ bars([('Abiertos', st.get('ABIERTO', 0), 'is-warn'), ('En investigación', st.get('EN_INVESTIGACION', 0), 'is-info'), ('Confirmados', st.get('CONFIRMADO', 0), 'is-alert'), ('Descartados', st.get('DESCARTADO', 0), 'is-ok')], st_total) }}
+    {% else %}<p class="empty-state">No se abrieron incidentes en este periodo.</p>{% endif %}
+  </article>
+</section>
+{% endif %}
 
 {# Accesos operativos: solo los que el usuario puede abrir. #}
 <section class="adm-tiles" aria-label="Accesos operativos">

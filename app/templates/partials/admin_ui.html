@@ -13,11 +13,18 @@
 {# Indicador. `value` None = no disponible (se dice con texto). `tone`: is-ok | is-warn | is-alert | is-info | '' ; `state` = texto del estado (el color nunca es la única señal). #}
 {% macro metric(label, value, hint=none, icon='bi-circle', tone='', href=none, state=none) %}
 {% if href %}<a class="adm-metric {{ tone }}" href="{{ href }}">{% else %}<div class="adm-metric {{ tone }}">{% endif %}
-  <span class="adm-metric-label"><i class="bi {{ icon }}" aria-hidden="true"></i>{{ label }}</span>
+  <span class="adm-metric-top"><span class="adm-metric-icon"><i class="bi {{ icon }}" aria-hidden="true"></i></span><span class="adm-metric-label">{{ label }}</span></span>
   {% if value is none %}<span class="adm-metric-value is-na">No disponible</span>{% else %}<strong class="adm-metric-value">{{ value }}</strong>{% endif %}
   {% if hint %}<span class="adm-metric-hint">{{ hint }}</span>{% endif %}
   {% if state %}<span class="adm-badge adm-metric-state {{ tone }}">{{ state }}</span>{% endif %}
 {% if href %}</a>{% else %}</div>{% endif %}
+{% endmacro %}
+
+{# Barras de distribución: `rows` = [(etiqueta, valor, tono)]. El valor siempre está escrito; la barra solo lo acompaña. #}
+{% macro bars(rows, total) %}
+<ul class="adm-bars">{% for label, value, tone in rows %}
+  <li><span>{{ label }}</span><span class="adm-bar-track" aria-hidden="true"><span class="adm-bar-fill {{ tone }}" style="width: {{ ((value / total * 100) if total else 0)|round(1) }}%"></span></span><b>{{ value }}</b></li>
+{% endfor %}</ul>
 {% endmacro %}
 
 {% macro badge(text, tone='') %}<span class="adm-badge {{ tone }}">{{ text }}</span>{% endmacro %}
