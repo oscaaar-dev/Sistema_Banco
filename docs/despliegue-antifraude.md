@@ -7,7 +7,7 @@ Este documento no contiene secretos: las variables se nombran, nunca se muestran
 | | Staging (`Norte-staging` / `staging`) | Producción (`production` del mismo proyecto) |
 |---|---|---|
 | Servicios | `web` (código de GitHub) y `Postgres` (con volumen) | **Ninguno**: el entorno está vacío |
-| Revisión de Alembic | `f7a1c4d9e620` (antifraude), aplicada el 2026-10-13. **Pendiente en staging: `b6e2a9c15d37` (roles administrativos, cabeza actual de la rama)** | No existe base de datos |
+| Revisión de Alembic | **`b6e2a9c15d37`** (roles administrativos, cabeza de la rama), aplicada en staging el 2026-10-13 sobre `f7a1c4d9e620` (antifraude, aplicada el mismo día) | No existe base de datos |
 | Esquema | 26 tablas: las 20 originales (sin cambios en sus filas) y las 6 antifraude, vacías | — |
 | Despliegue de `web` | `SUCCESS`, estable | — |
 | `FRAUD_MODE` | `shadow`, explícito | — |
@@ -61,7 +61,8 @@ errores; y, cuando exista un administrador de prueba, las pruebas autenticadas d
 ## 5. Pruebas autenticadas en staging (pendientes) y roles administrativos
 Siguen **sin hacerse en staging**: exigen una cuenta administrativa real con acceso a su correo (el código de un solo uso llega por correo). Hasta ahora no existía ningún administrador ni un procedimiento para crearlo; la rama incluye los roles
 `ADMIN_GENERAL` / `ADMINISTRADOR` / `CLIENTE` y el aprovisionamiento inicial `flask admin-bootstrap` (ver `docs/roles-administrativos.md`). Para probar en staging, en este orden:
-1. Aplicar en staging la migración `b6e2a9c15d37` con el procedimiento del apartado 3 (copia de seguridad previa; ya ensayada en una base PostgreSQL desechable) **antes** de fusionar la rama a `main` (se desplegaría solo y `web` se detendría sin el esquema).
+1. ~~Aplicar en staging la migración `b6e2a9c15d37`~~ **Hecho el 2026-10-13** con el procedimiento del apartado 3: destino verificado (`Norte-staging` / `staging` / base `railway`), copia nueva con snapshot (volcado y conteos del mismo instante, 26 tablas y 1.284 filas, 0 discrepancias),
+   guardas que abortan si la conexión no es esa base, y verificación posterior (revisión, columna `users.account_status` con las 102 cuentas `ACTIVA`, 3 tablas nuevas idénticas a los modelos, las 26 tablas originales idénticas a la copia, `web` estable). La base de staging **ya tiene el esquema nuevo**; `web` sigue con el código anterior hasta que se fusione la rama a `main`.
 2. Fusionar y esperar el despliegue de staging; comprobar `SUCCESS` y las respuestas HTTP del apartado 3.
 3. Aprovisionar el primer Administrador General con `admin-bootstrap` y **el correo de la persona responsable** (no se inventa ni se reutiliza el de ninguna otra cuenta); la persona define su contraseña desde el enlace y entra con el código por correo.
 4. Probar con esa cuenta: acceso a `/admin/cuentas` y `/admin/fraude`; crear una cuenta `ADMINISTRADOR` de prueba **dedicada** (correo propio), activarla y comprobar que sin permisos solo ve la vista general; un cliente recibe 403 en todo `/admin`;
