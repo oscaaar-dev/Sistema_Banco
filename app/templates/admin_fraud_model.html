@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Modelo {{ model.version }} · Norte{% endblock %}
+{% block crumb %}Administración / Fraude / Modelo{% endblock %}
+{% block content %}
+{% set m = model.metrics or {} %}
+<div class="eyebrow dark">DETECTOR DE ANOMALÍAS</div>
+<h1>{{ model.version }}</h1>
+<p class="muted">Estado: <b>{{ model.status }}</b> · Algoritmo: {{ model.algorithm }} · Origen: {{ model.source }} · Entrenado el {{ model.trained_at.strftime('%d/%m/%Y %H:%M') }} ·
+  scikit-learn {{ model.sklearn_version }} · Python {{ model.python_version }}</p>
+<p><a class="text-link" href="{{ url_for('main.fraud_dashboard') }}">Volver al panel</a></p>
+
+<article class="panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">ACTIVACIÓN</div><h3>¿Se puede activar?</h3></div></div>
+  {% if gates %}
+  <p><b>No.</b> No supera las puertas de validación:</p>
+  <ul>{% for g in gates %}<li>{{ g }}</li>{% endfor %}</ul>
+  {% else %}
+  <p>Supera las puertas de cordura (datos suficientes, entorno compatible, artefacto íntegro, tasa de alertas razonable). Estas puertas <b>no miden eficacia</b>.</p>
+  {% endif %}
+  <p class="muted fraud-note">La activación no se hace desde el panel: es una orden explícita por línea de comandos (<code>flask --app run fraud-model-activate</code>). Un modelo solo
+    observa: no cambia niveles ni aplica medidas, y un resultado favorable en datos sintéticos no demuestra eficacia bancaria real.</p>
+</article>
+
+<article class="panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">DATOS</div><h3>Entrenamiento y evaluación</h3></div></div>
+  <p>Filas de entrenamiento: <b>{{ model.n_train }}</b> · Filas de evaluación: <b>{{ model.n_eval }}</b>{% if model.data_sha256 %} · SHA-256 de los datos: <code>{{ model.data_sha256 }}</code>{% endif %}</p>
+  {% if m.get('periodos') %}<p>Periodo de entrenamiento: {{ m.periodos.entrenamiento[0] }} → {{ m.periodos.entrenamiento[1] }} · Periodo de evaluación (posterior): {{ m.periodos.evaluacion[0] }} → {{ m.periodos.evaluacion[1] }}</p>
+  {% elif m.get('corte_temporal') %}<p>Corte temporal: entrena lo anterior a {{ m.corte_temporal }} y evalúa lo posterior.</p>{% endif %}
+  <p>Variables utilizadas: {{ (model.features or [])|join(', ') }}</p>
+  {% if model.notes %}<p class="muted">Nota: {{ model.notes }}</p>{% endif %}
+</article>
+
+{% if m.get('matriz_confusion') %}
+{% set c = m.matriz_confusion %}
+<article class="panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">RESULTADOS</div><h3>Evaluación con el tramo temporal reservado</h3></div></div>
+  <p class="muted fraud-note">Umbral de alerta: {{ m.umbral_puntuacion }} (percentil de las puntuaciones del <b>periodo de entrenamiento</b>; la evaluación no lo toca). Las etiquetas son sintéticas.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>VP</th><th>FP</th><th>VN</th><th>FN</th><th>Precisión</th><th>Sensibilidad</th><th>F1</th><th>Tasa de falsos positivos</th></tr></thead>
+    <tbody><tr><td>{{ c.VP }}</td><td>{{ c.FP }}</td><td>{{ c.VN }}</td><td>{{ c.FN }}</td>
+      <td>{{ ('%.1f' % (m.precision * 100)) ~ ' %' if m.precision is not none else 'indefinida' }}</td>
+      <td>{{ ('%.1f' % (m.sensibilidad_recall * 100)) ~ ' %' if m.sensibilidad_recall is not none else 'indefinida' }}</td>
+      <td>{{ ('%.1f' % (m.f1 * 100)) ~ ' %' if m.f1 is not none else 'indefinido' }}</td>
+      <td>{{ ('%.1f' % (m.tasa_falsos_positivos * 100)) ~ ' %' if m.tasa_falsos_positivos is not none else 'indefinida' }}</td></tr></tbody>
+  </table></div>
+  {% set t = m.get('independiente_del_umbral') or {} %}
+  <p>Independiente del umbral: AUC-ROC {{ t.get('auc_roc') if t.get('auc_roc') is not none else 'indefinida' }} · precisión media {{ t.get('precision_media') if t.get('precision_media') is not none else 'indefinida' }} · prevalencia {{ t.get('prevalencia') }}.
+    {% if m.get('tiempo_evaluacion_ms') is not none %}Tiempo de evaluación: {{ m.tiempo_evaluacion_ms }} ms.{% endif %}</p>
+  {% if m.get('por_escenario') %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Escenario</th><th>¿Fraude sintético?</th><th>Eventos</th><th>Marcados</th><th>Proporción</th></tr></thead>
+    <tbody>{% for name, row in m.por_escenario.items() %}<tr><td>{{ name }}</td><td>{{ 'sí' if row.es_fraude_sintetico else 'no' }}</td><td>{{ row.eventos }}</td><td>{{ row.marcados }}</td>
+      <td>{{ '%.1f' % (row.proporcion_marcada * 100) }} %</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+</article>
+{% elif m.get('supervisadas') %}
+{% set s = m.supervisadas %}
+<article class="panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">RESULTADOS</div><h3>Evaluación</h3></div></div>
+  {% if s.get('disponibles') %}
+  <p>AUC-ROC {{ s.get('auc_roc') }} · precisión media {{ s.get('precision_media') }} · prevalencia de fraude {{ s.get('prevalencia_fraude') }} ({{ s.get('fraudes') }} fraudes y {{ s.get('legitimas') }} legítimas).</p>
+  {% else %}<p>No hay métricas supervisadas: {{ s.get('motivo', 'sin etiquetas confirmadas suficientes') }}</p>{% endif %}
+  <p>Tasa de alertas en la evaluación: {{ ('%.1f' % (m.evaluacion.tasa_de_alertas * 100)) ~ ' %' if m.get('evaluacion') else '—' }}.</p>
+</article>
+{% endif %}
+
+{% if m.get('variables_excluidas') %}
+<article class="panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">SIN FUGAS</div><h3>Variables excluidas de los predictores</h3></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Variable</th><th>Motivo</th></tr></thead>
+    <tbody>{% for name, reason in m.variables_excluidas.items() %}<tr><td>{{ name }}</td><td>{{ reason }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</article>
+{% endif %}
+{% endblock %}

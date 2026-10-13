@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Restricciones · Norte{% endblock %}
+{% block crumb %}Administración / Fraude / Restricciones{% endblock %}
+{% block content %}
+<div class="eyebrow dark">SEGURIDAD</div>
+<h1>Restricciones</h1>
+<p class="muted">Todas las restricciones tienen fecha de vencimiento: no hay bloqueos permanentes.</p>
+<p><a class="text-link" href="{{ url_for('main.fraud_dashboard') }}">Volver a incidentes</a> ·
+  {% for s in ('ACTIVA','VENCIDA','TODAS') %}<a class="text-link" href="{{ url_for('main.fraud_restrictions', estado=s) }}">{{ s.title() }}{% if state == s %} (actual){% endif %}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+<article class="panel full-panel"><div class="table-wrap"><table>
+  <thead><tr><th>N.º</th><th>Cliente</th><th>Alcance</th><th>Origen</th><th>Estado</th><th>Desde</th><th>Vence</th><th>Motivo</th><th>Levantar</th></tr></thead>
+  <tbody>{% for r in restrictions %}
+    <tr><td>{{ r.id }}</td><td>{{ r.user.username if r.user else '—' }}</td><td>{{ r.scope }}</td><td>{{ r.origin }}</td><td>{{ r.status }}</td>
+      <td>{{ r.starts_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ r.expires_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ r.reason }}{% if r.lift_reason %}<br><small>Levantada: {{ r.lift_reason }}</small>{% endif %}</td>
+      <td>{% if r.status == 'ACTIVA' and r.expires_at > now and r.user_id != current_user.id %}
+        <form method="post" class="fraud-form" action="{{ url_for('main.fraud_restriction_lift', restriction_id=r.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="text" name="motivo" minlength="10" maxlength="300" required placeholder="Motivo (mín. 10)">
+          <button class="btn btn-outline" type="submit">Levantar</button></form>{% else %}—{% endif %}</td></tr>
+  {% else %}<tr><td colspan="9" class="empty-state">No hay restricciones.</td></tr>{% endfor %}</tbody>
+</table></div></article>
+{% endblock %}

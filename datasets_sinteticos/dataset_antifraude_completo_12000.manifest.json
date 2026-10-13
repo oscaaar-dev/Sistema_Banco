@@ -1,0 +1,285 @@
+{
+  "archivo": "dataset_antifraude_completo_12000.csv",
+  "sha256": "fe2b9fe3611e7f8515554ece85d79170d37f79d8a5d72c38912587e072d78e6b",
+  "bytes": 1653779,
+  "semilla": 2026,
+  "esquema": "combinado-1.0",
+  "filas": 12000,
+  "columnas": [
+    "event_id",
+    "timestamp",
+    "event_type",
+    "account_id",
+    "scenario",
+    "hora_del_dia",
+    "dia_semana",
+    "tipo_operacion",
+    "importe",
+    "saldo_anterior",
+    "saldo_posterior",
+    "beneficiario_nuevo",
+    "destinatarios_distintos_24h",
+    "operaciones_2m",
+    "operaciones_10m",
+    "operaciones_1h",
+    "n_historial",
+    "importe_tipico",
+    "fallos_login_30m",
+    "resultado_login",
+    "intentos_fallidos_recientes",
+    "solicitudes_otp_1h",
+    "viaje_imposible",
+    "contexto_nuevo",
+    "dispositivo_nuevo",
+    "ubicacion_nueva",
+    "recuperacion_clave_reciente",
+    "fallos_otp_recientes",
+    "puntuacion_riesgo_sintetica",
+    "nivel_riesgo_sintetico",
+    "is_fraud",
+    "is_synthetic"
+  ],
+  "distribucion": {
+    "TRANSACCION": {
+      "eventos": 8000,
+      "is_fraud_1": 653,
+      "is_fraud_0": 7347,
+      "prevalencia": 0.0816
+    },
+    "ACCESO": {
+      "eventos": 4000,
+      "is_fraud_1": 411,
+      "is_fraud_0": 3589,
+      "prevalencia": 0.1027
+    },
+    "TOTAL": {
+      "eventos": 12000,
+      "is_fraud_1": 1064
+    }
+  },
+  "rango_temporal": "2026-01-05T00:07:43 → 2026-03-05T23:54:10",
+  "escenarios": {
+    "L_RUTINA_TX": 5864,
+    "L_COMPRA_GRANDE": 320,
+    "L_BENEFICIARIO_NUEVO": 320,
+    "L_DEPOSITO": 480,
+    "L_RAFAGA_LEGITIMA": 179,
+    "L_NUEVO_DISPOSITIVO": 169,
+    "L_VIAJERO": 109,
+    "L_RECUPERACION_CLAVE": 200,
+    "A_L_RUTINA": 2790,
+    "A_L_OLVIDADIZO": 445,
+    "A_L_OTP_LENTO": 60,
+    "F_VACIADO": 130,
+    "F_INGENIERIA_SOCIAL": 130,
+    "F_SIGILOSO": 90,
+    "F_RAFAGA": 165,
+    "F_TOMA_CUENTA": 303,
+    "A_F_FUERZA_BRUTA": 132,
+    "A_F_RELLENO_CREDENCIALES": 69,
+    "A_F_SESION_SIGILOSA": 45
+  },
+  "validacion": {
+    "ok": true,
+    "comprobaciones": [
+      {
+        "comprobacion": "Sin columnas duplicadas",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "comprobacion": "Columnas exactamente las del esquema",
+        "ok": true,
+        "detalle": "faltan=[] sobran=[]"
+      },
+      {
+        "comprobacion": "Exactamente 12000 filas de datos",
+        "ok": true,
+        "detalle": "12000"
+      },
+      {
+        "comprobacion": "Tipos de evento válidos",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "comprobacion": "Exactamente 8000 transacciones",
+        "ok": true,
+        "detalle": "8000"
+      },
+      {
+        "comprobacion": "Exactamente 4000 accesos",
+        "ok": true,
+        "detalle": "4000"
+      },
+      {
+        "comprobacion": "Identificadores únicos y con formato EVT-######",
+        "ok": true,
+        "detalle": "duplicados=0"
+      },
+      {
+        "comprobacion": "Fechas válidas (ISO 8601 AAAA-MM-DDThh:mm:ss)",
+        "ok": true,
+        "detalle": "0"
+      },
+      {
+        "comprobacion": "Orden cronológico no decreciente",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "hora_del_dia y dia_semana coinciden con la fecha",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "Etiqueta is_fraud binaria (0/1)",
+        "ok": true,
+        "detalle": "['0', '1']"
+      },
+      {
+        "comprobacion": "is_synthetic = 1 en todos los registros",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "Puntuación descriptiva en [0, 100]",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "Nivel descriptivo válido",
+        "ok": true,
+        "detalle": "['INTERMEDIO', 'NORMAL', 'SOSPECHOSO']"
+      },
+      {
+        "comprobacion": "contexto_nuevo binaria",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "dispositivo_nuevo binaria",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "ubicacion_nueva binaria",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "recuperacion_clave_reciente binaria",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "fallos_otp_recientes entero ≥ 0",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "Las transacciones no traen columnas de acceso (esquema coherente por tipo)",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "Tipos de operación válidos",
+        "ok": true,
+        "detalle": "['DEPOSITO', 'PAGO', 'RECARGA', 'TRANSFERENCIA']"
+      },
+      {
+        "comprobacion": "Importes finitos, positivos y razonables (≤ 1.000.000)",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "Saldos finitos y no negativos",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "saldo_posterior = saldo_anterior ± importe (ingresos suman, salidas restan)",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "Ninguna salida supera el saldo disponible",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "Continuidad de saldos por cuenta (saldo_anterior = saldo_posterior previo)",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "Contadores de ventana coherentes (2 min ≤ 10 min ≤ 1 h)",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "Resultado de acceso válido",
+        "ok": true,
+        "detalle": "['EXITOSO', 'FALLIDO']"
+      },
+      {
+        "comprobacion": "Contadores de acceso enteros ≥ 0",
+        "ok": true,
+        "detalle": ""
+      },
+      {
+        "comprobacion": "Cuentas seudónimas ACC-#### y sin datos personales ni bancarios reales",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "comprobacion": "Ningún número con formato de tarjeta (Luhn)",
+        "ok": true,
+        "detalle": "0"
+      },
+      {
+        "comprobacion": "Ninguna variable observable individual separa las clases por sí sola (AUC univariante ≤ 0.9)",
+        "ok": true,
+        "detalle": "{'TRANSACCION': ('destinatarios_distintos_24h', 0.8455), 'ACCESO': ('contexto_nuevo', 0.8416)}"
+      }
+    ]
+  },
+  "separabilidad_univariante": {
+    "TRANSACCION": {
+      "importe": 0.7702,
+      "saldo_anterior": 0.5316,
+      "beneficiario_nuevo": 0.8391,
+      "destinatarios_distintos_24h": 0.8455,
+      "operaciones_2m": 0.5999,
+      "operaciones_10m": 0.6127,
+      "operaciones_1h": 0.6439,
+      "fallos_login_30m": 0.558,
+      "fallos_otp_recientes": 0.5506,
+      "contexto_nuevo": 0.6944,
+      "recuperacion_clave_reciente": 0.5289,
+      "dispositivo_nuevo": 0.6496,
+      "ubicacion_nueva": 0.6092,
+      "hora_del_dia": 0.5682
+    },
+    "ACCESO": {
+      "intentos_fallidos_recientes": 0.7916,
+      "solicitudes_otp_1h": 0.5026,
+      "fallos_otp_recientes": 0.6006,
+      "contexto_nuevo": 0.8416,
+      "recuperacion_clave_reciente": 0.515,
+      "dispositivo_nuevo": 0.7453,
+      "ubicacion_nueva": 0.6156,
+      "viaje_imposible": 0.556,
+      "hora_del_dia": 0.6785
+    }
+  },
+  "puntuacion_descriptiva_auc_univariante": {
+    "TRANSACCION": {
+      "puntuacion_riesgo_sintetica": 0.9393
+    },
+    "ACCESO": {
+      "puntuacion_riesgo_sintetica": 0.92
+    }
+  },
+  "aviso": "Datos y etiquetas SINTÉTICOS. is_fraud lo decide el escenario de generación (no la puntuación). No equivalen a fraude confirmado."
+}

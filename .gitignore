@@ -57,3 +57,12 @@ test-results/
 *.log
 .DS_Store
 Thumbs.db
+
+# Antifraude: los modelos generados no se versionan (se reentrenan en el entorno de destino: dependen de la versión de Python y scikit-learn)
+*.joblib
+datasets_sinteticos/modelos_candidatos/
+instance/fraud_models/
+
+# Evidencias y copias locales de seguridad
+fraud-e2e-*
+respaldo-antifraude-*/

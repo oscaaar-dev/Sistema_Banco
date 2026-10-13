@@ -1,14 +1,17 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import re
+from .. import fraud
 from ..models import db, Account, Beneficiary, Transaction, Transfer, InteractionSession, MLResult, InteractionFeatures, TransactionStep, AuditLog, OperationRiskAssessment
+from flask import current_app
+from sqlalchemy import desc
 from ..ai.interaction_model import cluster_interactions
 from ..ai.operation_risk import assess_operation_risk
 from .capture_service import add_capture
 from .contact_service import find_destination_account, get_active_beneficiary, mask_name
 
 def account_for(user):
-    return Account.query.filter_by(user_id=user.id,status='ACTIVA').first()
+    return Account.query.filter_by(user_id=user.id,status='ACTIVA').order_by(Account.id).first()
 
 def log(user,action,module,result='COMPLETADA',ip_local=None):
     db.session.add(AuditLog(user_id=user.id if user and user.is_authenticated else None,action=action,module=module,result=result,ip_local=ip_local))
@@ -25,7 +28,10 @@ def operation_risk_for(user,kind,amount,duration_seconds=None):
     return assess_operation_risk(value,account.balance,[abs(tx.amount) for tx in comparable_transactions],recent_operation_count,duration_seconds)
 
 def _store_cluster_results():
-    sessions=InteractionSession.query.order_by(InteractionSession.started_at.asc()).all()
+    # Acotado: solo las sesiones más recientes. Antes se cargaban y reprocesaban todas en cada operación, dentro de la
+    # transacción bancaria y con las cuentas bloqueadas, de modo que el coste crecía sin límite.
+    limit=current_app.config.get('INTERACTION_CLUSTER_MAX_SESSIONS',300)
+    sessions=list(reversed(InteractionSession.query.order_by(desc(InteractionSession.started_at),desc(InteractionSession.id)).limit(limit).all()))
     outcomes=cluster_interactions(sessions)
     if not outcomes:return
     for session,outcome in zip(sessions,outcomes):
@@ -58,12 +64,17 @@ def process_operation(user,kind,amount,description,beneficiary_id=None,service=N
             if previous.operation_type==kind and previous.amount==-value and previous.description==description[:180]:
                 return previous
             raise ValueError('Esta clave ya se utilizó para otra operación. Vuelve a cargar el formulario.')
+    fraud.guard_operations(user)          # una restricción vigente impide operar (también en modo «off»)
     if not (Decimal('0.01')<=value<=Decimal('10000')):raise ValueError('El monto debe estar entre S/ 0.01 y S/ 10,000.00.')
     if kind in ('TRANSFERENCIA','PAGO','RECARGA') and account.balance<value:raise ValueError('Saldo insuficiente para esta operación.')
     beneficiary=None
     if kind=='TRANSFERENCIA':
         beneficiary=get_active_beneficiary(user.id,beneficiary_id)
         if beneficiary is None:raise ValueError('Selecciona un destinatario válido.')
+    # Evaluación de fraude: DESPUÉS de todas las validaciones y ANTES de modificar saldos. Si retiene, lanza OperationHeld y no
+    # queda ningún movimiento. No autoriza nada: las validaciones anteriores ya se cumplieron por separado.
+    decision=fraud.evaluate_operation(user,account,kind,value,beneficiary=beneficiary,description=description,
+                                      ip_hash=(capture_meta or {}).get('ip_hash'))
     start=datetime.now(timezone.utc).replace(tzinfo=None)
     risk=operation_risk_for(user,kind,value,duration_seconds)
     session_duration=max(1,int(duration_seconds)) if duration_seconds is not None else 1
@@ -82,6 +93,7 @@ def process_operation(user,kind,amount,description,beneficiary_id=None,service=N
                                    description=('Transferencia recibida de '+mask_name(user.full_name))[:180],
                                    amount=value,balance_after=destination.balance,status='COMPLETADA'))
     db.session.flush()
+    fraud.finalize_operation(decision,tx)
     if capture:
         # La foto va en la misma transacción que la operación: si falla, no se completa nada.
         add_capture(user.id,tx.id,capture,**(capture_meta or {}))
@@ -113,6 +125,7 @@ def process_internal_transfer(user,source_account_id,destination_account_id,amou
     ).order_by(Account.id).with_for_update().all())
     if len(accounts)!=2:
         raise ValueError('No se encontraron ambas cuentas activas a tu nombre.')
+    fraud.guard_operations(user)
     by_id={account.id:account for account in accounts}
     source=by_id[source_account_id]; destination=by_id[destination_account_id]
     if source.currency!=destination.currency:
@@ -133,6 +146,8 @@ def process_internal_transfer(user,source_account_id,destination_account_id,amou
         if previous_source or previous_destination:
             raise ValueError('La operación quedó en un estado incompleto. Contacta a soporte antes de reintentar.')
 
+    # Los traslados entre cuentas propias se evalúan y se registran, pero nunca se retienen: el dinero no sale del cliente.
+    decision=fraud.evaluate_operation(user,source,'TRASLADO_PROPIO',value,ip_hash=(capture_meta or {}).get('ip_hash'))
     risk=operation_risk_for(user,'TRANSFERENCIA',value,duration_seconds)
     duration=max(1,int(duration_seconds)) if duration_seconds is not None else 1
     interaction=InteractionSession(user_id=user.id,operation_type='TRANSFERENCIA',started_at=datetime.now(timezone.utc).replace(tzinfo=None),
@@ -150,6 +165,7 @@ def process_internal_transfer(user,source_account_id,destination_account_id,amou
                                balance_after=destination.balance,status='COMPLETADA',idempotency_key=idempotency_key)
     interaction.ended_at=datetime.now(timezone.utc).replace(tzinfo=None)
     db.session.add_all((source_tx,destination_tx)); db.session.flush()
+    fraud.finalize_operation(decision,source_tx)
     if capture:
         add_capture(user.id,source_tx.id,capture,**(capture_meta or {}))
     db.session.add(TransactionStep(session_id=interaction.id,event_type='completed',step_name='Traslado entre cuentas propias',

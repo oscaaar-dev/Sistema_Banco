@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Incidente #{{ incident.id }} · Norte{% endblock %}
+{% block crumb %}Administración / Fraude / Incidente #{{ incident.id }}{% endblock %}
+{% block content %}
+<div class="eyebrow dark">INCIDENTE #{{ incident.id }}</div>
+<h1>{{ incident.title }}</h1>
+<p class="muted">Cliente: <b>{{ incident.user.username if incident.user else '—' }}</b> · Tipo: {{ incident.category }} · Origen: {{ incident.origin }} ·
+  Nivel: <span class="fraud-badge fraud-{{ incident.level }}">{{ incident.level }}</span> · Estado: <b>{{ incident.status }}</b> ·
+  Abierto el {{ incident.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+<p><a class="text-link" href="{{ url_for('main.fraud_dashboard') }}">Volver a incidentes</a></p>
+
+{% if incident.status == 'CONFIRMADO' %}
+<article class="panel full-panel"><div class="eyebrow dark">FRAUDE CONFIRMADO (decisión humana)</div>
+  <p>Confirmado el {{ incident.confirmed_at.strftime('%d/%m/%Y %H:%M') }} por el administrador n.º {{ incident.confirmed_by_id }}.<br>Motivo: {{ incident.confirmation_reason }}</p></article>
+{% elif incident.status == 'DESCARTADO' %}
+<article class="panel full-panel"><div class="eyebrow dark">DESCARTADO</div>
+  <p>Cerrado el {{ incident.closed_at.strftime('%d/%m/%Y %H:%M') }}.<br>Motivo: {{ incident.closure_reason }}</p></article>
+{% endif %}
+
+{% if incident.evaluation %}
+{% set ev = incident.evaluation %}
+<article class="panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">EVALUACIÓN QUE ABRIÓ EL INCIDENTE</div><h3>Por qué se marcó</h3></div></div>
+  <p class="muted">Puntuación {{ ev.score }}/100 (herramienta interna, no es una probabilidad) · Nivel {{ ev.level }} · Confianza {{ ev.confidence }} ·
+    Modo {{ ev.mode }} · Acción recomendada: {{ ev.recommended_action }} · Acción aplicada: {{ ev.applied_action }} · Reglas {{ ev.rules_version }}
+    {% if ev.model_version %}· Modelo {{ ev.model_version }} (puntuación {{ ev.model_score }}, solo observación){% endif %}</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Señal</th><th>Grupo</th><th>Puntos</th><th>Detalle</th></tr></thead>
+    <tbody>{% for s in ev.signals %}<tr><td>{{ s.code }}</td><td>{{ s.group }}</td><td>{{ s.points }}</td><td>{{ s.detail }}</td></tr>
+    {% else %}<tr><td colspan="4" class="empty-state">Sin señales registradas.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</article>
+{% endif %}
+
+<article class="panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">HISTORIAL</div><h3>Quién hizo qué</h3></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Fecha</th><th>Actor</th><th>Evento</th><th>Detalle</th></tr></thead>
+    <tbody>{% for e in incident.events %}<tr><td>{{ e.created_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ e.actor.username if e.actor else 'Sistema' }}</td><td>{{ e.event_type }}</td><td>{{ e.detail }}</td></tr>
+    {% else %}<tr><td colspan="4" class="empty-state">Sin eventos.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</article>
+
+<article class="panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">MEDIDAS</div><h3>Restricciones y operaciones retenidas</h3></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Alcance</th><th>Origen</th><th>Estado</th><th>Vence</th><th>Motivo</th></tr></thead>
+    <tbody>{% for r in restrictions %}<tr><td>{{ r.scope }}</td><td>{{ r.origin }}</td><td>{{ r.status }}</td><td>{{ r.expires_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ r.reason }}</td></tr>
+    {% else %}<tr><td colspan="5" class="empty-state">Sin restricciones.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Operación</th><th>Monto</th><th>Estado</th><th>Vence</th><th>Motivo</th></tr></thead>
+    <tbody>{% for h in holds %}<tr><td>{{ h.kind }}</td><td>S/ {{ '{:,.2f}'.format(h.amount|float) }}</td><td>{{ h.status }}</td><td>{{ h.expires_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ h.reason }}</td></tr>
+    {% else %}<tr><td colspan="5" class="empty-state">Sin operaciones retenidas.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</article>
+
+{% if incident.status in ('ABIERTO', 'EN_INVESTIGACION') and not own_user %}
+<article class="panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">DECISIÓN</div><h3>Acciones del administrador</h3></div></div>
+  {% if incident.status == 'ABIERTO' %}
+  <form method="post" class="fraud-form" action="{{ url_for('main.fraud_incident_investigate', incident_id=incident.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-outline" type="submit">Iniciar investigación</button></form>
+  {% endif %}
+  <form method="post" class="fraud-form" action="{{ url_for('main.fraud_incident_comment', incident_id=incident.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Comentario de investigación<textarea name="comentario" maxlength="500" required rows="2"></textarea></label>
+    <button class="btn btn-outline" type="submit">Agregar comentario</button></form>
+  <form method="post" class="fraud-form" action="{{ url_for('main.fraud_incident_discard', incident_id=incident.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Descartar como falso positivo (motivo, mínimo 10 caracteres)<textarea name="motivo" maxlength="500" required minlength="10" rows="2"></textarea></label>
+    <button class="btn btn-outline" type="submit">Descartar incidente</button></form>
+  <form method="post" class="fraud-form fraud-danger" action="{{ url_for('main.fraud_incident_confirm', incident_id=incident.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <p class="muted">Confirmar el fraude es una <b>decisión humana</b> que aplica una sanción <b>temporal</b> (máximo {{ max_days }} días) y se puede levantar. La duración sugerida
+      ({{ suggested_days }} días) se basa solo en incidentes anteriores <b>confirmados</b>; las alertas sin verificar no cuentan.</p>
+    <label>Motivo de la confirmación y evidencia (mínimo 10 caracteres)<textarea name="motivo" maxlength="500" required minlength="10" rows="2"></textarea></label>
+    <fieldset><legend>Alcance de la sanción</legend>
+      {% for scope in scopes %}<label class="fraud-check"><input type="checkbox" name="alcance" value="{{ scope }}" {% if scope == 'OPERACIONES' %}checked{% endif %}> {{ scope }}</label>{% endfor %}</fieldset>
+    <label>Duración en días<input type="number" name="dias" min="1" max="{{ max_days }}" value="{{ suggested_days }}" required></label>
+    <button class="btn btn-primary" type="submit">Confirmar fraude y aplicar sanción</button></form>
+</article>
+{% endif %}
+
+{% if recent %}
+<article class="panel full-panel">
+  <div class="panel-head"><div><div class="eyebrow dark">CONTEXTO</div><h3>Últimas evaluaciones del cliente</h3></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Fecha</th><th>Contexto</th><th>Evento</th><th>Nivel</th><th>Puntuación</th><th>Acción aplicada</th></tr></thead>
+    <tbody>{% for r in recent %}<tr><td>{{ r.created_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ r.context }}</td><td>{{ r.event }}</td><td>{{ r.level }}</td><td>{{ r.score }}</td><td>{{ r.applied_action }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</article>
+{% endif %}
+{% endblock %}

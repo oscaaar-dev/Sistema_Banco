@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from sqlalchemy import inspect
 from config import Config, secret_key_warnings
+from . import fraud
 from .models import db, User
 login_manager=LoginManager()
 login_manager.login_view='main.login'
@@ -109,6 +110,11 @@ def create_app(config_overrides=None):
             logout_user()
             session.clear()
             flash('Tu contraseña cambió. Inicia sesión de nuevo con las credenciales actuales.','info')
+            return redirect(url_for('main.login'))
+        if current_user.is_authenticated and current_user.role=='CLIENTE' and fraud.access_restriction(current_user):
+            logout_user()
+            session.clear()
+            flash('Tu acceso está restringido temporalmente por seguridad. Intenta más tarde o contacta a soporte.','error')
             return redirect(url_for('main.login'))
         if current_user.is_authenticated and not session.get('login_2fa_verified'):
             logout_user()

@@ -1,0 +1,658 @@
+{
+  "informe": "Evaluación de modelos candidatos (datos SINTÉTICOS)",
+  "esquema_del_dataset": "combinado-1.0",
+  "dataset": {
+    "archivo": "dataset_antifraude_completo_12000.csv",
+    "sha256": "fe2b9fe3611e7f8515554ece85d79170d37f79d8a5d72c38912587e072d78e6b",
+    "filas": 12000,
+    "por_tipo": {
+      "TRANSACCION": 8000,
+      "ACCESO": 4000
+    },
+    "validacion": {
+      "ok": true,
+      "comprobaciones": 29,
+      "distribucion": {
+        "TRANSACCION": {
+          "eventos": 8000,
+          "is_fraud_1": 653,
+          "is_fraud_0": 7347,
+          "prevalencia": 0.0816
+        },
+        "ACCESO": {
+          "eventos": 4000,
+          "is_fraud_1": 411,
+          "is_fraud_0": 3589,
+          "prevalencia": 0.1027
+        },
+        "TOTAL": {
+          "eventos": 12000,
+          "is_fraud_1": 1064
+        }
+      }
+    }
+  },
+  "entorno": {
+    "python": "3.12.10",
+    "scikit_learn": "1.7.0",
+    "pandas": "2.3.0",
+    "numpy": "2.2.6",
+    "plataforma": "Windows-11-10.0.26200-SP0"
+  },
+  "integridad_temporal_y_sin_fugas": {
+    "corte_temporal": "2026-02-19T12:47:55",
+    "fraccion_evaluacion": 0.25,
+    "umbral_calculado_con": "puntuaciones del periodo de entrenamiento (percentil fijado a priori)",
+    "etiquetas_usadas_en_entrenamiento": false,
+    "etiquetas_usadas_para_el_umbral": false,
+    "hiperparametros_fijados_a_priori": {
+      "n_estimators": 100,
+      "contamination": "auto",
+      "random_state": 42
+    },
+    "tasa_de_alertas_a_priori": 0.05,
+    "transacciones_solapamiento_de_ids_entrenamiento_evaluacion": 0,
+    "transacciones_ultimo_evento_de_entrenamiento": "2026-02-19T12:47:31",
+    "transacciones_primer_evento_de_evaluacion": "2026-02-19T12:47:55",
+    "accesos_solapamiento_de_ids_entrenamiento_evaluacion": 0,
+    "accesos_ultimo_evento_de_entrenamiento": "2026-02-19T12:45:01",
+    "accesos_primer_evento_de_evaluacion": "2026-02-19T12:56:46"
+  },
+  "modelos": {
+    "transacciones": {
+      "version": "iforest-tx-20261013032658828111",
+      "variables": [
+        "log_importe",
+        "proporcion_saldo",
+        "ratio_importe_tipico",
+        "operaciones_2m",
+        "operaciones_10m",
+        "operaciones_1h",
+        "beneficiario_nuevo",
+        "destinatarios_distintos_24h",
+        "fallos_login_30m",
+        "fallos_otp_recientes",
+        "recuperacion_clave_reciente",
+        "contexto_nuevo"
+      ],
+      "periodos": {
+        "entrenamiento": [
+          "2026-01-05T00:07:43",
+          "2026-02-19T12:47:31"
+        ],
+        "evaluacion": [
+          "2026-02-19T12:47:55",
+          "2026-03-05T23:54:10"
+        ]
+      },
+      "filas_entrenamiento": 5668,
+      "filas_evaluacion": 1829,
+      "metricas": {
+        "umbral_puntuacion": -0.077757,
+        "matriz_confusion": {
+          "VP": 87,
+          "FP": 25,
+          "VN": 1644,
+          "FN": 73
+        },
+        "precision": 0.7768,
+        "sensibilidad_recall": 0.5437,
+        "f1": 0.6397,
+        "tasa_falsos_positivos": 0.015,
+        "eventos_marcados": 112,
+        "normales_marcadas_como_sospechosas": 25,
+        "fraudes_sinteticos_detectados": 87,
+        "fraudes_sinteticos_no_detectados": 73,
+        "fraudes_sinteticos_en_evaluacion": 160,
+        "eventos_normales_en_evaluacion": 1669,
+        "independiente_del_umbral": {
+          "auc_roc": 0.9488,
+          "precision_media": 0.7593,
+          "prevalencia": 0.0875
+        },
+        "por_escenario": {
+          "L_RUTINA_TX": {
+            "es_fraude_sintetico": false,
+            "eventos": 1425,
+            "marcados": 1,
+            "proporcion_marcada": 0.0007
+          },
+          "L_COMPRA_GRANDE": {
+            "es_fraude_sintetico": false,
+            "eventos": 89,
+            "marcados": 0,
+            "proporcion_marcada": 0.0
+          },
+          "L_BENEFICIARIO_NUEVO": {
+            "es_fraude_sintetico": false,
+            "eventos": 81,
+            "marcados": 0,
+            "proporcion_marcada": 0.0
+          },
+          "L_RAFAGA_LEGITIMA": {
+            "es_fraude_sintetico": false,
+            "eventos": 37,
+            "marcados": 13,
+            "proporcion_marcada": 0.3514
+          },
+          "L_NUEVO_DISPOSITIVO": {
+            "es_fraude_sintetico": false,
+            "eventos": 18,
+            "marcados": 3,
+            "proporcion_marcada": 0.1667
+          },
+          "L_VIAJERO": {
+            "es_fraude_sintetico": false,
+            "eventos": 6,
+            "marcados": 0,
+            "proporcion_marcada": 0.0
+          },
+          "L_RECUPERACION_CLAVE": {
+            "es_fraude_sintetico": false,
+            "eventos": 13,
+            "marcados": 8,
+            "proporcion_marcada": 0.6154
+          },
+          "F_VACIADO": {
+            "es_fraude_sintetico": true,
+            "eventos": 28,
+            "marcados": 14,
+            "proporcion_marcada": 0.5
+          },
+          "F_INGENIERIA_SOCIAL": {
+            "es_fraude_sintetico": true,
+            "eventos": 30,
+            "marcados": 0,
+            "proporcion_marcada": 0.0
+          },
+          "F_SIGILOSO": {
+            "es_fraude_sintetico": true,
+            "eventos": 24,
+            "marcados": 0,
+            "proporcion_marcada": 0.0
+          },
+          "F_RAFAGA": {
+            "es_fraude_sintetico": true,
+            "eventos": 41,
+            "marcados": 37,
+            "proporcion_marcada": 0.9024
+          },
+          "F_TOMA_CUENTA": {
+            "es_fraude_sintetico": true,
+            "eventos": 37,
+            "marcados": 36,
+            "proporcion_marcada": 0.973
+          }
+        },
+        "tiempo_evaluacion_ms": 7.89,
+        "tiempo_por_evento_us": 4.31,
+        "por_tipo_operacion": {
+          "PAGO": {
+            "eventos": 722,
+            "fraudes_sinteticos": 7,
+            "matriz_confusion": {
+              "VP": 0,
+              "FP": 20,
+              "VN": 695,
+              "FN": 7
+            },
+            "precision": 0.0,
+            "sensibilidad_recall": 0.0,
+            "f1": null,
+            "tasa_falsos_positivos": 0.028
+          },
+          "RECARGA": {
+            "eventos": 275,
+            "fraudes_sinteticos": 0,
+            "matriz_confusion": {
+              "VP": 0,
+              "FP": 1,
+              "VN": 274,
+              "FN": 0
+            },
+            "precision": 0.0,
+            "sensibilidad_recall": null,
+            "f1": null,
+            "tasa_falsos_positivos": 0.0036
+          },
+          "TRANSFERENCIA": {
+            "eventos": 832,
+            "fraudes_sinteticos": 153,
+            "matriz_confusion": {
+              "VP": 87,
+              "FP": 4,
+              "VN": 675,
+              "FN": 66
+            },
+            "precision": 0.956,
+            "sensibilidad_recall": 0.5686,
+            "f1": 0.7131,
+            "tasa_falsos_positivos": 0.0059
+          }
+        }
+      },
+      "carga_verificada": true,
+      "puertas_de_activacion": [
+        "Las características del modelo no coinciden con las actuales."
+      ]
+    },
+    "accesos": {
+      "version": "iforest-acc-20261013032658991023",
+      "variables": [
+        "fallido",
+        "intentos_fallidos_recientes",
+        "fallos_otp_recientes",
+        "solicitudes_otp_1h",
+        "contexto_nuevo",
+        "recuperacion_clave_reciente"
+      ],
+      "periodos": {
+        "entrenamiento": [
+          "2026-01-05T05:13:43",
+          "2026-02-19T12:45:01"
+        ],
+        "evaluacion": [
+          "2026-02-19T12:56:46",
+          "2026-03-05T21:22:25"
+        ]
+      },
+      "filas_entrenamiento": 2944,
+      "filas_evaluacion": 1056,
+      "metricas": {
+        "umbral_puntuacion": -0.173339,
+        "matriz_confusion": {
+          "VP": 26,
+          "FP": 25,
+          "VN": 899,
+          "FN": 106
+        },
+        "precision": 0.5098,
+        "sensibilidad_recall": 0.197,
+        "f1": 0.2842,
+        "tasa_falsos_positivos": 0.0271,
+        "eventos_marcados": 51,
+        "normales_marcadas_como_sospechosas": 25,
+        "fraudes_sinteticos_detectados": 26,
+        "fraudes_sinteticos_no_detectados": 106,
+        "fraudes_sinteticos_en_evaluacion": 132,
+        "eventos_normales_en_evaluacion": 924,
+        "independiente_del_umbral": {
+          "auc_roc": 0.9011,
+          "precision_media": 0.5411,
+          "prevalencia": 0.125
+        },
+        "por_escenario": {
+          "L_NUEVO_DISPOSITIVO": {
+            "es_fraude_sintetico": false,
+            "eventos": 18,
+            "marcados": 0,
+            "proporcion_marcada": 0.0
+          },
+          "L_VIAJERO": {
+            "es_fraude_sintetico": false,
+            "eventos": 10,
+            "marcados": 0,
+            "proporcion_marcada": 0.0
+          },
+          "L_RECUPERACION_CLAVE": {
+            "es_fraude_sintetico": false,
+            "eventos": 39,
+            "marcados": 25,
+            "proporcion_marcada": 0.641
+          },
+          "A_L_RUTINA": {
+            "es_fraude_sintetico": false,
+            "eventos": 745,
+            "marcados": 0,
+            "proporcion_marcada": 0.0
+          },
+          "A_L_OLVIDADIZO": {
+            "es_fraude_sintetico": false,
+            "eventos": 100,
+            "marcados": 0,
+            "proporcion_marcada": 0.0
+          },
+          "A_L_OTP_LENTO": {
+            "es_fraude_sintetico": false,
+            "eventos": 12,
+            "marcados": 0,
+            "proporcion_marcada": 0.0
+          },
+          "F_TOMA_CUENTA": {
+            "es_fraude_sintetico": true,
+            "eventos": 47,
+            "marcados": 12,
+            "proporcion_marcada": 0.2553
+          },
+          "A_F_FUERZA_BRUTA": {
+            "es_fraude_sintetico": true,
+            "eventos": 55,
+            "marcados": 14,
+            "proporcion_marcada": 0.2545
+          },
+          "A_F_RELLENO_CREDENCIALES": {
+            "es_fraude_sintetico": true,
+            "eventos": 18,
+            "marcados": 0,
+            "proporcion_marcada": 0.0
+          },
+          "A_F_SESION_SIGILOSA": {
+            "es_fraude_sintetico": true,
+            "eventos": 12,
+            "marcados": 0,
+            "proporcion_marcada": 0.0
+          }
+        },
+        "tiempo_evaluacion_ms": 4.43,
+        "tiempo_por_evento_us": 4.2
+      },
+      "carga_verificada": true,
+      "puertas_de_activacion": [
+        "Las características del modelo no coinciden con las actuales."
+      ]
+    },
+    "candidato_clasico": {
+      "version": "iforest-20261013032659423588",
+      "variables": [
+        "log_monto",
+        "proporcion_saldo",
+        "salidas_10m",
+        "salidas_1h"
+      ],
+      "filas_entrenamiento": 5668,
+      "filas_evaluacion": 1829,
+      "metricas": {
+        "umbral_puntuacion": -0.138733,
+        "matriz_confusion": {
+          "VP": 64,
+          "FP": 27,
+          "VN": 1642,
+          "FN": 96
+        },
+        "precision": 0.7033,
+        "sensibilidad_recall": 0.4,
+        "f1": 0.51,
+        "tasa_falsos_positivos": 0.0162,
+        "eventos_marcados": 91,
+        "normales_marcadas_como_sospechosas": 27,
+        "fraudes_sinteticos_detectados": 64,
+        "fraudes_sinteticos_no_detectados": 96,
+        "fraudes_sinteticos_en_evaluacion": 160,
+        "eventos_normales_en_evaluacion": 1669,
+        "independiente_del_umbral": {
+          "auc_roc": 0.8579,
+          "precision_media": 0.5865,
+          "prevalencia": 0.0875
+        }
+      },
+      "puertas_de_activacion": []
+    }
+  },
+  "reglas_del_motor_sobre_la_misma_evaluacion": {
+    "transacciones": {
+      "distribucion_por_nivel": {
+        "NORMAL": {
+          "fraude_sintetico": 59,
+          "normal": 1646
+        },
+        "INTERMEDIO": {
+          "fraude_sintetico": 66,
+          "normal": 23
+        },
+        "SOSPECHOSO": {
+          "fraude_sintetico": 35,
+          "normal": 0
+        }
+      },
+      "alerta_estricta_SOSPECHOSO": {
+        "matriz_confusion": {
+          "VP": 35,
+          "FP": 0,
+          "VN": 1669,
+          "FN": 125
+        },
+        "precision": 1.0,
+        "sensibilidad_recall": 0.2188,
+        "f1": 0.359,
+        "tasa_falsos_positivos": 0.0,
+        "eventos_marcados": 35,
+        "normales_marcadas_como_sospechosas": 0,
+        "fraudes_sinteticos_detectados": 35,
+        "fraudes_sinteticos_no_detectados": 125,
+        "fraudes_sinteticos_en_evaluacion": 160,
+        "eventos_normales_en_evaluacion": 1669
+      },
+      "alerta_amplia_INTERMEDIO_o_mas": {
+        "matriz_confusion": {
+          "VP": 101,
+          "FP": 23,
+          "VN": 1646,
+          "FN": 59
+        },
+        "precision": 0.8145,
+        "sensibilidad_recall": 0.6312,
+        "f1": 0.7112,
+        "tasa_falsos_positivos": 0.0138,
+        "eventos_marcados": 124,
+        "normales_marcadas_como_sospechosas": 23,
+        "fraudes_sinteticos_detectados": 101,
+        "fraudes_sinteticos_no_detectados": 59,
+        "fraudes_sinteticos_en_evaluacion": 160,
+        "eventos_normales_en_evaluacion": 1669
+      },
+      "por_escenario_INTERMEDIO_o_mas": {
+        "L_RUTINA_TX": {
+          "es_fraude_sintetico": false,
+          "eventos": 1425,
+          "marcados": 3,
+          "proporcion_marcada": 0.0021
+        },
+        "L_COMPRA_GRANDE": {
+          "es_fraude_sintetico": false,
+          "eventos": 89,
+          "marcados": 10,
+          "proporcion_marcada": 0.1124
+        },
+        "L_BENEFICIARIO_NUEVO": {
+          "es_fraude_sintetico": false,
+          "eventos": 81,
+          "marcados": 0,
+          "proporcion_marcada": 0.0
+        },
+        "L_RAFAGA_LEGITIMA": {
+          "es_fraude_sintetico": false,
+          "eventos": 37,
+          "marcados": 0,
+          "proporcion_marcada": 0.0
+        },
+        "L_NUEVO_DISPOSITIVO": {
+          "es_fraude_sintetico": false,
+          "eventos": 18,
+          "marcados": 0,
+          "proporcion_marcada": 0.0
+        },
+        "L_VIAJERO": {
+          "es_fraude_sintetico": false,
+          "eventos": 6,
+          "marcados": 0,
+          "proporcion_marcada": 0.0
+        },
+        "L_RECUPERACION_CLAVE": {
+          "es_fraude_sintetico": false,
+          "eventos": 13,
+          "marcados": 10,
+          "proporcion_marcada": 0.7692
+        },
+        "F_VACIADO": {
+          "es_fraude_sintetico": true,
+          "eventos": 28,
+          "marcados": 26,
+          "proporcion_marcada": 0.9286
+        },
+        "F_INGENIERIA_SOCIAL": {
+          "es_fraude_sintetico": true,
+          "eventos": 30,
+          "marcados": 11,
+          "proporcion_marcada": 0.3667
+        },
+        "F_SIGILOSO": {
+          "es_fraude_sintetico": true,
+          "eventos": 24,
+          "marcados": 0,
+          "proporcion_marcada": 0.0
+        },
+        "F_RAFAGA": {
+          "es_fraude_sintetico": true,
+          "eventos": 41,
+          "marcados": 28,
+          "proporcion_marcada": 0.6829
+        },
+        "F_TOMA_CUENTA": {
+          "es_fraude_sintetico": true,
+          "eventos": 37,
+          "marcados": 36,
+          "proporcion_marcada": 0.973
+        }
+      }
+    },
+    "accesos": {
+      "distribucion_por_nivel": {
+        "NORMAL": {
+          "fraude_sintetico": 73,
+          "normal": 917
+        },
+        "INTERMEDIO": {
+          "fraude_sintetico": 58,
+          "normal": 7
+        },
+        "SOSPECHOSO": {
+          "fraude_sintetico": 1,
+          "normal": 0
+        }
+      },
+      "alerta_estricta_SOSPECHOSO": {
+        "matriz_confusion": {
+          "VP": 1,
+          "FP": 0,
+          "VN": 924,
+          "FN": 131
+        },
+        "precision": 1.0,
+        "sensibilidad_recall": 0.0076,
+        "f1": 0.0151,
+        "tasa_falsos_positivos": 0.0,
+        "eventos_marcados": 1,
+        "normales_marcadas_como_sospechosas": 0,
+        "fraudes_sinteticos_detectados": 1,
+        "fraudes_sinteticos_no_detectados": 131,
+        "fraudes_sinteticos_en_evaluacion": 132,
+        "eventos_normales_en_evaluacion": 924
+      },
+      "alerta_amplia_INTERMEDIO_o_mas": {
+        "matriz_confusion": {
+          "VP": 59,
+          "FP": 7,
+          "VN": 917,
+          "FN": 73
+        },
+        "precision": 0.8939,
+        "sensibilidad_recall": 0.447,
+        "f1": 0.596,
+        "tasa_falsos_positivos": 0.0076,
+        "eventos_marcados": 66,
+        "normales_marcadas_como_sospechosas": 7,
+        "fraudes_sinteticos_detectados": 59,
+        "fraudes_sinteticos_no_detectados": 73,
+        "fraudes_sinteticos_en_evaluacion": 132,
+        "eventos_normales_en_evaluacion": 924
+      },
+      "por_escenario_INTERMEDIO_o_mas": {
+        "L_NUEVO_DISPOSITIVO": {
+          "es_fraude_sintetico": false,
+          "eventos": 18,
+          "marcados": 0,
+          "proporcion_marcada": 0.0
+        },
+        "L_VIAJERO": {
+          "es_fraude_sintetico": false,
+          "eventos": 10,
+          "marcados": 0,
+          "proporcion_marcada": 0.0
+        },
+        "L_RECUPERACION_CLAVE": {
+          "es_fraude_sintetico": false,
+          "eventos": 39,
+          "marcados": 5,
+          "proporcion_marcada": 0.1282
+        },
+        "A_L_RUTINA": {
+          "es_fraude_sintetico": false,
+          "eventos": 745,
+          "marcados": 0,
+          "proporcion_marcada": 0.0
+        },
+        "A_L_OLVIDADIZO": {
+          "es_fraude_sintetico": false,
+          "eventos": 100,
+          "marcados": 2,
+          "proporcion_marcada": 0.02
+        },
+        "A_L_OTP_LENTO": {
+          "es_fraude_sintetico": false,
+          "eventos": 12,
+          "marcados": 0,
+          "proporcion_marcada": 0.0
+        },
+        "F_TOMA_CUENTA": {
+          "es_fraude_sintetico": true,
+          "eventos": 47,
+          "marcados": 15,
+          "proporcion_marcada": 0.3191
+        },
+        "A_F_FUERZA_BRUTA": {
+          "es_fraude_sintetico": true,
+          "eventos": 55,
+          "marcados": 34,
+          "proporcion_marcada": 0.6182
+        },
+        "A_F_RELLENO_CREDENCIALES": {
+          "es_fraude_sintetico": true,
+          "eventos": 18,
+          "marcados": 10,
+          "proporcion_marcada": 0.5556
+        },
+        "A_F_SESION_SIGILOSA": {
+          "es_fraude_sintetico": true,
+          "eventos": 12,
+          "marcados": 0,
+          "proporcion_marcada": 0.0
+        }
+      }
+    }
+  },
+  "candidatos_registrados": [
+    "iforest-tx-20261013032658828111",
+    "iforest-acc-20261013032658991023",
+    "iforest-20261013032659423588"
+  ],
+  "definiciones": {
+    "positivo": "Evento con is_fraud=1 (fraude SINTÉTICO del escenario de prueba, no un fraude confirmado por analistas).",
+    "marcado": "Evento cuya puntuación del modelo es menor que el umbral. El umbral es el percentil (tasa de alertas a priori) de las puntuaciones del periodo de entrenamiento.",
+    "precision": "VP / (VP + FP). Denominador: eventos marcados. Indefinida si no hay eventos marcados.",
+    "sensibilidad_recall": "VP / (VP + FN). Denominador: fraudes sintéticos del conjunto de evaluación. Indefinida si no hay positivos.",
+    "f1": "2·precisión·sensibilidad / (precisión + sensibilidad). Indefinida si falta alguna.",
+    "tasa_falsos_positivos": "FP / (FP + VN). Denominador: eventos normales (is_fraud=0) del conjunto de evaluación. Indefinida si no hay negativos.",
+    "auc_roc": "Probabilidad de que un fraude sintético reciba una puntuación más atípica que un evento normal (independiente del umbral).",
+    "precision_media": "Área bajo la curva precisión-sensibilidad; debe leerse frente a la prevalencia (un clasificador al azar obtiene la prevalencia).",
+    "reglas_del_motor": "Se aplican a la misma evaluación las reglas versionadas del motor: «estricta» = nivel SOSPECHOSO; «amplia» = INTERMEDIO o SOSPECHOSO."
+  },
+  "limitaciones": [
+    "Las etiquetas y los eventos son sintéticos y salen de escenarios definidos por nosotros: un buen resultado solo demuestra el comportamiento frente a ese escenario, no eficacia bancaria real.",
+    "La prevalencia de fraude (8 % de transacciones y 10 % de accesos) es mucho mayor que la real; las precisiones no son extrapolables.",
+    "Las variables dispositivo, ubicación y viaje imposible participan en los escenarios pero el sistema actual no las recopila: quedan fuera de los modelos y de las reglas.",
+    "Los candidatos usan variables que el motor actual no calcula todas (p. ej. ratio frente al importe típico en el modelo): no se pueden activar hasta ampliar la inferencia; las puertas de activación lo impiden.",
+    "Aprendizaje no supervisado: la puntuación mide qué tan atípico es un evento, no la probabilidad de fraude. El umbral procede de una tasa de alertas fijada a priori.",
+    "Un único corte cronológico (60 días) y una sola semilla: no se estima la variabilidad entre muestras ni la deriva a largo plazo."
+  ],
+  "resultados_sha256": "a563e7f7dff458f213702fca4ed2de468bad247ffe4253aaaa6be3f8c9ed8348"
+}
