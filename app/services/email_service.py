@@ -31,6 +31,15 @@ def send_password_reset_link(recipient, link, minutes):
     _send_email(recipient, 'Restablece tu contraseña · Norte', body)
 
 
+def send_admin_activation_link(recipient, link, hours):
+    """Enlace para que una cuenta administrativa nueva defina su contraseña. Contiene el token: nunca se registra en logs."""
+    body=('Se creó una cuenta administrativa de Norte a tu nombre.\n\n'
+          f'Abre este enlace para definir tu contraseña (válido por {hours} horas y de un solo uso):\n{link}\n\n'
+          'Después deberá activar tu cuenta un Administrador General. Si no esperabas este mensaje, ignóralo: nadie podrá entrar con esta cuenta.\n'
+          + current_app.config['LEGAL_NOTICE'])
+    _send_email(recipient, 'Activa tu cuenta administrativa · Norte', body)
+
+
 def _send_security_code(recipient, code, subject, purpose):
     body=(f'Tu código de seguridad para {purpose} es: {code}\n\n'
           'Vence en 5 minutos. Si no solicitaste este código, ignora este mensaje.\n'

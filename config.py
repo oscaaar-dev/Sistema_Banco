@@ -190,6 +190,9 @@ class Config:
     NORI_MEMORY_TTL_SECONDS=1800
     NORI_MAX_REQUEST_BYTES=32768
     PASSWORD_RESET_TTL_SECONDS=1800
+    ADMIN_ACTIVATION_TTL_SECONDS=86400         # vigencia del enlace con el que una cuenta administrativa nueva define su contraseña
+    ADMIN_STEPUP_MAX_FAILURES=5                # confirmaciones reforzadas fallidas permitidas por administrador...
+    ADMIN_STEPUP_WINDOW_SECONDS=900            # ...dentro de esta ventana
     PASSWORD_RESET_RATE_LIMIT_IP=5
     PASSWORD_RESET_RATE_LIMIT_USER=3
     PASSWORD_RESET_RATE_LIMIT_WINDOW_SECONDS=3600

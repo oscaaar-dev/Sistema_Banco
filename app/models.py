@@ -25,11 +25,18 @@ class User(UserMixin, db.Model):
     created_at=db.Column(db.DateTime,nullable=False,default=now_utc)
     password_changed_at=db.Column(db.DateTime,nullable=True)
     sessions_revoked_at=db.Column(db.DateTime,nullable=True)
+    # Estado de la cuenta: ACTIVA (por defecto: todos los usuarios existentes), PENDIENTE, SUSPENDIDA o DESACTIVADA.
+    # Una cuenta que no está ACTIVA no puede iniciar sesión ni conservar sesiones abiertas.
+    account_status=db.Column(db.String(12),nullable=False,default='ACTIVA',server_default='ACTIVA')
     accounts=db.relationship('Account',backref='owner',lazy=True,cascade='all, delete-orphan')
     beneficiaries=db.relationship('Beneficiary',backref='owner',lazy=True,cascade='all, delete-orphan')
     cards=db.relationship('BankCard',backref='holder',lazy=True,cascade='all, delete-orphan')
     def set_password(self,password): self.password_hash=generate_password_hash(password)
     def check_password(self,password): return check_password_hash(self.password_hash,password)
+    @property
+    def is_active(self):
+        """Flask-Login: una cuenta suspendida, desactivada o pendiente no puede iniciar sesión."""
+        return self.account_status=='ACTIVA'
     def session_stamp(self):
         """Marca de las credenciales vigentes; si cambia, las sesiones anteriores dejan de ser válidas.
 
@@ -406,3 +413,41 @@ class AuditLog(db.Model):
     ip_local=db.Column(db.String(64))
     created_at=db.Column(db.DateTime,nullable=False,default=now_utc,index=True)
     user=db.relationship('User')
+
+class AdminPermission(db.Model):
+    """Permiso administrativo concedido a una cuenta ADMINISTRADOR. Denegar por defecto: sin fila no hay permiso.
+
+    ``ADMIN_GENERAL`` no necesita filas: tiene todos los permisos por definición del rol."""
+    __tablename__='admin_permissions'
+    __table_args__=(db.UniqueConstraint('user_id','permission',name='uq_admin_permissions_user_permission'),)
+    id=db.Column(db.Integer,primary_key=True)
+    user_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='CASCADE'),nullable=False,index=True)
+    permission=db.Column(db.String(40),nullable=False)
+    granted_by_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True)
+    granted_at=db.Column(db.DateTime,nullable=False,default=now_utc)
+
+class AdminChangeLog(db.Model):
+    """Historial de cambios administrativos (altas, permisos, estados, sesiones). Solo se inserta: ninguna ruta lo modifica ni lo borra.
+
+    ``detail`` nunca contiene contraseñas, tokens ni códigos."""
+    __tablename__='admin_change_log'
+    id=db.Column(db.Integer,primary_key=True)
+    actor_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True,index=True)
+    target_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True,index=True)
+    action=db.Column(db.String(40),nullable=False)
+    detail=db.Column(db.JSON,nullable=False,default=dict)
+    created_at=db.Column(db.DateTime,nullable=False,default=now_utc,index=True)
+    actor=db.relationship('User',foreign_keys=[actor_id])
+    target=db.relationship('User',foreign_keys=[target_id])
+
+class AdminActivationToken(db.Model):
+    """Enlace de un solo uso para que una cuenta administrativa nueva defina su propia contraseña. Solo se guarda el HMAC del token."""
+    __tablename__='admin_activation_tokens'
+    id=db.Column(db.Integer,primary_key=True)
+    user_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='CASCADE'),nullable=False,index=True)
+    token_hash=db.Column(db.String(64),nullable=False,unique=True)
+    created_by_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True)
+    auto_activate=db.Column(db.Boolean,nullable=False,default=False)
+    created_at=db.Column(db.DateTime,nullable=False,default=now_utc)
+    expires_at=db.Column(db.DateTime,nullable=False,index=True)
+    used_at=db.Column(db.DateTime,nullable=True)

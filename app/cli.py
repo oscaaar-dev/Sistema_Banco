@@ -6,6 +6,7 @@ from .services.capture_service import purge_expired_captures
 
 def register_cli(app):
     register_fraud_cli(app)
+    register_admin_cli(app)
     @app.cli.command('purge-captures')
     @click.option('--days', type=click.IntRange(min=1), default=None,
                   help='Días de conservación. Por defecto, CAPTURE_RETENTION_DAYS (90).')
@@ -164,3 +165,37 @@ def register_fraud_cli(app):
         if not dry_run:
             removed = metrics.purge_old_evaluations(app.config['FRAUD_EVALUATION_RETENTION_DAYS'])
             click.echo(f'{removed} evaluación(es) antiguas eliminadas (las vinculadas a un incidente se conservan).')
+
+
+def register_admin_cli(app):
+    @app.cli.command('admin-bootstrap')
+    @click.option('--email', required=True, help='Correo de la persona que será Administradora General (recibirá el enlace de activación).')
+    @click.option('--nombre', 'full_name', required=True, help='Nombre completo.')
+    @click.option('--confirmo-identidad', is_flag=True,
+                  help='Declaras que verificaste la identidad de esta persona por un canal independiente (obligatorio).')
+    def admin_bootstrap(email, full_name, confirmo_identidad):
+        """Aprovisionamiento INICIAL y restringido del primer Administrador General.
+
+        Solo funciona desde un servidor con acceso a la base, se niega si ya hay un Administrador General activo o pendiente y nunca promociona una cuenta existente.
+        No imprime ni guarda contraseñas ni enlaces: envía un enlace de un solo uso al correo y la propia persona define su contraseña.
+        """
+        from .models import db
+        from .services import admin_service as admins
+        from .services.email_service import EmailDeliveryError, send_admin_activation_link
+        if not confirmo_identidad:
+            raise click.ClickException('Falta --confirmo-identidad: confirma que verificaste la identidad de la persona por un canal independiente.')
+        click.echo(f'Se creará un Administrador General PENDIENTE para {email.strip().lower()} en la base configurada ({app.config.get("APP_ENV")}).')
+        click.confirm('¿Continuar?', abort=True)
+        try:
+            user, token = admins.bootstrap_general(full_name, email)
+            db.session.flush()
+            send_admin_activation_link(user.email, admins.activation_link(token), app.config['ADMIN_ACTIVATION_TTL_SECONDS'] // 3600)
+        except admins.AdminError as error:
+            db.session.rollback()
+            raise click.ClickException(str(error))
+        except EmailDeliveryError:
+            db.session.rollback()
+            raise click.ClickException('No se pudo enviar el correo de activación; no se creó la cuenta. Revisa la configuración de correo.')
+        db.session.commit()
+        click.echo('Cuenta creada en estado PENDIENTE y enlace de activación enviado al correo indicado (válido por '
+                   f'{app.config["ADMIN_ACTIVATION_TTL_SECONDS"] // 3600} horas). La persona define su contraseña desde el enlace; al hacerlo la cuenta queda activa.')

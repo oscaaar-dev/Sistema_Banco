@@ -2,7 +2,8 @@ import os
 from datetime import date, datetime, time
 from decimal import Decimal
 from flask import current_app
-from ..models import db, User, Account, Beneficiary, BankCard, Transaction
+from ..models import db, User, Account, Beneficiary, BankCard, Transaction, AdminPermission
+from .admin_service import PERMISSIONS
 
 _SYNTHETIC_CLIENTS=(
     {'name':'Lucía Torres Rojas','opening':'6234.70','income':'4725.35','expenses':('212.68','286.43','89.90','640.25')},
@@ -78,6 +79,9 @@ def seed_demo():
     client=User(username='demo', full_name='Alex Rivera', role='CLIENTE',email=client_email,is_seed=True); client.set_password(os.getenv('DEMO_PASSWORD','Demo123!'))
     admin=User(username='admin', full_name='Administración', role='ADMINISTRADOR',email=admin_email,is_seed=True); admin.set_password(os.getenv('ADMIN_PASSWORD','Admin123!'))
     db.session.add_all([client,admin]); db.session.flush()
+    # Solo la demostración local/pruebas: el administrador de muestra recibe todos los permisos. En staging/producción no hay seed de administradores:
+    # el primer ADMIN_GENERAL se aprovisiona con `flask admin-bootstrap` (docs/roles-administrativos.md).
+    db.session.add_all([AdminPermission(user_id=admin.id,permission=code) for code in PERMISSIONS])
     account=Account(user_id=client.id, account_type='Cuenta de ahorros', number='001234567890', balance=Decimal('8540.50'),is_seed=True)
     db.session.add(account); db.session.flush()
     db.session.add_all([
