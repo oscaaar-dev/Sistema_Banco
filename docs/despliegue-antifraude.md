@@ -17,6 +17,11 @@ Este documento no contiene secretos: las variables se nombran, nunca se muestran
 **Despliegue automático:** `web` se despliega desde la rama `main` del repositorio de GitHub (activador de Railway: rama `main`, **sin esperar a las comprobaciones de CI**). Cada fusión a
 `main` despliega staging. En producción no hay ningún servicio, así que hoy no se despliega nada allí.
 
+**Despliegue manual de una rama en staging (sin fusionar):** Railway permite subir una copia exacta de un commit al servicio `web` de un entorno concreto con `railway up -s web -e <staging> -p <Norte-staging>`.
+No toca `main`, ni la base de datos, ni otros entornos, y no cambia el activador de GitHub. Procedimiento usado el 2026-10-13: `git archive <commit>` a una carpeta exclusiva (solo
+archivos versionados, sin `data/`, `instance/` ni `.env`) y `railway up` desde ella. Despliegue `7f4480d1`, `SUCCESS`, commit `f208e65` de `feature/fraude-detector`. **Efecto secundario:**
+la próxima fusión a `main` volverá a desplegar `main` y reemplazará este despliegue manual.
+
 **Lección (incidente del 2026-10-13):** al fusionarse el PR #7 en `main`, Railway desplegó el código antifraude en staging antes de aplicar la migración. La aplicación, por diseño
 (`_validate_existing_schema`), se detiene al arrancar si faltan tablas o columnas, y `web` quedó en `CRASHED`. Se resolvió aplicando la migración y reiniciando el servicio. **Regla:
 la migración se aplica siempre antes de fusionar a `main`.**

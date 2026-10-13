@@ -75,7 +75,7 @@ Restringido, documentado y sin registro público:
 ## 7. Migración `b6e2a9c15d37` (aditiva)
 
 Añade `users.account_status` (`NOT NULL`, valor por defecto `ACTIVA`) y las tablas `admin_permissions`, `admin_change_log` y `admin_activation_tokens`. No modifica ni borra filas, no promociona a nadie y es reversible (`alembic downgrade f7a1c4d9e620`, que solo elimina lo anterior: se pierden permisos, historial de cambios y enlaces pendientes, no el antifraude ni los datos bancarios).
-**Debe aplicarse antes de desplegar este código**: la aplicación se detiene al arrancar si falta el esquema, y en staging `web` se despliega automáticamente al fusionar a `main`.
+**Debe aplicarse antes de desplegar este código**: la aplicación se detiene al arrancar si falta el esquema, y en staging `web` se despliega automáticamente al fusionar a `main` (también puede desplegarse a mano una rama concreta; ver `docs/despliegue-antifraude.md`, apartado 1).
 **Estado:** aplicada en la base de staging el 2026-10-13 (verificada: revisión, columna, tablas, restricciones e índices idénticos a los modelos, datos previos intactos y las 102 cuentas existentes en `ACTIVA`). Aún no hay ningún `ADMIN_GENERAL` en staging; producción no existe todavía.
 Verificada en SQLite (pruebas) y **ensayada en PostgreSQL real** sobre una base desechable partiendo del estado previo al antifraude: la cadena `e5b2c7d91a40 → f7a1c4d9e620 → b6e2a9c15d37` se aplica, las tablas originales conservan sus filas, la aplicación arranca en modo producción contra ese esquema, la bajada y la nueva subida funcionan. Ese ensayo descubrió y permitió corregir un fallo que SQLite no mostraba (`SELECT count(*) … FOR UPDATE` no es válido en PostgreSQL).
 
