@@ -11,7 +11,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLISHABLE = [
-    'docs/fraude.md', 'docs/dataset-antifraude-sintetico.md', 'docs/informe-final-antifraude.md', 'docs/despliegue-antifraude.md',
+    'docs/fraude.md', 'docs/dataset-antifraude-sintetico.md', 'docs/informe-final-antifraude.md', 'docs/despliegue-antifraude.md', 'docs/roles-administrativos.md',
     'datasets_sinteticos/dataset_antifraude_completo_12000.manifest.json',
     'datasets_sinteticos/informe_evaluacion_modelos_candidatos.json', 'datasets_sinteticos/informe_evaluacion_modelos_candidatos.md',
 ]

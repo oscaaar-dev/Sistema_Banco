@@ -7,7 +7,7 @@ Este documento no contiene secretos: las variables se nombran, nunca se muestran
 | | Staging (`Norte-staging` / `staging`) | Producción (`production` del mismo proyecto) |
 |---|---|---|
 | Servicios | `web` (código de GitHub) y `Postgres` (con volumen) | **Ninguno**: el entorno está vacío |
-| Revisión de Alembic | `f7a1c4d9e620` (cabeza única), aplicada el 2026-10-13 | No existe base de datos |
+| Revisión de Alembic | `f7a1c4d9e620` (antifraude), aplicada el 2026-10-13. **Pendiente en staging: `b6e2a9c15d37` (roles administrativos, cabeza actual de la rama)** | No existe base de datos |
 | Esquema | 26 tablas: las 20 originales (sin cambios en sus filas) y las 6 antifraude, vacías | — |
 | Despliegue de `web` | `SUCCESS`, estable | — |
 | `FRAUD_MODE` | `shadow`, explícito | — |
@@ -40,7 +40,7 @@ El Postgres de Railway no expone una dirección pública, así que Alembic se ej
 4. **Túnel:** `railway ssh config -s Postgres -e <entorno> -p <proyecto> --alias pg --path <archivo-temporal> -i <clave>` y después
    `ssh -F <archivo-temporal> -L 127.0.0.1:15432:127.0.0.1:5432 -N pg` (no se modifica `~/.ssh/config`).
 5. **Alembic** (desde la raíz del repositorio, con `MIGRATION_DATABASE_URL=postgresql+psycopg://<usuario>:<clave>@127.0.0.1:15432/<base>` solo en el entorno del proceso):
-   `alembic heads` (debe haber una sola cabeza), `alembic current` (debe ser `e5b2c7d91a40`), `alembic upgrade e5b2c7d91a40:f7a1c4d9e620 --sql` para revisar el SQL (solo `ALTER TABLE ... ADD COLUMN`,
+   `alembic heads` (debe haber una sola cabeza), `alembic current` (debe ser la revisión previa a la que se va a aplicar: `e5b2c7d91a40` para el antifraude y `f7a1c4d9e620` para los roles), `alembic upgrade <previa>:<nueva> --sql` para revisar el SQL (solo `ALTER TABLE ... ADD COLUMN`,
    `CREATE TABLE`, `CREATE INDEX` y la actualización de `alembic_version`, sin `DROP`, `DELETE` ni `TRUNCATE`) y, por último, `alembic upgrade head`. El DDL es transaccional: o se aplica entero o nada.
 6. **Verificar:** revisión `f7a1c4d9e620`; 6 tablas nuevas y `users.sessions_revoked_at`; conteos exactos de las tablas originales idénticos a los de la copia.
 7. **Cerrar el túnel** y reiniciar `web` con el procedimiento normal de Railway (`railway redeploy -s web -e <entorno> -p <proyecto> -y`).
@@ -58,14 +58,15 @@ errores; y, cuando exista un administrador de prueba, las pruebas autenticadas d
   registrados desde entonces. Antes, copia de seguridad.
 * **De los datos:** restaurar la copia lógica en una base vacía: `gunzip -c <copia>.sql.gz | psql -d <base> -v ON_ERROR_STOP=1` y fijar la revisión de Alembic de esa copia.
 
-## 5. Pruebas autenticadas en staging (pendientes)
-No se han hecho: exigen contraseña y un código de un solo uso enviado por correo, y en staging los 102 usuarios son clientes de demostración sin ningún administrador. No se deben crear ni elevar
-privilegios a usuarios reales para probar. Procedimiento seguro propuesto:
-1. Provisionar **un administrador de prueba dedicado** (correo propio, contraseña aleatoria que cumpla la política de 8 a 10 caracteres, guardada en un gestor de contraseñas, nunca en Git ni en
-   informes) con una orden explícita y autorizada; hoy no existe un comando para ello (`app/cli.py` no lo incluye), por lo que habría que añadir uno que lea la contraseña de la entrada estándar.
-2. Probar: inicio de sesión con OTP; una transferencia pequeña entre cuentas de demostración; `/admin/fraude` (permisos: un cliente recibe 403); detalle de incidente; exportación CSV (UTF-8, sin datos
-   personales); auditoría; operación retenida y restricción temporal solo en `enforce` y únicamente en una copia de pruebas.
-3. Retirar o desactivar ese administrador al terminar.
+## 5. Pruebas autenticadas en staging (pendientes) y roles administrativos
+Siguen **sin hacerse en staging**: exigen una cuenta administrativa real con acceso a su correo (el código de un solo uso llega por correo). Hasta ahora no existía ningún administrador ni un procedimiento para crearlo; la rama incluye los roles
+`ADMIN_GENERAL` / `ADMINISTRADOR` / `CLIENTE` y el aprovisionamiento inicial `flask admin-bootstrap` (ver `docs/roles-administrativos.md`). Para probar en staging, en este orden:
+1. Aplicar en staging la migración `b6e2a9c15d37` con el procedimiento del apartado 3 (copia de seguridad previa; ya ensayada en una base PostgreSQL desechable) **antes** de fusionar la rama a `main` (se desplegaría solo y `web` se detendría sin el esquema).
+2. Fusionar y esperar el despliegue de staging; comprobar `SUCCESS` y las respuestas HTTP del apartado 3.
+3. Aprovisionar el primer Administrador General con `admin-bootstrap` y **el correo de la persona responsable** (no se inventa ni se reutiliza el de ninguna otra cuenta); la persona define su contraseña desde el enlace y entra con el código por correo.
+4. Probar con esa cuenta: acceso a `/admin/cuentas` y `/admin/fraude`; crear una cuenta `ADMINISTRADOR` de prueba **dedicada** (correo propio), activarla y comprobar que sin permisos solo ve la vista general; un cliente recibe 403 en todo `/admin`;
+   suspender la cuenta de prueba y comprobar que su sesión se cierra; exportación CSV y auditoría; y, solo en una copia de pruebas, operación retenida y restricción temporal en `enforce`.
+5. Desactivar la cuenta de prueba al terminar. No se crean ni se elevan privilegios a usuarios reales para probar.
 
 ## 6. Plan de producción (no ejecutado; requiere autorización expresa)
 Hoy el entorno `production` está vacío, así que no hay nada que migrar: hay que **crearlo**. Orden:
@@ -82,3 +83,11 @@ Hoy el entorno `production` está vacío, así que no hay nada que migrar: hay q
 No se versionan los `.joblib`: son archivos de `pickle` que se cargan con `joblib`, dependen de la versión de Python y scikit-learn (los entrenados con 3.12 no se aceptan en 3.13) y el sistema de
 archivos de Railway es efímero. Distribución segura: no se distribuyen; se **reentrenan en el entorno de destino** con `flask --app run fraud-train-events datasets_sinteticos/dataset_antifraude_completo_12000.csv`,
 que reproduce las mismas métricas (verificado en el contenedor de staging) y registra candidatos sin activar. Activar uno es una orden manual (`fraud-model-activate`) tras revisar el informe.
+
+## 8. Base temporal `restore_check_tmp` (staging)
+Creada el 2026-10-13 para probar que la copia de seguridad se podía restaurar. Comprobado en solo lectura: contiene exactamente las 20 tablas y 1.275 filas de la base de staging **antes** de migrar (revisión `e5b2c7d91a40`), pertenece al usuario `postgres`, tenía 0 conexiones
+y ninguna variable ni servicio de Railway la usa (`web` usa la base `railway`). Después se usó como **base de ensayo desechable** de las migraciones y de los roles en PostgreSQL real, por lo que **ya no es una copia fiel de nada** (contiene cuentas de ensayo y las migraciones aplicadas);
+la copia de seguridad original (`staging-antes-migracion.sql.gz`, fuera del repositorio) no se tocó. **No se ha eliminado.** Cuando una persona autorizada confirme que ya no se necesita, el procedimiento es:
+1. Comprobar la identidad y que no hay conexiones: `select datname, count(*) from pg_stat_activity where datname='restore_check_tmp' group by 1;` debe devolver 0 filas y `\l` debe mostrar solo `postgres`, `railway` y `restore_check_tmp`.
+2. Eliminar solo esa base, desde la base `postgres` y nunca estando conectado a ella: `railway ssh -s Postgres -e staging -p <proyecto> -- sh -c 'psql -h localhost -U "$POSTGRES_USER" -d postgres -c "DROP DATABASE restore_check_tmp"'`. Es irreversible.
+3. Verificar que `railway` sigue intacta (revisión de Alembic y conteos) y que `web` responde.

@@ -273,7 +273,7 @@ Siguientes pasos razonables: ampliar las características con información del d
 cliente de Norte), y repetir la evaluación; y, sobre todo, esperar a disponer de incidentes revisados reales para etiquetar de verdad.
 
 ## 11. Panel administrativo y exportación (`/admin/fraude`)
-Solo el rol `ADMINISTRADOR` (el servidor comprueba el rol en cada ruta, GET o POST; `SOPORTE` y `CLIENTE` reciben 403). Todos los POST llevan CSRF, se auditan y el
+Cada ruta exige un **permiso concreto** (`fraude.consultar`, `fraude.investigar`, `fraude.decidir`, `fraude.resolver_retenciones`, `fraude.gestionar_restricciones`, `fraude.exportar` y `auditoria.consultar`): `ADMIN_GENERAL` los tiene todos y un `ADMINISTRADOR` solo los que se le concedieron (denegar por defecto), comprobados en el servidor en cada ruta, GET o POST, y de nuevo en el servicio; `SOPORTE` y `CLIENTE` reciben 403. Los roles y la gestión de cuentas están en `docs/roles-administrativos.md`. Todos los POST llevan CSRF, se auditan y el
 servicio vuelve a comprobar el rol y que el administrador no actúe sobre su propio usuario. Permite: consultar y filtrar incidentes (estado, nivel, tipo, fechas),
 ver por qué se marcó cada uno (señales, puntuación, versión de reglas y de modelo), iniciar la investigación, comentar, **descartar** (levanta las restricciones
 preventivas y autoriza repetir lo retenido), **confirmar fraude** (sanción temporal con alcance y duración, máximo 365 días; la duración sugerida considera solo
@@ -342,3 +342,13 @@ Umbrales no validados con datos reales; sin etiquetas fiables de fraude; la iden
 duración declarada por el formulario del cliente no se usa (no es fiable); el modelo es solo de observación; las sesiones de Flask son cookies firmadas, así que la
 revocación es por usuario (no por sesión concreta); un tercero que conozca un identificador puede provocar fallos de acceso (mitigado exigiendo contexto nuevo y
 un bloqueo breve).
+
+### Qué NO demuestra este trabajo (resumen para quien lo evalúe)
+* **Datos sintéticos frente a eficacia real.** Todas las métricas (matrices de confusión, AUC, precisión, sensibilidad) salen de un dataset **sintético** con etiquetas definidas por nosotros y una prevalencia de fraude mucho mayor que la real.
+  Demuestran que el código funciona y cómo reacciona a esos escenarios; **no** demuestran capacidad de detección de fraude bancario real ni permiten declarar el modelo validado para uso bancario.
+* **Modo `shadow` frente a retención efectiva.** En `shadow` (el modo por defecto y el configurado explícitamente en staging) el motor evalúa, registra y abre incidentes, pero **no retiene operaciones ni restringe accesos**: nada se
+  bloquea. La retención antes de modificar saldos y las restricciones temporales solo existen en `enforce`, que no está activado en ningún entorno y que exige una decisión humana documentada.
+* **Modelos candidatos frente a modelo activo.** Hay tres candidatos registrados y **ninguno activo**. La activación es una orden manual y las puertas de activación comprueban cordura (datos suficientes, entorno compatible, artefacto íntegro), no eficacia.
+  Aunque se activara uno, solo observa: no cambia el nivel de una operación ni aplica medidas, y no puede confirmar un fraude ni imponer una sanción.
+* **Notificación al cliente.** No hay aviso por correo cuando se retiene una operación o se restringe un acceso (el mensaje solo se muestra en pantalla), ni al propietario de una cuenta administrativa cuando cambian sus permisos o su estado.
+* **Validación de umbrales.** Los umbrales (25 y 55, y las duraciones de las medidas) son valores iniciales no validados con datos ni con revisión de analistas; deben calibrarse con incidentes reales revisados antes de pasar a `enforce`.

@@ -1,5 +1,7 @@
 # Informe final: sistema antifraude (dataset sintético, candidatos y verificación)
 
+> **INFORME HISTÓRICO (cierre del 2026-10-12).** Describe el estado de ese día y se conserva como registro; **no describe el estado actual** (ver el estado vigente en `docs/despliegue-antifraude.md` y en el apartado 14 de `docs/fraude.md`).
+
 Fecha de cierre: 2026-10-12. Rama local `feature/fraude-detector` (worktree `fraud-worktree`), `HEAD` = `origin/main` (`a6d3dd1`), **sin commits**.
 Todos los datos y etiquetas son **sintéticos**: ninguna cifra de este informe demuestra eficacia contra fraude bancario real.
 
