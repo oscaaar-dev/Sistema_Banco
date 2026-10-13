@@ -313,7 +313,7 @@ temporales y datos sintéticos.
 ## 14. Estado por entorno y pasos pendientes (detalle y procedimiento en `docs/despliegue-antifraude.md`)
 **Estado verificado el 2026-10-13:**
 * **Staging (Railway, proyecto `Norte-staging`, entorno `staging`):** la migración `f7a1c4d9e620` **está aplicada** (Alembic `e5b2c7d91a40` → `f7a1c4d9e620`, 26 tablas) y
-  `web` responde (despliegue en `SUCCESS`). `FRAUD_MODE=shadow` está configurado de forma explícita. Fue necesario aplicarla *después* del despliegue automático, que
+  `web` responde (despliegue en `SUCCESS`). `FRAUD_MODE` estaba en `shadow` en esa fecha y **pasó a `enforce` el 2026-10-13** por decisión humana expresa (ver «Decisión de pasar a `enforce` en staging» en `docs/despliegue-antifraude.md`). Fue necesario aplicarla *después* del despliegue automático, que
   había dejado `web` caído: ver «Lección» en `docs/despliegue-antifraude.md`.
 * **Producción:** el entorno `production` del proyecto no tiene servicios. **No se ha aplicado ninguna migración ni se ha desplegado nada.**
 * **Ningún modelo está activo** en ningún entorno. Los tres candidatos están registrados como candidatos y sin activar; el detector responde `sin_modelo_activo`. Los dos
